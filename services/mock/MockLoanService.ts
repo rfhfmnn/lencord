@@ -140,12 +140,24 @@ export class MockLoanService implements LoanServiceInterface {
     loan.status = 'funding';
 
     // Update or establish risk tier on borrower credit profile
-    const creditProfile = this.store.creditProfiles.find(
+    let creditProfile = this.store.creditProfiles.find(
       (cp) => cp.profile_id === loan.borrower_id
     );
     if (creditProfile) {
       creditProfile.risk_tier = input.risk_tier;
       creditProfile.updated_at = new Date().toISOString();
+    } else {
+      creditProfile = {
+        id: `cred-${Math.random().toString(36).substring(2, 9)}`,
+        profile_id: loan.borrower_id,
+        bcra_situation: 1,
+        risk_tier: input.risk_tier,
+        balance_sheet_url: null,
+        f931_url: null,
+        scoring_notes: `Aprobado por administración con ${input.risk_tier}`,
+        updated_at: new Date().toISOString(),
+      };
+      this.store.creditProfiles.push(creditProfile);
     }
 
     return JSON.parse(JSON.stringify(loan));

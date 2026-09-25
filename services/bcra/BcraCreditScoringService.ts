@@ -158,7 +158,7 @@ export class BcraCreditScoringService implements CreditScoringInterface {
       });
 
       totalDebt += amount;
-      if (situation > (worstSituation ?? 1)) {
+      if (situation !== null && (worstSituation === null || situation > worstSituation)) {
         worstSituation = situation;
       }
     }
