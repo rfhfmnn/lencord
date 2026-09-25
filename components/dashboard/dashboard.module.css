@@ -400,3 +400,225 @@
     transform: rotate(360deg);
   }
 }
+
+/* Borrower Dashboard specific styles */
+.badgeInReview {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badgeFunding {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.badgeFunded {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badgeActive {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.borrowerHeroCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.loanHeaderBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .loanHeaderBar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.loanTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.loanHeading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0a2540;
+  margin: 0;
+}
+
+/* Informational review card */
+.inReviewCard {
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  border: 1px solid #fde68a;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.inReviewHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.inReviewIcon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background-color: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inReviewTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.5rem;
+}
+
+.inReviewText {
+  font-size: 0.9375rem;
+  color: #78350f;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Auction monitor */
+.auctionMonitorCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.auctionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .auctionHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.auctionProgressTrack {
+  height: 1.25rem;
+  width: 100%;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.auctionProgressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.auctionStatsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.countdownBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #eff6ff;
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+/* Funded & Pagaré signing prompt */
+.signingNotification {
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .signingNotification {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.signingContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.signingIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: #d1fae5;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.signingTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #065f46;
+  margin: 0 0 0.375rem;
+}
+
+.signingDescription {
+  font-size: 0.9375rem;
+  color: #047857;
+  margin: 0;
+  line-height: 1.5;
+}
+
