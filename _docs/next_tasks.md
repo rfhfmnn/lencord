@@ -99,3 +99,15 @@ Description: Configure a transactional email service (such as Resend or Supabase
 ## [25. End-to-End System Integration and Smoke Test Suite](https://github.com/rfhfmnn/lencord/issues/48)
 Goal: Build comprehensive automated end-to-end integration tests validating the entire lifecycle from registration to active loan.
 Description: Implement an automated integration test suite that simulates a complete user journey: borrower registration, loan application submission with document upload, admin credit review and approval, investor bidding to 100% capacity, promissory note digital signature, and installment schedule generation. Verify that all security policies, atomic constraints, and database relationships execute cleanly without race conditions or data loss.
+
+## [26. Production Banking-as-a-Service Live Network Integration and Contract Provisioning](https://github.com/rfhfmnn/lencord/issues/49)
+Goal: Negotiate live banking credentials and connect the production Banking-as-a-Service (BaaS) provider for real fund settlements.
+Description: Configure the production BaaS API client using encrypted institutional credentials from secure environment secrets. Implement live CBU/CVU verification via COELSA / Interbanking. Run daily automated settlement reconciliation comparing platform ledger balances against bank custody account statements, and handle production webhook transactions with idempotency keys.
+
+## [27. SMS and WhatsApp Multi-Channel Notification Integration](https://github.com/rfhfmnn/lencord/issues/50)
+Goal: Implement SMS and WhatsApp messaging channels for high-priority operational and security alerts.
+Description: Implement a multi-channel notification adapter supporting SMS and WhatsApp dispatch via provider API (e.g. Twilio). Dispatch instant high-priority alerts for OTP signature requests, loan funding completion, and urgent payment reminders, tracking delivery status webhooks and user notification channel preferences.
+
+## [28. Production Load and Stress Testing Suite](https://github.com/rfhfmnn/lencord/issues/51)
+Goal: Validate system concurrency, database connection pooling, and subasta overfunding resistance under high concurrent traffic.
+Description: Build a load testing suite simulating concurrent investors attempting to commit funds to the same loan. Validate that the PostgreSQL `commit_investment_atomic` procedure guarantees 0% overfunding without deadlocks under concurrency, and ensure database connection pool stability with documented p95 latency reports.
