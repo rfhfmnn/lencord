@@ -1,0 +1,39 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--font-sans);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Tier A: Soft Green (#D1FAE5) and Emerald Text (#065F46) */
+.tierA {
+  background-color: var(--color-tier-a-bg, #D1FAE5);
+  color: var(--color-tier-a-text, #065F46);
+}
+
+/* Tier B: Soft Amber (#FEF3C7) and Warm Brown Text (#92400E) */
+.tierB {
+  background-color: var(--color-tier-b-bg, #FEF3C7);
+  color: var(--color-tier-b-text, #92400E);
+}
+
+/* Tier C: Soft Orange (#FFEDD5) and Terracotta Text (#9A3412) */
+.tierC {
+  background-color: var(--color-tier-c-bg, #FFEDD5);
+  color: var(--color-tier-c-text, #9A3412);
+}
+
+.default {
+  background-color: var(--color-bg-neutral, #F8FAFC);
+  color: var(--color-text-secondary, #64748B);
+  border-color: var(--color-border, #E2E8F0);
+}
