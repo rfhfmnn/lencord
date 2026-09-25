@@ -8,3 +8,4 @@ export * from './env';
 export * from './factory';
 export * from './locator';
 export * from './mock';
+export * from './supabase';
