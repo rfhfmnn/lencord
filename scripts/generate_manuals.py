@@ -56,8 +56,7 @@ body {
     border-radius: 20px;
     font-size: 11px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.5px;
     margin-bottom: 25px;
     border: 1px solid rgba(255, 255, 255, 0.25);
 }
@@ -125,8 +124,7 @@ body {
     font-size: 11px;
     font-weight: 600;
     color: #64748B;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.5px;
 }
 
 h2 {
