@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useId, useMemo, useState } from 'react';
 import Link from 'next/link';
 import styles from './hero-simulator.module.css';
