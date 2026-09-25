@@ -8,6 +8,8 @@ Commands
 - `npx vitest run tests/components/HeroSimulator.test.tsx` - run a single test file
 - `npm run build` - build for production and type-check
 
+regularly commit code to git 
+
 Rules
 
 - Dependencies are managed in `package.json`. Do not add new packages without asking first.
