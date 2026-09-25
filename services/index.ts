@@ -10,3 +10,4 @@ export * from './locator';
 export * from './mock';
 export * from './supabase';
 export * from './bcra';
+export * from './payments';
