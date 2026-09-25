@@ -8,6 +8,7 @@ import { createServices } from '@/services/factory';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, calculateDaysRemaining, formatRateDisplay } from '@/components/marketplace/LoanCard';
+import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import styles from './dashboard.module.css';
 
 export interface BorrowerDashboardProps {
@@ -54,6 +55,7 @@ export function BorrowerDashboard({
   );
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
   const [loading, setLoading] = useState<boolean>(!initialLoans);
+  const [isSigningModalOpen, setIsSigningModalOpen] = useState<boolean>(false);
 
   // Keep state synced with props
   useEffect(() => {
@@ -223,11 +225,17 @@ export function BorrowerDashboard({
   const daysRemaining = calculateDaysRemaining(currentLoan.funding_deadline, referenceDate);
 
   const handleSigningClick = () => {
+    setIsSigningModalOpen(true);
     if (onSignPromissoryNote) {
       onSignPromissoryNote(currentLoan.id);
-    } else {
-      alert(`Iniciando flujo de firma digital de pagaré para el préstamo ${currentLoan.id}`);
     }
+  };
+
+  const handleContractSigned = (_signedContract: any) => {
+    // Transition loan status to 'active' (or ready for disbursement)
+    setLoans((prevLoans) =>
+      prevLoans.map((l) => (l.id === currentLoan.id ? { ...l, status: 'active' } : l))
+    );
   };
 
   return (
@@ -489,6 +497,17 @@ export function BorrowerDashboard({
             )}
           </div>
         </section>
+      )}
+
+      {/* Electronic Promissory Note Signing Modal */}
+      {currentLoan && (
+        <PromissoryNoteModal
+          isOpen={isSigningModalOpen}
+          onClose={() => setIsSigningModalOpen(false)}
+          loan={currentLoan}
+          installments={installments}
+          onSuccess={handleContractSigned}
+        />
       )}
     </div>
   );
