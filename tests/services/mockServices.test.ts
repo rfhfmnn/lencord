@@ -78,10 +78,13 @@ describe('In-Memory Mock Services and Seed Data (Issue #4)', () => {
       // Mutate state
       store.loans.pop();
       expect(store.loans.length).toBe(SEED_LOANS.length - 1);
+      store.profiles.pop();
+      expect(store.profiles.length).toBe(SEED_PROFILES.length - 1);
 
       // Reset
       store.reset();
       expect(store.loans.length).toBe(SEED_LOANS.length);
+      expect(store.profiles.length).toBe(SEED_PROFILES.length);
     });
   });
 
