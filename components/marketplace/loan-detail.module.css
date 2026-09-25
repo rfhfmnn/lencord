@@ -1,0 +1,273 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+  transition: color 0.15s;
+}
+
+.backLink:hover {
+  color: #0a2540;
+}
+
+.headerCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.categoryBadge {
+  background-color: #eff6ff;
+  color: #1e40af;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.statusFunding {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.statusCompleted {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 1rem;
+  line-height: 1.25;
+}
+
+.destinationDescription {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+/* Financial Highlights Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metricLabel {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.metricValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.metricAccent {
+  color: #0a2540;
+}
+
+/* Progress & Funding Section */
+.fundingSection {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fundedAmount {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0a2540;
+}
+
+.targetAmount {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.percentageLabel {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.progressBarTrack {
+  height: 0.875rem;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.progressBarFillCompleted {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+}
+
+.capacityRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9375rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.capacityText {
+  color: #64748b;
+}
+
+.capacityValue {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+
+/* Credit & Solvency Section */
+.creditSection {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 1rem;
+}
+
+.creditList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.creditItem {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.creditItemLabel {
+  font-size: 0.8125rem;
+  color: #64748b;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.creditItemValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Loading & Error States */
+.loadingState,
+.errorState {
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.loadingSpinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0a2540;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
