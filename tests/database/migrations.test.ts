@@ -169,3 +169,78 @@ describe('Relational Database Schema and Row Level Security Setup (Issue #17)', 
     expect(policyStatements?.length).toBeGreaterThanOrEqual(12);
   });
 });
+
+describe('Notifications Table and Extended RLS Migration (Issue #25)', () => {
+  const migrationsDir = path.resolve(process.cwd(), 'supabase', 'migrations');
+  const notifMigrationFile = path.resolve(
+    migrationsDir,
+    '20260925000003_create_notifications_table_and_rls.sql'
+  );
+
+  it('migration file exists in supabase/migrations directory', () => {
+    expect(fs.existsSync(notifMigrationFile)).toBe(true);
+  });
+
+  const sqlContent = fs.existsSync(notifMigrationFile)
+    ? fs.readFileSync(notifMigrationFile, 'utf-8')
+    : '';
+
+  it('defines notification_type ENUM and extends user_role ENUM', () => {
+    expect(sqlContent).toMatch(/CREATE TYPE notification_type AS ENUM\s*\(\s*'info',\s*'success',\s*'warning'\s*\)/i);
+    expect(sqlContent).toMatch(/ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'borrower'/i);
+  });
+
+  it('creates notifications table with required columns matching next_plan.md Section 3.1', () => {
+    expect(sqlContent).toMatch(/CREATE TABLE (IF NOT EXISTS )?notifications\s*\(/i);
+    expect(sqlContent).toMatch(/user_id UUID NOT NULL REFERENCES profiles\(id\) ON DELETE CASCADE/i);
+    expect(sqlContent).toMatch(/title VARCHAR\(255\) NOT NULL/i);
+    expect(sqlContent).toMatch(/message TEXT NOT NULL/i);
+    expect(sqlContent).toMatch(/type notification_type NOT NULL DEFAULT 'info'/i);
+    expect(sqlContent).toMatch(/read BOOLEAN NOT NULL DEFAULT false/i);
+    expect(sqlContent).toMatch(/action_url TEXT NULL/i);
+    expect(sqlContent).toMatch(/created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now\(\)/i);
+  });
+
+  it('creates performance indexes for notifications queries', () => {
+    expect(sqlContent).toMatch(/CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications\(user_id\)/i);
+    expect(sqlContent).toMatch(/CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications\(created_at DESC\)/i);
+    expect(sqlContent).toMatch(/CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications\(user_id, read\)/i);
+  });
+
+  it('enables Row Level Security and defines isolation policies for notifications', () => {
+    expect(sqlContent).toMatch(/ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;/i);
+    expect(sqlContent).toMatch(/CREATE POLICY "Admins have full access to notifications"/i);
+    expect(sqlContent).toMatch(/CREATE POLICY "Users can view own notifications"/i);
+    expect(sqlContent).toMatch(/CREATE POLICY "Users can update own notifications"/i);
+    expect(sqlContent).toMatch(/CREATE POLICY "Users and services can insert notifications"/i);
+  });
+
+  it('verifies all 7 core tables are established across all migrations in supabase/migrations/', () => {
+    const migrationFiles = [
+      '20260925000001_create_relational_schema_and_rls.sql',
+      '20260925000002_create_commit_investment_atomic_rpc.sql',
+      '20260925000003_create_notifications_table_and_rls.sql',
+    ];
+
+    const combinedSql = migrationFiles
+      .map((f) => fs.readFileSync(path.resolve(migrationsDir, f), 'utf-8'))
+      .join('\n');
+
+    const coreTables = [
+      'profiles',
+      'sme_credit_profiles',
+      'loans',
+      'investments',
+      'installments',
+      'legal_contracts',
+      'notifications',
+    ];
+
+    coreTables.forEach((table) => {
+      const tableRegex = new RegExp(`CREATE TABLE (IF NOT EXISTS )?${table}\\s*\\(`, 'i');
+      expect(tableRegex.test(combinedSql)).toBe(true);
+      const rlsRegex = new RegExp(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`, 'i');
+      expect(rlsRegex.test(combinedSql)).toBe(true);
+    });
+  });
+});

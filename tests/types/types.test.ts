@@ -18,6 +18,8 @@ import type {
   LoanCategory,
   LoanServiceInterface,
   LoanStatus,
+  Notification,
+  NotificationType,
   PaymentGatewayInterface,
   Profile,
   RateType,
@@ -176,7 +178,7 @@ describe('Domain Models and Enums (@/types)', () => {
   });
 
   it('validates all union types for UserRole, RiskTier, LoanStatus, RateType, and others', () => {
-    const roles: UserRole[] = ['investor', 'sme', 'admin'];
+    const roles: UserRole[] = ['investor', 'sme', 'admin', 'borrower'];
     const tiers: RiskTier[] = ['Tier A', 'Tier B', 'Tier C'];
     const statuses: LoanStatus[] = [
       'draft',
@@ -193,8 +195,9 @@ describe('Domain Models and Enums (@/types)', () => {
     const installmentStatuses: InstallmentStatus[] = ['pending', 'paid', 'overdue'];
     const docTypes: DocumentType[] = ['mutuo', 'pagare'];
     const bcraSituations: BcraSituation[] = [1, 2, 3, 4, 5, null];
+    const notificationTypes: NotificationType[] = ['info', 'success', 'warning'];
 
-    expect(roles).toHaveLength(3);
+    expect(roles).toHaveLength(4);
     expect(tiers).toHaveLength(3);
     expect(statuses).toHaveLength(7);
     expect(rateTypes).toHaveLength(2);
@@ -203,6 +206,25 @@ describe('Domain Models and Enums (@/types)', () => {
     expect(installmentStatuses).toHaveLength(3);
     expect(docTypes).toHaveLength(2);
     expect(bcraSituations).toHaveLength(6);
+    expect(notificationTypes).toHaveLength(3);
+  });
+
+  it('instantiates a valid Notification matching next_plan.md Section 3.1', () => {
+    const notification: Notification = {
+      id: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+      user_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      title: 'Solicitud aprobada',
+      message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta.',
+      type: 'success',
+      read: false,
+      action_url: '/dashboard/pyme',
+      created_at: new Date('2026-09-27T00:00:00Z').toISOString(),
+    };
+
+    expect(notification.id).toBeDefined();
+    expect(notification.user_id).toBeDefined();
+    expect(notification.type).toBe('success');
+    expect(notification.read).toBe(false);
   });
 
   it('provides complete category labels for all LoanCategory variants', () => {

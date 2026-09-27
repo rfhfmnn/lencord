@@ -11,7 +11,7 @@
  * Roles for platform users.
  * Matches profiles.role ENUM in plan.md Section 6.
  */
-export type UserRole = 'investor' | 'sme' | 'admin';
+export type UserRole = 'investor' | 'sme' | 'admin' | 'borrower';
 
 /**
  * Platform risk categories for borrower creditworthiness.
@@ -96,6 +96,10 @@ export interface Profile {
   kyc_status: KycStatus;
   bank_cbu_cvu: string; // VARCHAR(22) - CBU or CVU
   created_at: string; // ISO 8601 Timestamp
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  is_verified?: boolean;
 }
 
 /**
@@ -177,6 +181,26 @@ export interface LegalContract {
   document_url: string; // Storage URL of generated PDF document
   signature_hash: string | null; // Cryptographic SHA-256 hash or OTP token
   signed_at: string | null; // ISO 8601 Timestamp or null
+}
+
+/**
+ * Types of system and event notifications.
+ */
+export type NotificationType = 'info' | 'success' | 'warning';
+
+/**
+ * In-app notification alert for users.
+ * Table: `notifications`
+ */
+export interface Notification {
+  id: string; // UUID
+  user_id: string; // Foreign Key to profiles.id
+  title: string;
+  message: string;
+  type: NotificationType;
+  read: boolean;
+  action_url: string | null;
+  created_at: string; // ISO 8601 Timestamp
 }
 
 // ---------------------------------------------------------------------------

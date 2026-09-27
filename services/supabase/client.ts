@@ -3,7 +3,7 @@
  * Uses @supabase/ssr respecting HTTP cookies and server-side authentication.
  */
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient, createBrowserClient, type CookieOptions } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export interface CookieMethodsServer {
@@ -70,4 +70,24 @@ export function createSupabaseAdminClient(): SupabaseClient {
       persistSession: false,
     },
   });
+}
+
+/**
+ * Creates an authenticated Supabase browser client using @supabase/ssr.
+ */
+export function createSupabaseBrowserClient(options?: {
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+}): SupabaseClient {
+  const supabaseUrl =
+    options?.supabaseUrl ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    'https://placeholder-project.supabase.co';
+
+  const supabaseAnonKey =
+    options?.supabaseAnonKey ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    'placeholder-anon-key';
+
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
