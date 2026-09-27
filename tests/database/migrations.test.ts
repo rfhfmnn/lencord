@@ -220,6 +220,7 @@ describe('Notifications Table and Extended RLS Migration (Issue #25)', () => {
       '20260925000001_create_relational_schema_and_rls.sql',
       '20260925000002_create_commit_investment_atomic_rpc.sql',
       '20260925000003_create_notifications_table_and_rls.sql',
+      '20260925000004_create_storage_bucket_and_policies.sql',
     ];
 
     const combinedSql = migrationFiles
@@ -242,5 +243,56 @@ describe('Notifications Table and Extended RLS Migration (Issue #25)', () => {
       const rlsRegex = new RegExp(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`, 'i');
       expect(rlsRegex.test(combinedSql)).toBe(true);
     });
+  });
+});
+
+describe('Supabase Storage Bucket Setup and Document Security Policies (Issue #26)', () => {
+  const migrationsDir = path.resolve(process.cwd(), 'supabase', 'migrations');
+  const storageMigrationFile = path.resolve(
+    migrationsDir,
+    '20260925000004_create_storage_bucket_and_policies.sql'
+  );
+
+  it('storage migration file exists in supabase/migrations directory', () => {
+    expect(fs.existsSync(storageMigrationFile)).toBe(true);
+  });
+
+  const sqlContent = fs.existsSync(storageMigrationFile)
+    ? fs.readFileSync(storageMigrationFile, 'utf-8')
+    : '';
+
+  it('configures private loan-documents bucket with 10 MB limit and application/pdf restriction', () => {
+    // Bucket loan-documents insertion
+    expect(sqlContent).toMatch(/INSERT INTO storage\.buckets/i);
+    expect(sqlContent).toMatch(/'loan-documents'/i);
+    // Public = false
+    expect(sqlContent).toMatch(/false/i);
+    // 10 MB = 10485760 bytes
+    expect(sqlContent).toMatch(/10485760/);
+    // MIME type restriction application/pdf
+    expect(sqlContent).toMatch(/ARRAY\['application\/pdf'\]/i);
+  });
+
+  it('enables Row Level Security (RLS) on storage.objects', () => {
+    expect(sqlContent).toMatch(/ALTER TABLE storage\.objects ENABLE ROW LEVEL SECURITY;/i);
+  });
+
+  it('enforces borrower folder isolation policies on storage.objects', () => {
+    // Borrowers can only read own documents
+    expect(sqlContent).toMatch(/CREATE POLICY "Borrowers can read own loan documents"/i);
+    expect(sqlContent).toMatch(/ON storage\.objects FOR SELECT/i);
+
+    // Borrowers can only upload own documents
+    expect(sqlContent).toMatch(/CREATE POLICY "Borrowers can upload own loan documents"/i);
+    expect(sqlContent).toMatch(/ON storage\.objects FOR INSERT/i);
+
+    // Borrower folder path matching
+    expect(sqlContent).toMatch(/auth\.uid\(\)::text/i);
+  });
+
+  it('enforces admin audit access policy allowing full access to all documents', () => {
+    expect(sqlContent).toMatch(/CREATE POLICY "Admins have full access to loan documents"/i);
+    expect(sqlContent).toMatch(/ON storage\.objects FOR ALL/i);
+    expect(sqlContent).toMatch(/is_admin\(\)/i);
   });
 });
