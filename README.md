@@ -40,7 +40,24 @@ npx vitest run tests/components/HeroSimulator.test.tsx
 
 # Type-checking de TypeScript y build de producción
 npm run build
+
+# Aprovisionar rol de administrador (CLI)
+npm run seed:admin -- admin@lencord.ar
 ```
+
+### Aprovisionamiento Inicial de Administrador
+
+Para promover una cuenta de usuario existente al rol de administrador (`admin`):
+
+```bash
+# Asignación directa especificando el email del usuario registrado
+npm run seed:admin -- <email>
+
+# O mediante prompt interactivo en la terminal
+npm run seed:admin
+```
+
+> **Nota de Seguridad**: Este comando opera exclusivamente a nivel de base de datos del servidor y requiere que la clave institucional `SUPABASE_SERVICE_ROLE_KEY` esté configurada en el entorno o en el archivo `.env.local`. Nunca exponga dicha credencial en paquetes del cliente.
 
 ## Documentación
 
