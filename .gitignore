@@ -10,3 +10,5 @@ dist
 Thumbs.db
 *.log
 .eslintcache
+__pycache__/
+*.pyc
