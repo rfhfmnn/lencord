@@ -60,3 +60,5 @@ npm run build
 - [Manual Técnico (PDF)](Manual_Tecnico_Lencord.pdf)
 - [Manual de Administrador (PDF)](Manual_Administrador_Lencord.pdf)
 - [Manual de Usuario (PDF)](Manual_Usuario_Lencord.pdf)
+- [Manual de Marco Legal y Habilitación (PDF)](Manual_Marco_Legal_Lencord.pdf)
+
