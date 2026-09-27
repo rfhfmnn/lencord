@@ -1,22 +1,139 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
+import { formatCurrency } from '@/components/home/HeroSimulator';
 import styles from './header.module.css';
+
+export interface HeaderUser {
+  id?: string;
+  email?: string;
+  name?: string;
+  role: 'investor' | 'sme' | 'borrower' | 'admin';
+  custodyBalance?: number;
+}
 
 export interface HeaderProps {
   className?: string;
+  supabaseClient?: SupabaseClient;
+  user?: HeaderUser | null;
+  isLoading?: boolean;
   onLogin?: () => void;
   onRegister?: () => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   className = '',
+  supabaseClient,
+  user: userProp,
+  isLoading: isLoadingProp,
   onLogin,
   onRegister,
+  onLogout,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<HeaderUser | null>(userProp ?? null);
+  const [isLoading, setIsLoading] = useState<boolean>(
+    userProp !== undefined ? (isLoadingProp ?? false) : true
+  );
+
+  useEffect(() => {
+    if (userProp !== undefined) {
+      setCurrentUser(userProp);
+    }
+  }, [userProp]);
+
+  useEffect(() => {
+    if (isLoadingProp !== undefined) {
+      setIsLoading(isLoadingProp);
+    }
+  }, [isLoadingProp]);
+
+  useEffect(() => {
+    if (userProp !== undefined) {
+      return;
+    }
+
+    let isMounted = true;
+    const client = supabaseClient || createSupabaseBrowserClient();
+
+    async function resolveSession() {
+      try {
+        const { data: sessionData } = await client.auth.getSession();
+        const authUser = sessionData?.session?.user;
+
+        if (!authUser) {
+          if (isMounted) {
+            setCurrentUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        let role: 'investor' | 'sme' | 'borrower' | 'admin' =
+          (authUser.user_metadata?.role as any) || 'borrower';
+        let name: string =
+          authUser.user_metadata?.legal_name ||
+          authUser.user_metadata?.name ||
+          authUser.user_metadata?.full_name ||
+          authUser.email?.split('@')[0] ||
+          'Usuario';
+
+        try {
+          const { data: profile } = await client
+            .from('profiles')
+            .select('id, role, legal_name, email')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+          if (profile) {
+            if (profile.role) role = profile.role as any;
+            if (profile.legal_name) name = profile.legal_name;
+          }
+        } catch {
+          // Keep metadata fallbacks
+        }
+
+        if (isMounted) {
+          setCurrentUser({
+            id: authUser.id,
+            email: authUser.email,
+            name,
+            role,
+            custodyBalance: role === 'investor' ? 1250000 : undefined,
+          });
+          setIsLoading(false);
+        }
+      } catch {
+        if (isMounted) {
+          setCurrentUser(null);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    resolveSession();
+
+    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        if (isMounted) {
+          setCurrentUser(null);
+          setIsLoading(false);
+        }
+      } else if (session?.user) {
+        resolveSession();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription?.unsubscribe();
+    };
+  }, [userProp, supabaseClient]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);
@@ -36,6 +153,36 @@ export const Header: React.FC<HeaderProps> = ({
     if (onRegister) onRegister();
   };
 
+  const handleLogout = async () => {
+    closeMobileMenu();
+    try {
+      const client = supabaseClient || createSupabaseBrowserClient();
+      await client.auth.signOut();
+    } catch {
+      // Ignored
+    } finally {
+      setCurrentUser(null);
+      if (onLogout) onLogout();
+    }
+  };
+
+  const isBorrower = currentUser?.role === 'borrower' || currentUser?.role === 'sme';
+  const isInvestor = currentUser?.role === 'investor';
+  const isAdmin = currentUser?.role === 'admin';
+
+  const roleBadgeText = isBorrower ? 'PyME' : isInvestor ? 'Inversor' : 'Admin';
+  const roleBadgeClass = isBorrower
+    ? styles.roleBadgePyme
+    : isInvestor
+    ? styles.roleBadgeInvestor
+    : styles.roleBadgeAdmin;
+
+  const dashboardHref = isBorrower
+    ? '/dashboard/pyme'
+    : isInvestor
+    ? '/dashboard/inversor'
+    : '/admin';
+
   return (
     <header className={`${styles.header} ${className}`.trim()} data-testid="sticky-header">
       <div className={styles.container}>
@@ -43,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span className={styles.brandName}>Lencord</span>
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation Links */}
         <nav className={styles.desktopNav} aria-label="Navegación principal">
           <Link href="/marketplace" className={styles.navLink}>
             Prestar
@@ -59,14 +206,94 @@ export const Header: React.FC<HeaderProps> = ({
           </Link>
         </nav>
 
-        {/* Desktop Auth Action Buttons */}
-        <div className={styles.desktopActions}>
-          <Button variant="secondary" size="sm" onClick={handleLoginClick}>
-            Iniciar sesión
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleRegisterClick}>
-            Registrarse
-          </Button>
+        {/* Desktop Session / Auth Action Area */}
+        <div className={styles.desktopActions} data-testid="header-desktop-actions">
+          {isLoading ? (
+            <div
+              className={styles.authSkeleton}
+              data-testid="header-auth-skeleton"
+              aria-label="Cargando sesión..."
+              aria-busy="true"
+            />
+          ) : currentUser ? (
+            <div className={styles.sessionArea} data-testid="header-session-user">
+              {/* Custody Balance (Investors only) */}
+              {isInvestor && (
+                <div
+                  className={styles.custodyBalance}
+                  data-testid="header-custody-balance"
+                  title="Saldo ilustrativo en cuenta de custodia"
+                >
+                  <span className={styles.custodyLabel}>Custodia:</span>
+                  <span className={styles.custodyValue}>
+                    {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                  </span>
+                </div>
+              )}
+
+              {/* User Identity & Role Badge */}
+              <div className={styles.userProfile}>
+                <span className={styles.userName} data-testid="header-user-name" title={currentUser.name}>
+                  {currentUser.name}
+                </span>
+                <span
+                  className={`${styles.roleBadge} ${roleBadgeClass}`}
+                  data-testid="header-role-badge"
+                >
+                  {roleBadgeText}
+                </span>
+              </div>
+
+              {/* Role-Specific Navigation Link */}
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  className={styles.adminLink}
+                  data-testid="header-admin-link"
+                >
+                  Administración
+                </Link>
+              ) : (
+                <Link
+                  href={dashboardHref}
+                  className={styles.dashboardLink}
+                  data-testid="header-dashboard-link"
+                >
+                  Mi panel
+                </Link>
+              )}
+
+              {/* Logout Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className={styles.logoutButton}
+                data-testid="header-logout-button"
+              >
+                Cerrar sesión
+              </Button>
+            </div>
+          ) : (
+            <div className={styles.unauthActions}>
+              <Link
+                href="/login"
+                className={styles.loginLink}
+                onClick={handleLoginClick}
+                data-testid="header-login-link"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/registro"
+                className={styles.registerLink}
+                onClick={handleRegisterClick}
+                data-testid="header-register-link"
+              >
+                Registrarse
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Mobile Navigation Toggle */}
@@ -126,16 +353,91 @@ export const Header: React.FC<HeaderProps> = ({
               FAQ
             </Link>
           </nav>
-          <div className={styles.mobileActions}>
-            <Button variant="secondary" size="md" fullWidth onClick={handleLoginClick}>
-              Iniciar sesión
-            </Button>
-            <Button variant="primary" size="md" fullWidth onClick={handleRegisterClick}>
-              Registrarse
-            </Button>
+
+          <div className={styles.mobileActions} data-testid="mobile-actions-container">
+            {isLoading ? (
+              <div
+                className={styles.authSkeletonMobile}
+                data-testid="header-auth-skeleton-mobile"
+                aria-label="Cargando sesión..."
+                aria-busy="true"
+              />
+            ) : currentUser ? (
+              <div className={styles.mobileSessionArea} data-testid="header-mobile-session-user">
+                <div className={styles.mobileUserHeader}>
+                  <div className={styles.userProfile}>
+                    <span className={styles.userName} title={currentUser.name}>
+                      {currentUser.name}
+                    </span>
+                    <span className={`${styles.roleBadge} ${roleBadgeClass}`}>
+                      {roleBadgeText}
+                    </span>
+                  </div>
+
+                  {isInvestor && (
+                    <div className={styles.custodyBalance} data-testid="header-mobile-custody-balance">
+                      <span className={styles.custodyLabel}>Custodia:</span>
+                      <span className={styles.custodyValue}>
+                        {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {isAdmin ? (
+                  <Link
+                    href="/admin"
+                    className={styles.mobileDashboardLink}
+                    onClick={closeMobileMenu}
+                    data-testid="mobile-admin-link"
+                  >
+                    Administración
+                  </Link>
+                ) : (
+                  <Link
+                    href={dashboardHref}
+                    className={styles.mobileDashboardLink}
+                    onClick={closeMobileMenu}
+                    data-testid="mobile-dashboard-link"
+                  >
+                    Mi panel
+                  </Link>
+                )}
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  fullWidth
+                  onClick={handleLogout}
+                  data-testid="mobile-logout-button"
+                >
+                  Cerrar sesión
+                </Button>
+              </div>
+            ) : (
+              <div className={styles.mobileUnauthActions}>
+                <Link
+                  href="/login"
+                  className={styles.mobileLoginLink}
+                  onClick={handleLoginClick}
+                  data-testid="mobile-login-link"
+                >
+                  Iniciar sesión
+                </Link>
+                <Link
+                  href="/registro"
+                  className={styles.mobileRegisterLink}
+                  onClick={handleRegisterClick}
+                  data-testid="mobile-register-link"
+                >
+                  Registrarse
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
     </header>
   );
 };
+
