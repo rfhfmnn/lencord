@@ -17,6 +17,10 @@ export interface Step3FormData {
   bank_statements?: UploadedFileMeta | null;
   balance_sheet?: UploadedFileMeta | null;
   f931?: UploadedFileMeta | null;
+  balance_sheet_url?: string | null;
+  f931_url?: string | null;
+  afip_constancia_url?: string | null;
+  bank_statements_url?: string | null;
 }
 
 export interface StepDocumentUploadProps {

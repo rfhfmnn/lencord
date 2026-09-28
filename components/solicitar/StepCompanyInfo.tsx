@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCuit, validateCuit } from './cuitValidator';
@@ -16,14 +16,20 @@ export interface Step1FormData {
   rep_name: string;
   rep_dni: string;
   rep_phone: string;
+  email?: string;
 }
 
 export interface StepCompanyInfoProps {
   initialData?: Partial<Step1FormData>;
+  isPrepopulated?: boolean;
   onContinue: (data: Step1FormData) => void;
 }
 
-export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProps) {
+export function StepCompanyInfo({
+  initialData,
+  isPrepopulated = false,
+  onContinue,
+}: StepCompanyInfoProps) {
   const [formData, setFormData] = useState<Step1FormData>({
     legal_name: initialData?.legal_name ?? '',
     tax_id: initialData?.tax_id ?? '',
@@ -32,7 +38,24 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
     rep_name: initialData?.rep_name ?? '',
     rep_dni: initialData?.rep_dni ?? '',
     rep_phone: initialData?.rep_phone ?? '',
+    email: initialData?.email ?? '',
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        legal_name: initialData.legal_name ?? prev.legal_name,
+        tax_id: initialData.tax_id ?? prev.tax_id,
+        company_type: (initialData.company_type as CompanyType) ?? prev.company_type,
+        start_date: initialData.start_date ?? prev.start_date,
+        rep_name: initialData.rep_name ?? prev.rep_name,
+        rep_dni: initialData.rep_dni ?? prev.rep_dni,
+        rep_phone: initialData.rep_phone ?? prev.rep_phone,
+        email: initialData.email ?? prev.email,
+      }));
+    }
+  }, [initialData]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -89,6 +112,10 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
       newErrors.rep_dni = 'El DNI debe tener 7 u 8 dígitos.';
     }
 
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Ingresá un correo electrónico válido.';
+    }
+
     if (!formData.rep_phone.trim()) {
       newErrors.rep_phone = 'Ingresá un número de teléfono celular de contacto.';
     }
@@ -100,9 +127,15 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onContinue(formData);
+      const payload: Step1FormData = { ...formData };
+      if (!payload.email) {
+        delete (payload as any).email;
+      }
+      onContinue(payload);
     }
   };
+
+  const isVerifiedAccount = isPrepopulated && Boolean(formData.legal_name || formData.tax_id);
 
   return (
     <form onSubmit={handleSubmit} data-testid="step1-company-form">
@@ -111,6 +144,26 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
         <p className={styles.stepDescription}>
           Ingresá la información societaria e impositiva de tu PyME para la evaluación inicial.
         </p>
+
+        {isVerifiedAccount && (
+          <div
+            style={{
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#166534',
+              padding: '0.625rem 0.875rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.8125rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '1rem',
+            }}
+            data-testid="verified-company-notice"
+          >
+            🔒 <strong>Datos fiscales verificados:</strong> La razón social y CUIT corresponden a tu cuenta autenticada y se encuentran protegidos contra modificaciones.
+          </div>
+        )}
 
         <div className={styles.formGrid}>
           {/* Razón Social */}
@@ -121,6 +174,8 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
             value={formData.legal_name}
             onChange={(e) => handleFieldChange('legal_name', e.target.value)}
             error={errors.legal_name}
+            readOnly={Boolean(isPrepopulated && formData.legal_name)}
+            helperText={isPrepopulated && formData.legal_name ? 'Dato verificado de la empresa (solo lectura)' : undefined}
             data-testid="input-legal-name"
           />
 
@@ -133,7 +188,12 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
               value={formData.tax_id}
               onChange={handleCuitChange}
               error={errors.tax_id}
-              helperText="11 dígitos con validación de dígito verificador AFIP"
+              readOnly={Boolean(isPrepopulated && formData.tax_id)}
+              helperText={
+                isPrepopulated && formData.tax_id
+                  ? 'CUIT verificado de la cuenta (solo lectura)'
+                  : '11 dígitos con validación de dígito verificador AFIP'
+              }
               data-testid="input-tax-id"
             />
 
@@ -158,16 +218,36 @@ export function StepCompanyInfo({ initialData, onContinue }: StepCompanyInfoProp
             </div>
           </div>
 
-          {/* Fecha de inicio de actividades */}
-          <Input
-            label="Fecha de inicio de actividades *"
-            id="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => handleFieldChange('start_date', e.target.value)}
-            error={errors.start_date}
-            data-testid="input-start-date"
-          />
+          <div className={`${styles.formGrid} ${styles.formGridTwoCols}`}>
+            {/* Fecha de inicio de actividades */}
+            <Input
+              label="Fecha de inicio de actividades *"
+              id="start_date"
+              type="date"
+              value={formData.start_date}
+              onChange={(e) => handleFieldChange('start_date', e.target.value)}
+              error={errors.start_date}
+              data-testid="input-start-date"
+            />
+
+            {/* Correo electrónico corporativo */}
+            <Input
+              label="Correo electrónico corporativo"
+              id="email"
+              type="email"
+              placeholder="contacto@pyme.com.ar"
+              value={formData.email || ''}
+              onChange={(e) => handleFieldChange('email', e.target.value)}
+              readOnly={Boolean(isPrepopulated && formData.email)}
+              error={errors.email}
+              helperText={
+                isPrepopulated && formData.email
+                  ? 'Email verificado de tu cuenta (solo lectura)'
+                  : undefined
+              }
+              data-testid="input-email"
+            />
+          </div>
 
           {/* Datos del Apoderado */}
           <div className={styles.sectionHeader}>Representante o apoderado legal</div>

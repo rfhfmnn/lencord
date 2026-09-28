@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ApplicationConfirmation } from '@/components/solicitar/ApplicationConfirmation';
+import { getServerServices } from '@/services';
 import type { Loan } from '@/types';
 import styles from '@/components/solicitar/solicitar.module.css';
 
@@ -31,7 +32,17 @@ export default async function ConfirmacionPage({
   const category = (resolvedParams.category ?? 'working_capital') as Loan['category'];
   const rateType = (resolvedParams.rateType ?? 'TNA_FIXED') as Loan['rate_type'];
 
-  const fallbackLoan: Loan = {
+  let loan: Loan | null = null;
+  if (loanId && loanId !== 'loan-in-review') {
+    try {
+      const services = getServerServices();
+      loan = await services.loans.getLoanById(loanId);
+    } catch {
+      loan = null;
+    }
+  }
+
+  const displayedLoan: Loan = loan ?? {
     id: loanId,
     borrower_id: 'prof-sme-001',
     amount_requested: amount,
@@ -54,7 +65,7 @@ export default async function ConfirmacionPage({
       <main id="main-content">
         <div className={styles.container}>
           <ApplicationConfirmation
-            loan={fallbackLoan}
+            loan={displayedLoan}
             legalName={resolvedParams.legalName}
             taxId={resolvedParams.taxId}
           />

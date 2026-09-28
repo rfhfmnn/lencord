@@ -15,7 +15,7 @@ export default function SolicitarPage() {
     <>
       <Header />
       <main id="main-content">
-        <LoanWizard />
+        <LoanWizard redirectToConfirmationPage={true} />
       </main>
       <Footer />
     </>

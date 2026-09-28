@@ -202,11 +202,25 @@ export function StepBankingAndSubmission({
                 padding: '0.75rem 1rem',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
               }}
               role="alert"
               data-testid="submit-error-banner"
             >
-              ⚠️ {submitError}
+              <span>⚠️ {submitError}</span>
+              <Button
+                type="button"
+                variant="bordered"
+                size="sm"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                data-testid="submit-retry-button"
+              >
+                Reintentar
+              </Button>
             </div>
           )}
         </div>

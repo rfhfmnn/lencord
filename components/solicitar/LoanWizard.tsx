@@ -1,17 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Loan } from '@/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Loan, SubmitLoanInput } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { StepProgress } from './StepProgress';
 import { Step1FormData, StepCompanyInfo } from './StepCompanyInfo';
 import { Step2FormData, StepProjectConditions } from './StepProjectConditions';
 import { Step3FormData, StepDocumentUpload } from './StepDocumentUpload';
 import { Step4FormData, StepBankingAndSubmission } from './StepBankingAndSubmission';
 import { ApplicationConfirmation } from './ApplicationConfirmation';
+import { formatCuit } from './cuitValidator';
 import styles from './solicitar.module.css';
+
+export interface BorrowerProfile {
+  id: string;
+  email?: string;
+  legal_name?: string;
+  tax_id?: string;
+  phone?: string;
+  bank_cbu_cvu?: string;
+  isVerified?: boolean;
+}
 
 export interface LoanWizardProps {
   initialStep?: number;
@@ -20,6 +33,8 @@ export interface LoanWizardProps {
   initialStep3Data?: Step3FormData;
   initialStep4Data?: Partial<Step4FormData>;
   borrowerId?: string;
+  userProfile?: BorrowerProfile | null;
+  supabaseClient?: SupabaseClient;
   onSubmitted?: (loan: Loan) => void;
   redirectToConfirmationPage?: boolean;
 }
@@ -30,7 +45,9 @@ export function LoanWizard({
   initialStep2Data,
   initialStep3Data,
   initialStep4Data,
-  borrowerId = 'prof-sme-001',
+  borrowerId: borrowerIdProp,
+  userProfile: userProfileProp,
+  supabaseClient,
   onSubmitted,
   redirectToConfirmationPage = false,
 }: LoanWizardProps) {
@@ -51,14 +68,166 @@ export function LoanWizard({
   }
 
   const [step, setStep] = useState<number>(initialStep);
-  const [step1Data, setStep1Data] = useState<Partial<Step1FormData>>(initialStep1Data ?? {});
+  const [step1Data, setStep1Data] = useState<Partial<Step1FormData>>(() => {
+    if (initialStep1Data) return initialStep1Data;
+    if (userProfileProp) {
+      return {
+        legal_name: userProfileProp.legal_name || '',
+        tax_id: userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : '',
+        email: userProfileProp.email || '',
+        rep_phone: userProfileProp.phone || '',
+      };
+    }
+    return {};
+  });
   const [step2Data, setStep2Data] = useState<Partial<Step2FormData>>(initialStep2Data ?? {});
   const [step3Data, setStep3Data] = useState<Step3FormData>(initialStep3Data ?? {});
   const [step4Data, setStep4Data] = useState<Partial<Step4FormData>>(initialStep4Data ?? {});
 
+  const [borrowerId, setBorrowerId] = useState<string>(
+    borrowerIdProp ?? userProfileProp?.id ?? 'prof-sme-001'
+  );
+  const [isPrepopulated, setIsPrepopulated] = useState<boolean>(
+    Boolean(userProfileProp && userProfileProp.isVerified !== false)
+  );
+
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedLoan, setSubmittedLoan] = useState<Loan | null>(null);
+
+  // Restore draft state from localStorage if available and no initial props were supplied
+  useEffect(() => {
+    if (initialStep1Data || initialStep2Data || initialStep3Data || initialStep4Data) {
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedDraft = window.localStorage.getItem('lencord_loan_wizard_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.step1Data) setStep1Data((prev) => ({ ...parsed.step1Data, ...prev }));
+          if (parsed.step2Data) setStep2Data((prev) => ({ ...parsed.step2Data, ...prev }));
+          if (parsed.step4Data) setStep4Data((prev) => ({ ...parsed.step4Data, ...prev }));
+          if (parsed.step) setStep(parsed.step);
+        }
+      }
+    } catch {
+      // Ignore localStorage parse errors
+    }
+  }, []);
+
+  // Save in-progress draft steps to localStorage to survive page refresh
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(
+          'lencord_loan_wizard_draft',
+          JSON.stringify({
+            step,
+            step1Data,
+            step2Data,
+            step4Data,
+          })
+        );
+      }
+    } catch {
+      // Ignore localStorage write errors
+    }
+  }, [step, step1Data, step2Data, step4Data]);
+
+  // Load authenticated borrower profile from props or Supabase session
+  useEffect(() => {
+    if (userProfileProp !== undefined) {
+      if (userProfileProp) {
+        setBorrowerId(userProfileProp.id);
+        setIsPrepopulated(userProfileProp.isVerified !== false);
+        setStep1Data((prev) => ({
+          ...prev,
+          legal_name: prev.legal_name || userProfileProp.legal_name || '',
+          tax_id: prev.tax_id || (userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : ''),
+          email: prev.email || userProfileProp.email || '',
+          rep_phone: prev.rep_phone || userProfileProp.phone || '',
+        }));
+        if (userProfileProp.bank_cbu_cvu) {
+          setStep4Data((prev) => ({
+            ...prev,
+            cbu_cvu: prev.cbu_cvu || userProfileProp.bank_cbu_cvu,
+          }));
+        }
+      }
+      return;
+    }
+
+    let isMounted = true;
+    async function resolveUserProfile() {
+      try {
+        const client = supabaseClient || createSupabaseBrowserClient();
+        const { data: sessionData } = await client.auth.getSession();
+        const authUser = sessionData?.session?.user;
+
+        if (!authUser) {
+          return;
+        }
+
+        if (isMounted) {
+          setBorrowerId(authUser.id);
+        }
+
+        let legalName =
+          authUser.user_metadata?.legal_name ||
+          authUser.user_metadata?.company_name ||
+          '';
+        let taxId =
+          authUser.user_metadata?.tax_id ||
+          authUser.user_metadata?.cuit ||
+          '';
+        let phone = authUser.user_metadata?.phone || '';
+        let cbu = authUser.user_metadata?.bank_cbu_cvu || '';
+
+        try {
+          const { data: profile } = await client
+            .from('profiles')
+            .select('id, tax_id, legal_name, phone, bank_cbu_cvu, role')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+          if (profile) {
+            if (profile.legal_name) legalName = profile.legal_name;
+            if (profile.tax_id) taxId = profile.tax_id;
+            if (profile.phone) phone = profile.phone;
+            if (profile.bank_cbu_cvu) cbu = profile.bank_cbu_cvu;
+          }
+        } catch {
+          // Keep metadata fallbacks
+        }
+
+        if (isMounted) {
+          const hasVerifiedIdentity = Boolean(legalName || taxId);
+          setIsPrepopulated(hasVerifiedIdentity);
+          setStep1Data((prev) => ({
+            ...prev,
+            legal_name: prev.legal_name || legalName,
+            tax_id: prev.tax_id || (taxId ? formatCuit(taxId) : ''),
+            email: prev.email || authUser.email || '',
+            rep_phone: prev.rep_phone || phone,
+          }));
+          if (cbu) {
+            setStep4Data((prev) => ({
+              ...prev,
+              cbu_cvu: prev.cbu_cvu || cbu,
+            }));
+          }
+        }
+      } catch {
+        // Fallback silently if session cannot be determined
+      }
+    }
+
+    resolveUserProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [userProfileProp, supabaseClient]);
 
   // Step 1 -> Step 2
   const handleStep1Continue = (data: Step1FormData) => {
@@ -113,21 +282,43 @@ export function LoanWizard({
           }
         })();
 
-      const loanPayload = {
+      const loanPayload: SubmitLoanInput = {
         borrower_id: borrowerId,
         amount_requested: step2Data.amount_requested ?? 5000000,
         term_months: step2Data.term_months ?? 6,
         rate_type: step2Data.rate_type ?? 'TNA_FIXED',
         category: step2Data.category ?? 'working_capital',
-        balance_sheet_url: step3Data.balance_sheet
-          ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.balance_sheet.name}`
-          : null,
-        f931_url: step3Data.f931
-          ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.f931.name}`
-          : null,
+        balance_sheet_url:
+          step3Data.balance_sheet_url ??
+          (step3Data.balance_sheet
+            ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.balance_sheet.name}`
+            : null),
+        f931_url:
+          step3Data.f931_url ??
+          (step3Data.f931
+            ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.f931.name}`
+            : null),
       };
 
       const createdLoan = await resolvedServices.loans.submitLoanApplication(loanPayload);
+
+      // Persist submitted loan receipt in localStorage to survive browser refresh
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem('lencord_loan_wizard_draft');
+          window.localStorage.setItem(
+            'lencord_last_submitted_loan',
+            JSON.stringify({
+              loan: createdLoan,
+              legalName: step1Data.legal_name,
+              taxId: step1Data.tax_id,
+              submittedAt: new Date().toISOString(),
+            })
+          );
+        }
+      } catch {
+        // Storage write ignored
+      }
 
       setSubmittedLoan(createdLoan);
       if (onSubmitted) {
@@ -147,7 +338,9 @@ export function LoanWizard({
         router.push(`/solicitar/confirmacion?${queryParams.toString()}`);
       }
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Error al enviar la solicitud de préstamo.');
+      setSubmitError(
+        err instanceof Error ? err.message : 'Error al enviar la solicitud de préstamo.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -180,6 +373,7 @@ export function LoanWizard({
       {step === 1 && (
         <StepCompanyInfo
           initialData={step1Data}
+          isPrepopulated={isPrepopulated}
           onContinue={handleStep1Continue}
         />
       )}
