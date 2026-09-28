@@ -23,6 +23,7 @@ export interface WebhookEventPayload {
     | 'debit.failed'
     | 'payment.failed';
   timestamp?: number | string;
+  idempotencyKey?: string;
   data: {
     investmentId?: string;
     installmentId?: string;
@@ -102,9 +103,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Idempotency Check
-    if (processedWebhookEvents.has(payload.eventId)) {
+    const idempotencyKey =
+      req.headers.get('idempotency-key') ||
+      req.headers.get('x-idempotency-key') ||
+      payload.idempotencyKey ||
+      payload.eventId;
+
+    if (processedWebhookEvents.has(idempotencyKey) || processedWebhookEvents.has(payload.eventId)) {
       return NextResponse.json(
-        { status: 'ok', duplicated: true, eventId: payload.eventId },
+        { status: 'ok', duplicated: true, eventId: payload.eventId, idempotencyKey },
         { status: 200 }
       );
     }
@@ -301,9 +308,12 @@ export async function POST(req: NextRequest) {
 
     // 5. Record event as processed for idempotency
     processedWebhookEvents.add(payload.eventId);
+    if (idempotencyKey) {
+      processedWebhookEvents.add(idempotencyKey);
+    }
 
     return NextResponse.json(
-      { status: 'ok', success: true, eventId: payload.eventId },
+      { status: 'ok', success: true, eventId: payload.eventId, idempotencyKey },
       { status: 200 }
     );
   } catch (err: unknown) {

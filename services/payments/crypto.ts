@@ -86,3 +86,43 @@ export function verifyWebhookSignature(
     return false;
   }
 }
+
+/**
+ * Encrypts sensitive institutional credentials using AES-256-GCM.
+ * Output format: <iv_hex>:<auth_tag_hex>:<cipher_text_hex>
+ */
+export function encryptCredential(plainText: string, masterKey: string): string {
+  const key = crypto.createHash('sha256').update(masterKey).digest(); // 32 bytes key
+  const iv = crypto.randomBytes(12); // 12 bytes IV recommended for GCM
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  let encrypted = cipher.update(plainText, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+/**
+ * Decrypts institutional credentials previously encrypted with encryptCredential.
+ */
+export function decryptCredential(cipherPackage: string, masterKey: string): string {
+  const parts = cipherPackage.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted credential format: expected iv:tag:data');
+  }
+
+  const [ivHex, authTagHex, encryptedHex] = parts;
+  const key = crypto.createHash('sha256').update(masterKey).digest();
+  const iv = Buffer.from(ivHex, 'hex');
+  const authTag = Buffer.from(authTagHex, 'hex');
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+
+  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+

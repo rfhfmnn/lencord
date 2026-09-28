@@ -6,14 +6,26 @@
  */
 
 import type { PaymentGatewayInterface } from '@/types';
-import { computeHmacSignature, verifyWebhookSignature } from './crypto';
+import { computeHmacSignature, verifyWebhookSignature, decryptCredential } from './crypto';
+import { validateCbuChecksum, resolveBankOrPspName, type CbuVerificationResult } from './cbu';
+import {
+  reconcileDailySettlements,
+  type PlatformLedgerTransaction,
+  type BankCustodyStatement,
+  type ReconciliationReport,
+} from './reconciliation';
 
 export interface BaaSOptions {
   baseUrl?: string;
   apiKey?: string;
   apiSecret?: string;
+  encryptedCredentials?: string;
+  credentialsKey?: string;
+  institutionId?: string;
   customFetch?: typeof fetch;
   sandbox?: boolean;
+  maxRetries?: number;
+  retryDelayMs?: number;
 }
 
 export interface BaaSHoldRecord {
@@ -38,29 +50,60 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
   private baseUrl: string;
   private apiKey: string;
   private apiSecret: string;
+  private institutionId: string;
   private fetchFn: typeof fetch;
   private sandbox: boolean;
   private hasCustomFetch: boolean;
+  private maxRetries: number;
+  private retryDelayMs: number;
 
   // Sandbox in-memory store for simulation
   private simulatedHolds: Map<string, BaaSHoldRecord> = new Map();
   private simulatedTransfers: Map<string, BaaSTransferRecord> = new Map();
 
   constructor(options?: BaaSOptions) {
-    this.baseUrl =
+    let resolvedApiKey = options?.apiKey || process.env.BAAS_API_KEY || 'test_baas_api_key';
+    let resolvedApiSecret = options?.apiSecret || process.env.BAAS_API_SECRET || 'test_baas_api_secret';
+    let resolvedInstitutionId = options?.institutionId || process.env.BAAS_INSTITUTION_ID || 'INST_LENCORD_001';
+    let resolvedBaseUrl =
       options?.baseUrl ||
       process.env.BAAS_API_BASE_URL ||
       'https://api.baas-provider.com.ar/v1';
-    this.apiKey = options?.apiKey || process.env.BAAS_API_KEY || 'test_baas_api_key';
-    this.apiSecret =
-      options?.apiSecret || process.env.BAAS_API_SECRET || 'test_baas_api_secret';
+
+    // Decrypt institutional credentials if encrypted credentials package is provided
+    const encPackage = options?.encryptedCredentials || process.env.BAAS_ENCRYPTED_CREDENTIALS;
+    const credKey = options?.credentialsKey || process.env.BAAS_MASTER_KEY || process.env.BAAS_CREDENTIALS_KEY;
+
+    if (encPackage && credKey) {
+      try {
+        const decryptedJson = decryptCredential(encPackage, credKey);
+        const parsed = JSON.parse(decryptedJson);
+        if (parsed.apiKey) resolvedApiKey = parsed.apiKey;
+        if (parsed.apiSecret) resolvedApiSecret = parsed.apiSecret;
+        if (parsed.institutionId) resolvedInstitutionId = parsed.institutionId;
+        if (parsed.baseUrl) resolvedBaseUrl = parsed.baseUrl;
+      } catch (err: any) {
+        console.error('[BaaSPaymentGateway] Failed to decrypt institutional credentials:', err?.message || err);
+      }
+    }
+
+    this.baseUrl = resolvedBaseUrl;
+    this.apiKey = resolvedApiKey;
+    this.apiSecret = resolvedApiSecret;
+    this.institutionId = resolvedInstitutionId;
     this.hasCustomFetch = !!options?.customFetch;
     this.fetchFn = options?.customFetch ?? globalThis.fetch.bind(globalThis);
+    this.maxRetries = options?.maxRetries ?? 2;
+    this.retryDelayMs = options?.retryDelayMs ?? 100;
     this.sandbox =
       options?.sandbox ??
       (this.baseUrl.includes('sandbox') ||
         process.env.BAAS_SANDBOX === 'true' ||
         process.env.NODE_ENV === 'test');
+  }
+
+  public getInstitutionId(): string {
+    return this.institutionId;
   }
 
   public getApiSecret(): string {
@@ -73,6 +116,128 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
 
   public isSandbox(): boolean {
     return this.sandbox;
+  }
+
+  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+    let lastError: any = null;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await this.fetchFn(url, init);
+        // Retry on temporary gateway downtime (502, 503, 504)
+        if ([502, 503, 504].includes(response.status) && attempt < this.maxRetries) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.retryDelayMs * Math.pow(2, attempt))
+          );
+          continue;
+        }
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < this.maxRetries) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.retryDelayMs * Math.pow(2, attempt))
+          );
+          continue;
+        }
+      }
+    }
+    throw lastError || new Error(`Bank gateway connection failure after ${this.maxRetries + 1} attempts`);
+  }
+
+  /**
+   * Validates CBU / CVU using BCRA checksum algorithm and COELSA / Interbanking endpoint.
+   */
+  public async validateCbuCvu(cbu: string): Promise<CbuVerificationResult> {
+    if (!validateCbuChecksum(cbu)) {
+      return {
+        valid: false,
+        cbu,
+        status: 'invalid',
+        errorMessage: 'Invalid Argentine CBU/CVU checksum (BCRA algorithm validation failed)',
+      };
+    }
+
+    const bankName = resolveBankOrPspName(cbu);
+
+    if (this.sandbox && !this.hasCustomFetch) {
+      return {
+        valid: true,
+        cbu,
+        accountHolder: 'Entidad Verificada S.A.',
+        taxId: '30712345678',
+        bankName,
+        accountType: cbu.startsWith('000000') ? 'virtual_wallet' : 'checking',
+        status: 'active',
+      };
+    }
+
+    try {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/coelsa/validate-cbu`, {
+        method: 'POST',
+        headers: this.buildHeaders(JSON.stringify({ cbu })),
+        body: JSON.stringify({ cbu }),
+      });
+
+      if (!response.ok) {
+        if (this.sandbox) {
+          return {
+            valid: true,
+            cbu,
+            accountHolder: 'Entidad Verificada S.A.',
+            taxId: '30712345678',
+            bankName,
+            accountType: cbu.startsWith('000000') ? 'virtual_wallet' : 'checking',
+            status: 'active',
+          };
+        }
+        return {
+          valid: false,
+          cbu,
+          status: 'invalid',
+          errorMessage: `COELSA endpoint error: HTTP ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        valid: data.valid ?? true,
+        cbu,
+        accountHolder: data.accountHolder || 'Titular de Cuenta',
+        taxId: data.taxId || data.cuit,
+        bankName: data.bankName || bankName,
+        accountType: data.accountType || (cbu.startsWith('000000') ? 'virtual_wallet' : 'checking'),
+        status: data.status || 'active',
+      };
+    } catch (err: any) {
+      if (this.sandbox) {
+        return {
+          valid: true,
+          cbu,
+          accountHolder: 'Entidad Verificada S.A.',
+          taxId: '30712345678',
+          bankName,
+          accountType: cbu.startsWith('000000') ? 'virtual_wallet' : 'checking',
+          status: 'active',
+        };
+      }
+      return {
+        valid: false,
+        cbu,
+        status: 'invalid',
+        errorMessage: err?.message || 'Error communicating with COELSA / Interbanking verification service',
+      };
+    }
+  }
+
+  /**
+   * Executes daily settlement reconciliation between platform ledger balances and bank custody statements.
+   */
+  public async reconcileDailySettlements(params: {
+    date?: string;
+    ledgerTransactions: PlatformLedgerTransaction[];
+    bankStatement: BankCustodyStatement;
+  }): Promise<ReconciliationReport> {
+    return reconcileDailySettlements(params);
   }
 
   public buildHeaders(bodyString: string, customTimestamp?: number | string): Record<string, string> {
@@ -140,7 +305,7 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
     const bodyString = JSON.stringify(payload);
 
     try {
-      const response = await this.fetchFn(`${this.baseUrl}/holds`, {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/holds`, {
         method: 'POST',
         headers: this.buildHeaders(bodyString),
         body: bodyString,
@@ -201,7 +366,7 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
     const bodyString = JSON.stringify(payload);
 
     try {
-      const response = await this.fetchFn(`${this.baseUrl}/holds/${holdId}/release`, {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/holds/${holdId}/release`, {
         method: 'POST',
         headers: this.buildHeaders(bodyString),
         body: bodyString,
@@ -249,7 +414,7 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
     const bodyString = JSON.stringify(payload);
 
     try {
-      const response = await this.fetchFn(`${this.baseUrl}/transfers`, {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/transfers`, {
         method: 'POST',
         headers: this.buildHeaders(bodyString),
         body: bodyString,
@@ -310,7 +475,7 @@ export class BaaSPaymentGateway implements PaymentGatewayInterface {
     const bodyString = JSON.stringify(payload);
 
     try {
-      const response = await this.fetchFn(`${this.baseUrl}/debits`, {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/debits`, {
         method: 'POST',
         headers: this.buildHeaders(bodyString),
         body: bodyString,
