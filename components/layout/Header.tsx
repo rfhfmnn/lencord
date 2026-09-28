@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
+import { NotificationBell } from '@/components/NotificationBell';
 import styles from './header.module.css';
 
 export interface HeaderUser {
@@ -230,6 +231,12 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </div>
               )}
+
+              {/* In-App Notifications Bell */}
+              <NotificationBell
+                userId={currentUser.id}
+                supabaseClient={supabaseClient}
+              />
 
               {/* User Identity & Role Badge */}
               <div className={styles.userProfile}>

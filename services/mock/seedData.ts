@@ -9,6 +9,7 @@ import type {
   Investment,
   LegalContract,
   Loan,
+  Notification,
   Profile,
   SmeCreditProfile,
 } from '@/types';
@@ -427,5 +428,52 @@ export const SEED_CONTRACTS: LegalContract[] = [
     document_url: 'https://storage.lencord.ar/contracts/loan-seed-004/contrato-mutuo.pdf',
     signature_hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
     signed_at: '2026-08-28T10:05:00.000Z',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Seed User Notifications
+// ---------------------------------------------------------------------------
+
+export const SEED_NOTIFICATIONS: Notification[] = [
+  {
+    id: 'notif-001',
+    user_id: 'prof-sme-001',
+    title: 'Solicitud en revisión',
+    message: 'Tu solicitud de crédito para Capital de trabajo fue recibida con éxito y está siendo evaluada.',
+    type: 'info',
+    read: false,
+    action_url: '/dashboard/pyme',
+    created_at: '2026-09-01T10:05:00.000Z',
+  },
+  {
+    id: 'notif-002',
+    user_id: 'prof-sme-001',
+    title: 'Préstamo aprobado y publicado',
+    message: 'Tu préstamo ha sido aprobado por el comité de riesgos y ya se encuentra disponible en la subasta del marketplace.',
+    type: 'success',
+    read: false,
+    action_url: '/dashboard/pyme',
+    created_at: '2026-09-02T14:30:00.000Z',
+  },
+  {
+    id: 'notif-003',
+    user_id: 'prof-inv-001',
+    title: 'Inversión confirmada',
+    message: 'Se confirmó tu compromiso de inversión por $4.000.000 en el préstamo de Metalúrgica Quilmes S.R.L.',
+    type: 'success',
+    read: false,
+    action_url: '/dashboard/inversor',
+    created_at: '2026-09-05T10:05:00.000Z',
+  },
+  {
+    id: 'notif-004',
+    user_id: 'prof-sme-004',
+    title: 'Pagaré digital requerido',
+    message: 'La subasta alcanzó el 100% de financiamiento. Ingresá a tu panel para firmar el pagaré digital.',
+    type: 'warning',
+    read: true,
+    action_url: '/dashboard/pyme',
+    created_at: '2026-08-28T09:45:00.000Z',
   },
 ];

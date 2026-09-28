@@ -8,6 +8,7 @@ import type {
   Investment,
   LegalContract,
   Loan,
+  Notification,
   Profile,
   SmeCreditProfile,
 } from '@/types';
@@ -17,6 +18,7 @@ import {
   SEED_INSTALLMENTS,
   SEED_INVESTMENTS,
   SEED_LOANS,
+  SEED_NOTIFICATIONS,
   SEED_PROFILES,
 } from './seedData';
 
@@ -27,6 +29,7 @@ export interface MockStateSnapshot {
   investments: Investment[];
   installments: Installment[];
   contracts: LegalContract[];
+  notifications: Notification[];
 }
 
 export class MockStateStore {
@@ -36,6 +39,7 @@ export class MockStateStore {
   public investments: Investment[] = [];
   public installments: Installment[] = [];
   public contracts: LegalContract[] = [];
+  public notifications: Notification[] = [];
 
   constructor() {
     this.reset();
@@ -51,6 +55,7 @@ export class MockStateStore {
     this.investments = JSON.parse(JSON.stringify(SEED_INVESTMENTS));
     this.installments = JSON.parse(JSON.stringify(SEED_INSTALLMENTS));
     this.contracts = JSON.parse(JSON.stringify(SEED_CONTRACTS));
+    this.notifications = JSON.parse(JSON.stringify(SEED_NOTIFICATIONS));
   }
 
   /**
@@ -64,6 +69,7 @@ export class MockStateStore {
       investments: JSON.parse(JSON.stringify(this.investments)),
       installments: JSON.parse(JSON.stringify(this.installments)),
       contracts: JSON.parse(JSON.stringify(this.contracts)),
+      notifications: JSON.parse(JSON.stringify(this.notifications)),
     };
   }
 }

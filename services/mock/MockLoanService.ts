@@ -129,6 +129,19 @@ export class MockLoanService implements LoanServiceInterface {
     }
 
     this.store.loans.push(newLoan);
+
+    // Emit in-app notification for borrower
+    this.store.notifications.unshift({
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      user_id: input.borrower_id,
+      title: 'Solicitud enviada',
+      message: `Tu solicitud de crédito por $${input.amount_requested.toLocaleString('es-AR')} fue recibida y se encuentra en revisión.`,
+      type: 'info',
+      read: false,
+      action_url: '/dashboard/pyme',
+      created_at: now.toISOString(),
+    });
+
     return JSON.parse(JSON.stringify(newLoan));
   }
 
@@ -145,6 +158,18 @@ export class MockLoanService implements LoanServiceInterface {
     );
     loan.funding_deadline = input.funding_deadline;
     loan.status = 'funding';
+
+    // Emit in-app notification for borrower
+    this.store.notifications.unshift({
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      user_id: loan.borrower_id,
+      title: 'Préstamo aprobado',
+      message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace.',
+      type: 'success',
+      read: false,
+      action_url: '/dashboard/pyme',
+      created_at: new Date().toISOString(),
+    });
 
     // Update or establish risk tier on borrower credit profile
     let creditProfile = this.store.creditProfiles.find(
@@ -178,6 +203,17 @@ export class MockLoanService implements LoanServiceInterface {
 
     if (loan.amount_funded >= loan.amount_requested) {
       loan.status = 'funded';
+      // Emit in-app notification for borrower
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: loan.borrower_id,
+        title: 'Subasta completada al 100%',
+        message: '¡Tu proyecto alcanzó el 100% de fondeo! Firma el Pagaré Digital para proceder con el desembolso.',
+        type: 'warning',
+        read: false,
+        action_url: '/dashboard/pyme',
+        created_at: new Date().toISOString(),
+      });
     } else {
       const isPastDeadline =
         new Date(loan.funding_deadline).getTime() <= Date.now();

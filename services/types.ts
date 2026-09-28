@@ -8,6 +8,7 @@ import type {
   InvestmentServiceInterface,
   LegalServiceInterface,
   LoanServiceInterface,
+  NotificationServiceInterface,
   PaymentGatewayInterface,
 } from '@/types';
 
@@ -17,6 +18,7 @@ export interface Services {
   creditScoring: CreditScoringInterface;
   legal: LegalServiceInterface;
   payments: PaymentGatewayInterface;
+  notifications?: NotificationServiceInterface;
 }
 
 export type ServiceName = keyof Services;

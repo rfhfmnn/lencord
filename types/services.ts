@@ -12,6 +12,8 @@ import type {
   Loan,
   LoanCategory,
   LoanStatus,
+  Notification,
+  NotificationType,
   RateType,
   RiskTier,
   SmeCreditProfile,
@@ -209,4 +211,31 @@ export interface LegalServiceInterface {
   signContract(input: SignContractInput): Promise<LegalContract>;
   getContractsByLoan(loanId: string): Promise<LegalContract[]>;
   getContractById(id: string): Promise<LegalContract | null>;
+}
+
+// ---------------------------------------------------------------------------
+// Notification Service Interfaces
+// ---------------------------------------------------------------------------
+
+export interface CreateNotificationInput {
+  user_id: string;
+  title: string;
+  message: string;
+  type?: NotificationType;
+  action_url?: string | null;
+}
+
+/**
+ * Service contract for in-app user notifications and real-time subscription.
+ */
+export interface NotificationServiceInterface {
+  getNotifications(userId: string): Promise<Notification[]>;
+  getUnreadCount(userId: string): Promise<number>;
+  createNotification(input: CreateNotificationInput): Promise<Notification>;
+  markAsRead(notificationId: string): Promise<Notification>;
+  markAllAsRead(userId: string): Promise<void>;
+  subscribeToNotifications?(
+    userId: string,
+    callback: (notification: Notification) => void
+  ): () => void;
 }

@@ -99,6 +99,32 @@ export class MockInvestmentService implements InvestmentServiceInterface {
 
     this.store.investments.push(investment);
 
+    // Emit in-app notification for investor
+    this.store.notifications.unshift({
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      user_id: input.investor_id,
+      title: 'Inversión confirmada',
+      message: `Has comprometido $${input.amount.toLocaleString('es-AR')} en la subasta del préstamo ${loan.id}.`,
+      type: 'success',
+      read: false,
+      action_url: '/dashboard/inversor',
+      created_at: new Date().toISOString(),
+    });
+
+    // If fully funded, emit notification for borrower
+    if (loan.status === 'funded') {
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: loan.borrower_id,
+        title: 'Subasta completada al 100%',
+        message: '¡Tu proyecto alcanzó el fondeo total! Firma el Pagaré Digital para proceder con el desembolso.',
+        type: 'warning',
+        read: false,
+        action_url: '/dashboard/pyme',
+        created_at: new Date().toISOString(),
+      });
+    }
+
     return {
       investment: JSON.parse(JSON.stringify(investment)),
       loan: JSON.parse(JSON.stringify(loan)),

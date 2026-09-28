@@ -6,6 +6,7 @@ export * from './MockCreditScoringService';
 export * from './MockInvestmentService';
 export * from './MockLegalService';
 export * from './MockLoanService';
+export * from './MockNotificationService';
 export * from './MockPaymentGateway';
 export * from './mockState';
 export * from './seedData';

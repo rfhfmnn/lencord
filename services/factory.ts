@@ -11,6 +11,7 @@ import {
   MockInvestmentService,
   MockLegalService,
   MockLoanService,
+  MockNotificationService,
   MockPaymentGateway,
   MockStateStore,
   defaultMockPaymentGateway,
@@ -20,6 +21,7 @@ import {
   SupabaseLoanService,
   SupabaseInvestmentService,
   SupabaseLegalService,
+  SupabaseNotificationService,
   type SupabaseClientProvider,
 } from './supabase';
 import { BcraCreditScoringService } from './bcra';
@@ -44,6 +46,7 @@ export function createMockServices(options?: MockServiceOptions): Services {
     creditScoring: new MockCreditScoringService(store),
     legal: new MockLegalService(store),
     payments: paymentGateway,
+    notifications: new MockNotificationService(store),
   };
 }
 
@@ -89,7 +92,7 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
     liveServiceRegistry.payments ??
     new BaaSPaymentGateway();
 
-  return {
+  const services: Services = {
     loans:
       liveServiceRegistry.loans ??
       new SupabaseLoanService(clientProvider, paymentGateway),
@@ -104,6 +107,14 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
       new SupabaseLegalService(clientProvider),
     payments: paymentGateway,
   };
+
+  if (liveServiceRegistry.notifications) {
+    services.notifications = liveServiceRegistry.notifications;
+  } else if (Object.keys(liveServiceRegistry).length === 0) {
+    services.notifications = new SupabaseNotificationService(clientProvider);
+  }
+
+  return services;
 }
 
 export interface ServiceFactoryOptions {
