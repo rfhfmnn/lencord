@@ -13,6 +13,7 @@ import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
   investorId?: string;
+  custodyBalance?: number;
   initialInvestments?: Investment[];
   initialLoans?: Loan[];
   initialInstallments?: Installment[];
@@ -36,6 +37,7 @@ interface EnrichedInstallment {
 
 export function InvestorDashboard({
   investorId = 'prof-inv-001',
+  custodyBalance: custodyBalanceProp,
   initialInvestments,
   initialLoans,
   initialInstallments,
@@ -262,6 +264,14 @@ export function InvestorDashboard({
     return list.sort((a, b) => new Date(a.installment.due_date).getTime() - new Date(b.installment.due_date).getTime());
   }, [enrichedInvestments, installments]);
 
+  const effectiveCustodyBalance = useMemo(() => {
+    if (custodyBalanceProp !== undefined) return custodyBalanceProp;
+    if (currentInvestorId === 'prof-inv-002') return 25_000_000;
+    if (currentInvestorId === 'prof-inv-003') return 8_500_000;
+    if (currentInvestorId === 'prof-inv-empty') return 1_000_000;
+    return 5_250_000;
+  }, [custodyBalanceProp, currentInvestorId]);
+
   if (loading) {
     return (
       <div className={`${styles.dashboardContainer} ${className}`} data-testid="investor-dashboard-loading">
@@ -303,6 +313,35 @@ export function InvestorDashboard({
           </select>
         </div>
       </header>
+
+      {/* Illustrative Custody Balance & Mandatory Regulatory Disclaimer */}
+      <section
+        className={styles.custodyDisclaimerCard}
+        aria-label="Saldo en custodia y advertencia regulatoria"
+        data-testid="custody-balance-card"
+      >
+        <div className={styles.custodyDisclaimerLeft}>
+          <div className={styles.custodyIcon} aria-hidden="true">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          </div>
+          <div>
+            <span className={styles.metricLabel}>Saldo ilustrativo en custodia</span>
+            <div className={styles.custodyBalanceAmount} data-testid="illustrative-custody-balance">
+              {formatCurrency(effectiveCustodyBalance)}
+            </div>
+            <p className={styles.custodyDisclaimerText} data-testid="custody-disclaimer">
+              <strong>Aviso regulatorio:</strong> Los fondos líquidos y transacciones se encuentran bajo custodia de una entidad financiera y/o Proveedor de Servicios de Pago (PSP) autorizado por el Banco Central de la República Argentina (BCRA). Lencord es una plataforma tecnológica y no realiza intermediación financiera, captación no autorizada ni custodia directa de saldos monetarios de terceros.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Empty State when no active investments */}
       {activeInvestments.length === 0 ? (

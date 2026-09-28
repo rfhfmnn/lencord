@@ -261,4 +261,48 @@ describe('InvestorDashboard Component (Task 13)', () => {
     expect(screen.getByTestId('metric-total-capital')).toBeInTheDocument();
     expect(screen.getByTestId('active-investments-table')).toBeInTheDocument();
   });
+
+  it('renders illustrative custody balance and mandatory regulatory disclaimer regarding third-party custody', () => {
+    render(
+      <InvestorDashboard
+        initialInvestments={mockInvestments}
+        initialLoans={mockLoans}
+        initialCreditProfiles={mockCreditProfiles}
+        initialInstallments={mockInstallments}
+      />
+    );
+
+    // Custody card and balance amount
+    const custodyCard = screen.getByTestId('custody-balance-card');
+    expect(custodyCard).toBeInTheDocument();
+
+    const balanceAmount = screen.getByTestId('illustrative-custody-balance');
+    expect(balanceAmount).toHaveTextContent('$ 5.250.000');
+
+    // Mandatory regulatory disclaimer text
+    const disclaimer = screen.getByTestId('custody-disclaimer');
+    expect(disclaimer).toBeInTheDocument();
+    expect(disclaimer).toHaveTextContent(/Aviso regulatorio/i);
+    expect(disclaimer).toHaveTextContent(/Banco Central de la República Argentina/i);
+    expect(disclaimer).toHaveTextContent(/no realiza intermediación financiera/i);
+  });
+
+  it('displays custom custody balance and disclaimer also in empty state', () => {
+    render(
+      <InvestorDashboard
+        initialInvestments={[]}
+        initialLoans={[]}
+        initialCreditProfiles={{}}
+        initialInstallments={[]}
+        custodyBalance={8_500_000}
+      />
+    );
+
+    expect(screen.getByTestId('investor-empty-state')).toBeInTheDocument();
+
+    const balanceAmount = screen.getByTestId('illustrative-custody-balance');
+    expect(balanceAmount).toHaveTextContent('$ 8.500.000');
+
+    expect(screen.getByTestId('custody-disclaimer')).toBeInTheDocument();
+  });
 });
