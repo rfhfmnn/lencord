@@ -542,6 +542,227 @@ describe('AdminConsole Component (Task 15)', () => {
       );
     });
   });
+
+  describe('Live BCRA Central de Deudores Credit Risk Scoring Integration (Issue #37)', () => {
+    it('displays borrower credit history with debt amounts, reporting banks/entities, and BCRA classification situation', async () => {
+      const store = new MockStateStore();
+      store.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+      store.profiles = Object.values(mockProfiles);
+      store.creditProfiles = Object.values(mockCreditProfiles);
+
+      const mockGetBcraReport = vi.fn().mockResolvedValue({
+        cuit: '30712345679',
+        worstSituation: 1,
+        totalDebt: 3_000_000,
+        entities: [
+          {
+            entityName: 'BANCO SANTANDER ARGENTINA S.A.',
+            situation: 1,
+            amount: 2_000_000,
+            daysPastDue: 0,
+          },
+          {
+            entityName: 'BANCO GALICIA',
+            situation: 1,
+            amount: 1_000_000,
+            daysPastDue: 0,
+          },
+        ],
+        isClean: true,
+        statusDescription: 'Situación 1 - Normal / Sin atrasos',
+      });
+
+      const services = createServices({
+        store,
+        useMocks: true,
+        overrides: {
+          creditScoring: {
+            getBcraReport: mockGetBcraReport,
+            evaluateCreditRisk: vi.fn(),
+            getCreditProfileByProfileId: vi.fn().mockResolvedValue(mockCreditProfiles['sme-test-1']),
+          },
+        },
+      });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={mockCreditProfiles}
+          />
+        </ServiceProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('bcra-total-debt')).toBeInTheDocument();
+      });
+
+      expect(mockGetBcraReport).toHaveBeenCalledWith('30712345679');
+      expect(screen.getByTestId('bcra-total-debt')).toHaveTextContent('$ 3.000.000');
+      expect(screen.getByTestId('bcra-entity-name-0')).toHaveTextContent('BANCO SANTANDER ARGENTINA S.A.');
+      expect(screen.getByTestId('bcra-entity-amount-0')).toHaveTextContent('$ 2.000.000');
+      expect(screen.getByTestId('bcra-entity-situation-0')).toHaveTextContent('Situación 1');
+      expect(screen.getByTestId('bcra-entity-name-1')).toHaveTextContent('BANCO GALICIA');
+      expect(screen.getByTestId('bcra-entity-amount-1')).toHaveTextContent('$ 1.000.000');
+    });
+
+    it('prominently highlights worst-case classification situation when multiple entities report debts', async () => {
+      const store = new MockStateStore();
+      store.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+      store.profiles = Object.values(mockProfiles);
+      store.creditProfiles = Object.values(mockCreditProfiles);
+
+      const mockGetBcraReport = vi.fn().mockResolvedValue({
+        cuit: '30712345679',
+        worstSituation: 3,
+        totalDebt: 4_500_000,
+        entities: [
+          {
+            entityName: 'BANCO SANTANDER ARGENTINA S.A.',
+            situation: 1,
+            amount: 1_000_000,
+            daysPastDue: 0,
+          },
+          {
+            entityName: 'BANCO MACRO S.A.',
+            situation: 3,
+            amount: 3_500_000,
+            daysPastDue: 95,
+          },
+        ],
+        isClean: false,
+        statusDescription: 'Situación 3 - Con problemas (atraso 91-180 días)',
+      });
+
+      const services = createServices({
+        store,
+        useMocks: true,
+        overrides: {
+          creditScoring: {
+            getBcraReport: mockGetBcraReport,
+            evaluateCreditRisk: vi.fn(),
+            getCreditProfileByProfileId: vi.fn().mockResolvedValue(mockCreditProfiles['sme-test-1']),
+          },
+        },
+      });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={mockCreditProfiles}
+          />
+        </ServiceProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('bcra-worst-situation')).toBeInTheDocument();
+      });
+
+      const worstAlert = screen.getByTestId('bcra-worst-situation');
+      expect(worstAlert).toHaveTextContent('Máximo Riesgo Detectado: Situación 3');
+      expect(worstAlert).toHaveTextContent('Situación 3 - Con problemas (atraso 91-180 días)');
+
+      // Verify the approval form auto-selects situation 3
+      const situationSelect = screen.getByTestId('select-bcra-situation') as HTMLSelectElement;
+      expect(situationSelect.value).toBe('3');
+    });
+
+    it('parses HTTP 404 or empty responses gracefully as "Sin deuda bancaria registrada / Situación 1"', async () => {
+      const store = new MockStateStore();
+      store.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+      store.profiles = Object.values(mockProfiles);
+      store.creditProfiles = Object.values(mockCreditProfiles);
+
+      const mockGetBcraReport = vi.fn().mockResolvedValue({
+        cuit: '30712345679',
+        worstSituation: null,
+        totalDebt: 0,
+        entities: [],
+        isClean: true,
+        statusDescription: 'Sin deuda bancaria registrada / Sin calificación previa',
+      });
+
+      const services = createServices({
+        store,
+        useMocks: true,
+        overrides: {
+          creditScoring: {
+            getBcraReport: mockGetBcraReport,
+            evaluateCreditRisk: vi.fn(),
+            getCreditProfileByProfileId: vi.fn().mockResolvedValue(mockCreditProfiles['sme-test-1']),
+          },
+        },
+      });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={mockCreditProfiles}
+          />
+        </ServiceProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('bcra-clean-status')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('bcra-clean-status')).toHaveTextContent(
+        'Sin deuda bancaria registrada / Situación 1'
+      );
+      expect(screen.queryByTestId('bcra-debts-table')).not.toBeInTheDocument();
+    });
+
+    it('shows informative fallback messages on network errors or timeouts without crashing the console', async () => {
+      const store = new MockStateStore();
+      store.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+      store.profiles = Object.values(mockProfiles);
+      store.creditProfiles = Object.values(mockCreditProfiles);
+
+      const mockGetBcraReport = vi.fn().mockRejectedValue(
+        new Error('Tiempo de espera agotado con BCRA (timeout 5s)')
+      );
+
+      const services = createServices({
+        store,
+        useMocks: true,
+        overrides: {
+          creditScoring: {
+            getBcraReport: mockGetBcraReport,
+            evaluateCreditRisk: vi.fn(),
+            getCreditProfileByProfileId: vi.fn().mockResolvedValue(mockCreditProfiles['sme-test-1']),
+          },
+        },
+      });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={mockCreditProfiles}
+          />
+        </ServiceProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('bcra-fallback-message')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('bcra-fallback-message')).toHaveTextContent(
+        'Tiempo de espera agotado con BCRA (timeout 5s)'
+      );
+
+      // Verify detail view and scoring form are still present and operable
+      expect(screen.getByTestId('detail-cuit')).toHaveTextContent('30712345679');
+      expect(screen.getByTestId('scoring-form')).toBeInTheDocument();
+    });
+  });
 });
+
 
 

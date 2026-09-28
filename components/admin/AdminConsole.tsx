@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import type { BcraSituation, Loan, Profile, RiskTier, SmeCreditProfile } from '@/types';
+import type {
+  BcraCreditReport,
+  BcraSituation,
+  Loan,
+  Profile,
+  RiskTier,
+  SmeCreditProfile,
+} from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { createSupabaseBrowserClient, SupabaseStorageService } from '@/services/supabase';
@@ -273,6 +280,84 @@ export function AdminConsole({
       isCancelled = true;
     };
   }, [selectedCreditProfile, storageService]);
+
+  // BCRA Credit Report State and Live Fetching
+  const [bcraReport, setBcraReport] = useState<BcraCreditReport | null>(null);
+  const [bcraLoading, setBcraLoading] = useState<boolean>(false);
+  const [bcraError, setBcraError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchBcraReport() {
+      if (!selectedProfile?.tax_id) {
+        setBcraReport(null);
+        setBcraError(null);
+        setBcraLoading(false);
+        return;
+      }
+
+      const cleanCuit = selectedProfile.tax_id.replace(/\D/g, '');
+      if (!cleanCuit || cleanCuit.length !== 11) {
+        setBcraReport(null);
+        setBcraError('CUIT inválido: debe contener 11 dígitos.');
+        setBcraLoading(false);
+        return;
+      }
+
+      setBcraLoading(true);
+      setBcraError(null);
+
+      try {
+        const resolvedServices =
+          servicesFromContext ??
+          (() => {
+            try {
+              return createServices();
+            } catch {
+              return createServices({ useMocks: true });
+            }
+          })();
+
+        let report: BcraCreditReport;
+        if (resolvedServices?.creditScoring) {
+          report = await resolvedServices.creditScoring.getBcraReport(cleanCuit);
+        } else {
+          const res = await fetch(`/api/bcra/${cleanCuit}`);
+          if (!res.ok) {
+            throw new Error('Servicio BCRA no disponible');
+          }
+          report = await res.json();
+        }
+
+        if (!isCancelled) {
+          setBcraReport(report);
+          setBcraLoading(false);
+
+          if (
+            report.statusDescription?.includes('no disponible') ||
+            report.statusDescription?.includes('Tiempo de espera agotado') ||
+            report.statusDescription?.includes('inválido')
+          ) {
+            setBcraError(report.statusDescription);
+          } else if (report.worstSituation) {
+            setBcraSituation(report.worstSituation);
+          }
+        }
+      } catch (err: any) {
+        if (!isCancelled) {
+          setBcraLoading(false);
+          setBcraError(err?.message || 'Error de conexión con el servicio BCRA.');
+        }
+      }
+    }
+
+    fetchBcraReport();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedProfile?.tax_id, servicesFromContext]);
 
   // Reset form when selected loan changes
   useEffect(() => {
@@ -700,6 +785,106 @@ export function AdminConsole({
                   )}
 
                 </div>
+              </div>
+
+              {/* BCRA Central de Deudores Scoring Section */}
+              <div className={styles.bcraSection} data-testid="bcra-scoring-section">
+                <div className={styles.bcraSectionHeader}>
+                  <h3 className={styles.bcraTitle}>
+                    <span>🏛️ Historial Crediticio Central de Deudores BCRA</span>
+                  </h3>
+                  {selectedProfile?.tax_id && (
+                    <span className={styles.cuitText} data-testid="bcra-cuit-display">
+                      CUIT: {selectedProfile.tax_id}
+                    </span>
+                  )}
+                </div>
+
+                {bcraLoading ? (
+                  <div className={styles.loadingBox} data-testid="bcra-loading">
+                    <div className={styles.spinner} />
+                    <p>Consultando Central de Deudores BCRA...</p>
+                  </div>
+                ) : bcraError ? (
+                  <div className={styles.bcraErrorBox} data-testid="bcra-fallback-message" role="alert">
+                    <span>⚠️</span>
+                    <span>{bcraError}</span>
+                  </div>
+                ) : bcraReport ? (
+                  <div>
+                    {/* Worst-case situation prominent highlight */}
+                    {bcraReport.worstSituation && bcraReport.worstSituation > 1 ? (
+                      <div className={styles.worstSituationAlert} data-testid="bcra-worst-situation" role="alert">
+                        <strong>
+                          Máximo Riesgo Detectado: Situación {bcraReport.worstSituation}
+                        </strong>
+                        <p>{bcraReport.statusDescription}</p>
+                      </div>
+                    ) : bcraReport.entities.length > 0 ? (
+                      <div className={styles.cleanSituationBox} data-testid="bcra-worst-situation">
+                        <strong>Situación General: Situación 1 - Normal (Sin atrasos)</strong>
+                      </div>
+                    ) : null}
+
+                    {/* Entities debt details or clean status */}
+                    {bcraReport.entities.length > 0 ? (
+                      <div className={styles.bcraDebtsTableContainer} data-testid="bcra-debts-table">
+                        <div className={styles.bcraTotalDebtRow}>
+                          <span>Deuda Total en Sistema Financiero:</span>
+                          <strong data-testid="bcra-total-debt">
+                            {formatCurrency(bcraReport.totalDebt)}
+                          </strong>
+                        </div>
+                        <table className={styles.bcraTable}>
+                          <thead>
+                            <tr>
+                              <th>Entidad Financiera</th>
+                              <th>Monto</th>
+                              <th>Situación</th>
+                              <th>Días de Atraso</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bcraReport.entities.map((entity, idx) => (
+                              <tr key={`${entity.entityName}-${idx}`} data-testid={`bcra-entity-row-${idx}`}>
+                                <td data-testid={`bcra-entity-name-${idx}`}>{entity.entityName}</td>
+                                <td data-testid={`bcra-entity-amount-${idx}`}>
+                                  {formatCurrency(entity.amount)}
+                                </td>
+                                <td data-testid={`bcra-entity-situation-${idx}`}>
+                                  <span
+                                    className={
+                                      entity.situation === 1
+                                        ? styles.badgeSituation1
+                                        : styles.badgeSituationAlert
+                                    }
+                                  >
+                                    Situación {entity.situation}
+                                  </span>
+                                </td>
+                                <td data-testid={`bcra-entity-delay-${idx}`}>
+                                  {entity.daysPastDue !== undefined
+                                    ? `${entity.daysPastDue} días`
+                                    : '0 días'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className={styles.bcraCleanBox} data-testid="bcra-clean-status">
+                        <span className={styles.badgeSituation1}>Situación 1</span>
+                        <p>Sin deuda bancaria registrada / Situación 1</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className={styles.bcraCleanBox} data-testid="bcra-clean-status">
+                    <span className={styles.badgeSituation1}>Situación 1</span>
+                    <p>Sin deuda bancaria registrada / Situación 1</p>
+                  </div>
+                )}
               </div>
 
               {/* Scoring and Publication Form */}
