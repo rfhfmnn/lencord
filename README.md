@@ -74,6 +74,8 @@ npm run seed:admin
 - [Roles de Equipo](_docs/team/pm.md) (`pm.md`, `software-engineer.md`, `qa-engineer.md`)
 
 ### Manuales del Sistema
+- [Manual de Arquitectura de la Plataforma (PDF)](Arquitectura_Plataforma_Lencord.pdf)
+- [Resumen Ejecutivo de las 51 Issues en Criollo (PDF)](Resumen_51_Issues_Lencord_En_Criollo.pdf)
 - [Manual Técnico (PDF)](Manual_Tecnico_Lencord.pdf)
 - [Manual de Administrador (PDF)](Manual_Administrador_Lencord.pdf)
 - [Manual de Usuario (PDF)](Manual_Usuario_Lencord.pdf)
