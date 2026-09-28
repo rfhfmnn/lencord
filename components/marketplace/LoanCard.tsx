@@ -105,7 +105,7 @@ export function LoanCard({
         >
           <div
             className={styles.progressBarFill}
-            style={{ width: `${fundingPercentage}%` }}
+            style={{ width: `${fundingPercentage}%`, maxWidth: '100%' }}
             data-testid="loan-progress-fill"
           />
         </div>

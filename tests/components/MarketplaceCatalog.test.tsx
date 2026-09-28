@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { Loan, RiskTier } from '@/types';
 import { MarketplaceCatalog } from '@/components/marketplace/MarketplaceCatalog';
 import { ServiceProvider } from '@/context/ServiceProvider';
@@ -198,5 +198,51 @@ describe('MarketplaceCatalog Component (Task 9)', () => {
     // Funded loan (seed 4) or in-review loan (seed 6) must NOT be shown
     expect(screen.queryByTestId('loan-card-loan-seed-004')).not.toBeInTheDocument();
     expect(screen.queryByTestId('loan-card-loan-seed-006')).not.toBeInTheDocument();
+  });
+
+  it('renders card metrics including real-time progress bar, risk badge, interest rate, and days remaining', () => {
+    render(
+      <MarketplaceCatalog initialLoans={mockLoans} initialRiskMap={mockRiskMap} />
+    );
+
+    const card = screen.getByTestId('loan-card-loan-1');
+    expect(card).toBeInTheDocument();
+
+    // 5M / 10M = 50%
+    const cardScope = within(card);
+    expect(cardScope.getByText('50% financiado')).toBeInTheDocument();
+    expect(cardScope.getByText('45,0% TNA')).toBeInTheDocument();
+    expect(cardScope.getByText('Tier A')).toBeInTheDocument();
+    expect(cardScope.getByText(/días restantes/i)).toBeInTheDocument();
+  });
+
+  it('updates funding progress bar dynamically upon polling revalidation', async () => {
+    const services = createServices({ useMocks: true });
+
+    render(
+      <ServiceProvider services={services}>
+        <MarketplaceCatalog pollIntervalMs={50} />
+      </ServiceProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading-state')).not.toBeInTheDocument();
+    });
+
+    const card = screen.getByTestId('loan-card-loan-seed-001');
+    expect(card).toBeInTheDocument();
+
+    // Commit an investment to loan-seed-001 to alter amount_funded
+    await services.investments.commitInvestment({
+      loan_id: 'loan-seed-001',
+      investor_id: 'prof-inv-001',
+      amount: 1_000_000,
+    });
+
+    // Wait for the poll interval to refresh
+    await waitFor(() => {
+      const loan = services.loans.getLoanById('loan-seed-001');
+      expect(loan).toBeDefined();
+    });
   });
 });

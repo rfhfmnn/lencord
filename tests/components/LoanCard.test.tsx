@@ -94,4 +94,15 @@ describe('LoanCard Component (Task 9)', () => {
     const pastDate = new Date('2026-11-05T00:00:00.000Z');
     expect(calculateDaysRemaining('2026-10-31T23:59:59.000Z', pastDate)).toBe(0);
   });
+
+  it('caps funding progress bar at 100% and does not exceed boundaries', () => {
+    const overfundedLoan: Loan = {
+      ...mockLoan,
+      amount_funded: 12_000_000,
+    };
+    render(<LoanCard loan={overfundedLoan} riskTier="Tier A" />);
+    expect(screen.getByTestId('loan-percentage')).toHaveTextContent('100% financiado');
+    const progressFill = screen.getByTestId('loan-progress-fill');
+    expect(progressFill).toHaveStyle({ width: '100%' });
+  });
 });

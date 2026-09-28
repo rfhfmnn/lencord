@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Loan, RateType, RiskTier } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { LoanCard } from './LoanCard';
 import styles from './marketplace.module.css';
 
@@ -13,12 +14,14 @@ export interface MarketplaceCatalogProps {
   initialLoans?: Loan[];
   initialRiskMap?: Record<string, RiskTier>;
   className?: string;
+  pollIntervalMs?: number;
 }
 
 export function MarketplaceCatalog({
   initialLoans,
   initialRiskMap,
   className = '',
+  pollIntervalMs,
 }: MarketplaceCatalogProps) {
   let servicesFromContext: ReturnType<typeof useServices> | null = null;
   try {
@@ -37,6 +40,51 @@ export function MarketplaceCatalog({
   const [rateFilter, setRateFilter] = useState<string>('all');
   const [termFilter, setTermFilter] = useState<TermFilter>('all');
 
+  // Reusable refresh logic for live updates
+  const refreshLoans = useCallback(async () => {
+    try {
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      // Only active loans in funding stage
+      const fundingLoans = await resolvedServices.loans.listLoans({ status: 'funding' });
+
+      // Retrieve risk tiers for each unique borrower
+      const uniqueBorrowerIds = Array.from(
+        new Set(fundingLoans.map((l: Loan) => l.borrower_id))
+      );
+      const creditProfiles: { borrowerId: string; riskTier: RiskTier }[] = await Promise.all(
+        uniqueBorrowerIds.map(async (borrowerId) => {
+          try {
+            const profile = await resolvedServices.creditScoring.getCreditProfileByProfileId(
+              borrowerId
+            );
+            return { borrowerId, riskTier: profile?.risk_tier ?? ('Tier B' as RiskTier) };
+          } catch {
+            return { borrowerId, riskTier: 'Tier B' as RiskTier };
+          }
+        })
+      );
+
+      const newRiskMap: Record<string, RiskTier> = {};
+      for (const item of creditProfiles) {
+        newRiskMap[item.borrowerId] = item.riskTier;
+      }
+
+      setLoans(fundingLoans);
+      setRiskMap((prev) => ({ ...prev, ...newRiskMap }));
+    } catch (err) {
+      console.error('Error refreshing marketplace loans:', err);
+    }
+  }, [servicesFromContext]);
+
   // Load active funding loans and credit profiles
   useEffect(() => {
     if (initialLoans) {
@@ -51,51 +99,11 @@ export function MarketplaceCatalog({
     async function loadMarketplaceData() {
       try {
         setLoading(true);
-        const resolvedServices =
-          servicesFromContext ??
-          (() => {
-            try {
-              return createServices();
-            } catch {
-              return createServices({ useMocks: true });
-            }
-          })();
-
-        // Only active loans in funding stage
-        const fundingLoans = await resolvedServices.loans.listLoans({ status: 'funding' });
-
-        // Retrieve risk tiers for each unique borrower
-        const uniqueBorrowerIds = Array.from(
-          new Set(fundingLoans.map((l: Loan) => l.borrower_id))
-        );
-        const creditProfiles: { borrowerId: string; riskTier: RiskTier }[] = await Promise.all(
-          uniqueBorrowerIds.map(async (borrowerId) => {
-            try {
-              const profile = await resolvedServices.creditScoring.getCreditProfileByProfileId(
-                borrowerId
-              );
-              return { borrowerId, riskTier: profile?.risk_tier ?? ('Tier B' as RiskTier) };
-            } catch {
-              return { borrowerId, riskTier: 'Tier B' as RiskTier };
-            }
-          })
-        );
-
-        const newRiskMap: Record<string, RiskTier> = {};
-        for (const item of creditProfiles) {
-          newRiskMap[item.borrowerId] = item.riskTier;
-        }
-
-        if (isMounted) {
-          setLoans(fundingLoans);
-          setRiskMap(newRiskMap);
-          setLoading(false);
-        }
+        await refreshLoans();
+        if (isMounted) setLoading(false);
       } catch (err) {
         console.error('Error loading loans for marketplace:', err);
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -104,7 +112,49 @@ export function MarketplaceCatalog({
     return () => {
       isMounted = false;
     };
-  }, [servicesFromContext, initialLoans, initialRiskMap]);
+  }, [initialLoans, initialRiskMap, refreshLoans]);
+
+  // Periodic polling for real-time marketplace revalidation
+  useEffect(() => {
+    const interval = pollIntervalMs ?? (initialLoans ? 0 : 5000);
+    if (!interval || interval <= 0) return;
+
+    const timer = setInterval(() => {
+      refreshLoans();
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [pollIntervalMs, initialLoans, refreshLoans]);
+
+  // Supabase Realtime channel subscription for active auctions and investments
+  useEffect(() => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const channel = supabase
+        .channel('marketplace-realtime-loans')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'loans' },
+          () => {
+            refreshLoans();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'investments' },
+          () => {
+            refreshLoans();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch {
+      // In mock/test environments without real Supabase connection
+    }
+  }, [refreshLoans]);
 
   // Multi-criteria filtering
   const filteredLoans = useMemo(() => {
@@ -281,7 +331,7 @@ export function MarketplaceCatalog({
                 className={styles.resetButton}
                 data-testid="empty-reset-btn"
               >
-                Restablecer todos los filtros
+                Limpiar filtros
               </button>
             </div>
           )}
