@@ -58,10 +58,14 @@ export function BorrowerDashboard({
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
   const [loading, setLoading] = useState<boolean>(!initialLoans);
   const [isSigningModalOpen, setIsSigningModalOpen] = useState<boolean>(false);
+  const [payingInstallmentId, setPayingInstallmentId] = useState<string | null>(null);
+  const [paymentSuccessMsg, setPaymentSuccessMsg] = useState<string | null>(null);
 
-  // Keep state synced with props
+  // Keep state synced with props or resolve session user
   useEffect(() => {
-    if (borrowerId) setCurrentBorrowerId(borrowerId);
+    if (borrowerId) {
+      setCurrentBorrowerId(borrowerId);
+    }
   }, [borrowerId]);
 
   useEffect(() => {
@@ -240,6 +244,56 @@ export function BorrowerDashboard({
     );
   };
 
+  const handleSimulatePayment = async (inst: Installment) => {
+    try {
+      setPayingInstallmentId(inst.id);
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      // Trigger payment collection simulation if payments service is active
+      try {
+        if (resolvedServices.payments?.collectInstallment) {
+          await resolvedServices.payments.collectInstallment(
+            inst.id,
+            '0720123488000012345678',
+            inst.principal_amount + inst.interest_borrower
+          );
+        }
+      } catch (err) {
+        console.warn('Payment gateway simulation note:', err);
+      }
+
+      // Update state locally
+      const updatedInsts = installments.map((i) =>
+        i.id === inst.id
+          ? { ...i, status: 'paid' as const, paid_at: new Date().toISOString() }
+          : i
+      );
+      setInstallments(updatedInsts);
+
+      const allPaid = updatedInsts.every((i) => i.status === 'paid');
+      if (allPaid && currentLoan) {
+        setLoans((prev) =>
+          prev.map((l) => (l.id === currentLoan.id ? { ...l, status: 'repaid' as const } : l))
+        );
+      }
+
+      setPaymentSuccessMsg(`¡Pago de la cuota #${inst.installment_number} registrado con éxito!`);
+      setTimeout(() => setPaymentSuccessMsg(null), 5000);
+    } catch (err) {
+      console.error('Error simulating installment payment:', err);
+    } finally {
+      setPayingInstallmentId(null);
+    }
+  };
+
   return (
     <div className={`${styles.dashboardContainer} ${className}`} data-testid="borrower-dashboard">
       {/* Dashboard Header */}
@@ -263,6 +317,7 @@ export function BorrowerDashboard({
               onChange={(e) => setSelectedLoanId(e.target.value)}
               className={styles.selectInput}
               aria-label="Seleccionar solicitud de préstamo"
+              data-testid="borrower-loan-select"
             >
               {loans.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -433,8 +488,8 @@ export function BorrowerDashboard({
         </section>
       )}
 
-      {/* STATE 4: active */}
-      {currentLoan.status === 'active' && (
+      {/* STATE 4: active or repaid */}
+      {(currentLoan.status === 'active' || currentLoan.status === 'repaid') && (
         <section className={styles.section} aria-labelledby="amortization-table-title">
           <div className={styles.sectionHeader}>
             <h2 id="amortization-table-title" className={styles.sectionTitle}>
@@ -444,6 +499,15 @@ export function BorrowerDashboard({
               Detalle de cuotas mensuales, vencimientos, amortización de capital e intereses a abonar.
             </p>
           </div>
+
+          {paymentSuccessMsg && (
+            <div className={styles.successAlert} role="status" data-testid="payment-success-alert">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{paymentSuccessMsg}</span>
+            </div>
+          )}
 
           <div className={styles.tableCard}>
             {installments.length === 0 ? (
@@ -460,6 +524,7 @@ export function BorrowerDashboard({
                     <th scope="col">Interés</th>
                     <th scope="col">Total cuota</th>
                     <th scope="col">Estado</th>
+                    <th scope="col">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -491,12 +556,88 @@ export function BorrowerDashboard({
                             {inst.status}
                           </span>
                         </td>
+                        <td>
+                          {inst.status !== 'paid' ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={payingInstallmentId === inst.id}
+                              onClick={() => handleSimulatePayment(inst)}
+                              data-testid={`btn-pay-installment-${inst.installment_number}`}
+                            >
+                              {payingInstallmentId === inst.id ? 'Procesando...' : 'Simular pago'}
+                            </Button>
+                          ) : (
+                            <span style={{ fontSize: '0.8125rem', color: '#047857', fontWeight: 500 }}>
+                              Abonada
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* Historical and all loan applications list */}
+      {loans.length > 0 && (
+        <section className={styles.historySection} aria-labelledby="loan-history-title">
+          <div className={styles.sectionHeader}>
+            <h2 id="loan-history-title" className={styles.sectionTitle}>
+              Historial de solicitudes de financiamiento
+            </h2>
+            <p className={styles.sectionDescription}>
+              Registro completo de solicitudes activas, fondeadas y finalizadas de tu empresa.
+            </p>
+          </div>
+
+          <div className={styles.tableCard} data-testid="borrower-loans-history">
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Destino / Solicitud</th>
+                  <th scope="col">Monto solicitado</th>
+                  <th scope="col">Plazo</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loans.map((loan) => (
+                  <tr key={loan.id} data-testid={`loan-history-row-${loan.id}`}>
+                    <td>
+                      <div className={styles.primaryText}>
+                        {LOAN_CATEGORY_LABELS[loan.category] ?? loan.category}
+                      </div>
+                      <div className={styles.monoText}>ID: {loan.id}</div>
+                    </td>
+                    <td>{formatCurrency(loan.amount_requested)}</td>
+                    <td>{loan.term_months} meses</td>
+                    <td>
+                      <span
+                        className={`${styles.statusBadge} ${LOAN_STATUS_LABELS[loan.status]?.className ?? styles.statusPending}`}
+                      >
+                        {loan.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Button
+                        variant={loan.id === currentLoan.id ? 'primary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setSelectedLoanId(loan.id)}
+                        data-testid={`btn-select-loan-${loan.id}`}
+                      >
+                        {loan.id === currentLoan.id ? 'Seleccionado' : 'Ver detalle'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

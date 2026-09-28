@@ -220,4 +220,69 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     expect(screen.getByTestId('borrower-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('borrower-status-badge')).toBeInTheDocument();
   });
+
+  it('allows testing payment submission via interactive payment simulation button for upcoming pending installments', async () => {
+    const loanActive: Loan = {
+      ...baseLoan,
+      status: 'active',
+      amount_requested: 10_000_000,
+      amount_funded: 10_000_000,
+    };
+
+    render(
+      <BorrowerDashboard
+        initialLoans={[loanActive]}
+        initialInstallments={sampleInstallments}
+      />
+    );
+
+    // Initial state: installment 2 is pending
+    expect(screen.getByTestId('installment-badge-2')).toHaveTextContent('pending');
+    const payBtn = screen.getByTestId('btn-pay-installment-2');
+    expect(payBtn).toBeInTheDocument();
+    expect(payBtn).toHaveTextContent('Simular pago');
+
+    // Click to simulate payment
+    fireEvent.click(payBtn);
+
+    // Should update status badge to paid and show success alert
+    await waitFor(() => {
+      expect(screen.getByTestId('installment-badge-2')).toHaveTextContent('paid');
+    });
+
+    const alert = screen.getByTestId('payment-success-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('¡Pago de la cuota #2 registrado con éxito!');
+  });
+
+  it('renders borrower historical loan applications and allows switching between them', () => {
+    const loan1: Loan = {
+      ...baseLoan,
+      id: 'loan-01',
+      status: 'active',
+    };
+    const loan2: Loan = {
+      ...baseLoan,
+      id: 'loan-02',
+      category: 'machinery',
+      amount_requested: 15_000_000,
+      status: 'funding',
+    };
+
+    render(<BorrowerDashboard initialLoans={[loan1, loan2]} />);
+
+    // History table exists
+    const historyTable = screen.getByTestId('borrower-loans-history');
+    expect(historyTable).toBeInTheDocument();
+    expect(screen.getByTestId('loan-history-row-loan-01')).toBeInTheDocument();
+    expect(screen.getByTestId('loan-history-row-loan-02')).toBeInTheDocument();
+
+    // Select second loan
+    const selectBtn = screen.getByTestId('btn-select-loan-loan-02');
+    fireEvent.click(selectBtn);
+
+    // Status badge updates to funding
+    expect(screen.getByTestId('borrower-status-badge')).toHaveTextContent('funding');
+    expect(screen.getByTestId('auction-monitor-card')).toBeInTheDocument();
+  });
 });
