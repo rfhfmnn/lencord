@@ -403,5 +403,145 @@ describe('AdminConsole Component (Task 15)', () => {
       expect(within(list).getByText('$ 4.500.000')).toBeInTheDocument();
     });
   });
+
+  describe('Admin Console Document Viewer with Signed URLs (Issue #36)', () => {
+    it('generates short-lived signed URLs with 15-minute expiration (900 seconds) via Supabase Storage client', async () => {
+      const mockCreateSignedDocumentUrl = vi.fn().mockImplementation((path: string, expiresIn: number) => {
+        return Promise.resolve({
+          signedUrl: `https://storage.supabase.co/signed/${path}?token=token_15m_${expiresIn}`,
+          error: null,
+        });
+      });
+
+      const mockStorageService = {
+        createSignedDocumentUrl: mockCreateSignedDocumentUrl,
+        uploadLoanDocument: vi.fn(),
+        downloadLoanDocument: vi.fn(),
+      } as any;
+
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+          storageService={mockStorageService}
+        />
+      );
+
+      // Verify createSignedDocumentUrl was called with 900 seconds (15-minute expiration)
+      await waitFor(() => {
+        expect(mockCreateSignedDocumentUrl).toHaveBeenCalledWith(
+          expect.stringContaining('balance.pdf'),
+          900
+        );
+      });
+
+      const balanceLink = screen.getByTestId('link-doc-balance');
+      expect(balanceLink).toHaveAttribute(
+        'href',
+        expect.stringContaining('token_15m_900')
+      );
+
+      const f931Link = screen.getByTestId('link-doc-f931');
+      expect(f931Link).toHaveAttribute(
+        'href',
+        expect.stringContaining('token_15m_900')
+      );
+    });
+
+    it('distinguishes provided vs omitted documents with visual badges and explicit "Documento no presentado" notice', () => {
+      const profilesWithoutBalance: Record<string, SmeCreditProfile> = {
+        'sme-test-1': {
+          id: 'cp-no-balance',
+          profile_id: 'sme-test-1',
+          bcra_situation: 1,
+          risk_tier: 'Tier B',
+          balance_sheet_url: null, // Omitted
+          f931_url: 'https://storage.lencord.ar/documents/f931.pdf',
+          scoring_notes: null,
+          updated_at: '2026-09-01T10:00:00.000Z',
+        },
+      };
+
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={profilesWithoutBalance}
+        />
+      );
+
+      // Omitted balance sheet verification
+      const missingBadge = screen.getByTestId('badge-balance-omitted');
+      expect(missingBadge).toHaveTextContent('Documento no presentado');
+
+      const missingNotice = screen.getByTestId('doc-balance-missing');
+      expect(missingNotice).toHaveTextContent('Documento no presentado');
+      expect(screen.queryByTestId('link-doc-balance')).not.toBeInTheDocument();
+
+      // Provided F931 verification
+      expect(screen.getByTestId('badge-f931-provided')).toHaveTextContent('Presentado');
+      expect(screen.getByTestId('link-doc-f931')).toBeInTheDocument();
+    });
+
+    it('renders Preview and Download buttons with secure sandboxed tab and download attributes', () => {
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      // Preview buttons open in a new tab with rel="noopener noreferrer" for security
+      const previewBtnBalance = screen.getByTestId('btn-preview-balance');
+      expect(previewBtnBalance).toHaveAttribute('target', '_blank');
+      expect(previewBtnBalance).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(previewBtnBalance).toHaveAttribute(
+        'href',
+        'https://storage.lencord.ar/documents/balance.pdf'
+      );
+
+      // Download button has download attribute and points to file
+      const downloadBtnBalance = screen.getByTestId('btn-download-balance');
+      expect(downloadBtnBalance).toHaveAttribute('download');
+      expect(downloadBtnBalance).toHaveAttribute(
+        'href',
+        'https://storage.lencord.ar/documents/balance.pdf'
+      );
+    });
+
+    it('fails gracefully with informative error messages when signed URL token request is expired or unauthorized', async () => {
+      const mockStorageService = {
+        createSignedDocumentUrl: vi.fn().mockResolvedValue({
+          signedUrl: null,
+          error: new Error('Token expirado o acceso no autorizado'),
+        }),
+        uploadLoanDocument: vi.fn(),
+        downloadLoanDocument: vi.fn(),
+      } as any;
+
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+          storageService={mockStorageService}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('doc-error-balance')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('doc-error-balance')).toHaveTextContent(
+        'Token expirado o acceso no autorizado'
+      );
+      expect(screen.getByTestId('doc-error-f931')).toHaveTextContent(
+        'Token expirado o acceso no autorizado'
+      );
+    });
+  });
 });
+
 

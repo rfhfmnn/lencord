@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BcraSituation, Loan, Profile, RiskTier, SmeCreditProfile } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
-import { createSupabaseBrowserClient } from '@/services/supabase';
+import { createSupabaseBrowserClient, SupabaseStorageService } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { formatCurrency } from '@/components/home/HeroSimulator';
@@ -18,6 +18,7 @@ export interface AdminConsoleProps {
   initialCreditProfiles?: Record<string, SmeCreditProfile>;
   className?: string;
   pollIntervalMs?: number;
+  storageService?: SupabaseStorageService;
 }
 
 export function AdminConsole({
@@ -26,6 +27,7 @@ export function AdminConsole({
   initialCreditProfiles,
   className = '',
   pollIntervalMs,
+  storageService,
 }: AdminConsoleProps) {
   let servicesFromContext: ReturnType<typeof useServices> | null = null;
   try {
@@ -205,6 +207,73 @@ export function AdminConsole({
     return loans.find((l) => l.id === selectedLoanId) ?? null;
   }, [loans, selectedLoanId, pendingLoans]);
 
+  const selectedProfile = useMemo(() => {
+    return selectedLoan ? profilesMap[selectedLoan.borrower_id] ?? null : null;
+  }, [selectedLoan, profilesMap]);
+
+  const selectedCreditProfile = useMemo(() => {
+    return selectedLoan ? creditProfilesMap[selectedLoan.borrower_id] ?? null : null;
+  }, [selectedLoan, creditProfilesMap]);
+
+  // Short-lived signed URLs (15-min expiration) via Supabase Storage client
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [docErrors, setDocErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function resolveSignedUrls() {
+      if (!selectedCreditProfile) {
+        setSignedUrls({});
+        setDocErrors({});
+        return;
+      }
+
+      const newSignedUrls: Record<string, string> = {};
+      const newErrors: Record<string, string> = {};
+
+      const docsToResolve: Array<{ key: 'balance' | 'f931'; rawUrl: string | null }> = [
+        { key: 'balance', rawUrl: selectedCreditProfile.balance_sheet_url },
+        { key: 'f931', rawUrl: selectedCreditProfile.f931_url },
+      ];
+
+      for (const { key, rawUrl } of docsToResolve) {
+        if (!rawUrl) continue;
+
+        if (storageService) {
+          try {
+            const cleanPath = rawUrl
+              .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/loan-documents\//, '')
+              .replace(/^https?:\/\/[^/]+\/documents\//, '')
+              .replace(/^loan-documents\//, '');
+
+            const res = await storageService.createSignedDocumentUrl(cleanPath, 900);
+            if (res.signedUrl) {
+              newSignedUrls[key] = res.signedUrl;
+            } else if (res.error) {
+              newErrors[key] = res.error.message || 'Error al generar enlace seguro: No autorizado o token expirado.';
+            }
+          } catch (err: any) {
+            newErrors[key] = err?.message || 'Error al generar enlace seguro: No autorizado o token expirado.';
+          }
+        } else {
+          newSignedUrls[key] = rawUrl;
+        }
+      }
+
+      if (!isCancelled) {
+        setSignedUrls(newSignedUrls);
+        setDocErrors(newErrors);
+      }
+    }
+
+    resolveSignedUrls();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCreditProfile, storageService]);
+
   // Reset form when selected loan changes
   useEffect(() => {
     if (selectedLoan) {
@@ -324,9 +393,6 @@ export function AdminConsole({
       </div>
     );
   }
-
-  const selectedProfile = selectedLoan ? profilesMap[selectedLoan.borrower_id] : null;
-  const selectedCreditProfile = selectedLoan ? creditProfilesMap[selectedLoan.borrower_id] : null;
 
   return (
     <div className={`${styles.adminContainer} ${className}`} data-testid="admin-console">
@@ -521,37 +587,118 @@ export function AdminConsole({
                     📄 Extractos bancarios (3m)
                   </a>
 
+                  {/* Balance contable */}
                   {selectedCreditProfile?.balance_sheet_url ? (
-                    <a
-                      href={selectedCreditProfile.balance_sheet_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={styles.docLink}
-                      data-testid="link-doc-balance"
-                    >
-                      📄 Balance contable
-                    </a>
+                    docErrors['balance'] ? (
+                      <div className={styles.docErrorBox} data-testid="doc-error-balance" role="alert">
+                        {docErrors['balance']}
+                      </div>
+                    ) : (
+                      <div className={styles.docCard} data-testid="doc-card-balance">
+                        <div className={styles.docCardHeader}>
+                          <span className={styles.docTitle}>📄 Balance contable</span>
+                          <span className={styles.badgeSuccess} data-testid="badge-balance-provided">
+                            Presentado
+                          </span>
+                        </div>
+                        <div className={styles.docActions}>
+                          <a
+                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docLink}
+                            data-testid="link-doc-balance"
+                            title="Vista previa en pestaña segura"
+                          >
+                            📄 Balance contable
+                          </a>
+                          <a
+                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docPreviewBtn}
+                            data-testid="btn-preview-balance"
+                          >
+                            👁 Vista previa
+                          </a>
+                          <a
+                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docDownloadBtn}
+                            data-testid="btn-download-balance"
+                          >
+                            ⬇ Descargar
+                          </a>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className={styles.docDisabled} data-testid="doc-balance-missing">
-                      📄 Balance: No presentado
+                      <span className={styles.badgeWarning} data-testid="badge-balance-omitted">
+                        Documento no presentado
+                      </span>
+                      <span>📄 Balance: No presentado</span>
                     </div>
                   )}
 
+                  {/* Formulario 931 */}
                   {selectedCreditProfile?.f931_url ? (
-                    <a
-                      href={selectedCreditProfile.f931_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={styles.docLink}
-                      data-testid="link-doc-f931"
-                    >
-                      📄 Formulario 931
-                    </a>
+                    docErrors['f931'] ? (
+                      <div className={styles.docErrorBox} data-testid="doc-error-f931" role="alert">
+                        {docErrors['f931']}
+                      </div>
+                    ) : (
+                      <div className={styles.docCard} data-testid="doc-card-f931">
+                        <div className={styles.docCardHeader}>
+                          <span className={styles.docTitle}>📄 Formulario 931</span>
+                          <span className={styles.badgeSuccess} data-testid="badge-f931-provided">
+                            Presentado
+                          </span>
+                        </div>
+                        <div className={styles.docActions}>
+                          <a
+                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docLink}
+                            data-testid="link-doc-f931"
+                            title="Vista previa en pestaña segura"
+                          >
+                            📄 Formulario 931
+                          </a>
+                          <a
+                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docPreviewBtn}
+                            data-testid="btn-preview-f931"
+                          >
+                            👁 Vista previa
+                          </a>
+                          <a
+                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.docDownloadBtn}
+                            data-testid="btn-download-f931"
+                          >
+                            ⬇ Descargar
+                          </a>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className={styles.docDisabled} data-testid="doc-f931-missing">
-                      📄 Formulario 931: No presentado
+                      <span className={styles.badgeWarning} data-testid="badge-f931-omitted">
+                        Documento no presentado
+                      </span>
+                      <span>📄 Formulario 931: No presentado</span>
                     </div>
                   )}
+
                 </div>
               </div>
 
