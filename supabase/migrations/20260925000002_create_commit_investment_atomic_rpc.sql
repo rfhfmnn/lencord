@@ -31,6 +31,11 @@ BEGIN
     RAISE EXCEPTION 'El préstamo no se encuentra en estado de fondeo';
   END IF;
 
+  -- Prevent borrower from investing into their own loan listing
+  IF v_loan.borrower_id = p_investor_id THEN
+    RAISE EXCEPTION 'No se permite autofinanciamiento: el solicitante no puede invertir en su propio préstamo';
+  END IF;
+
   -- Verify remaining capacity and prevent overfunding
   IF (v_loan.amount_funded + p_amount) > v_loan.amount_requested THEN
     RAISE EXCEPTION 'El monto excede el cupo disponible de la subasta';

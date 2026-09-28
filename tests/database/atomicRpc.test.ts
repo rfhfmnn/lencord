@@ -32,6 +32,11 @@ describe('Atomic Auction Investment RPC Function (Issue #18)', () => {
     expect(sqlContent).toMatch(/RAISE EXCEPTION 'El préstamo no se encuentra en estado de fondeo'/i);
   });
 
+  it('throws an exception if borrower attempts to invest in their own loan listing (self-funding prevention)', () => {
+    expect(sqlContent).toMatch(/IF\s+v_loan\.borrower_id\s*=\s*p_investor_id\s+THEN/i);
+    expect(sqlContent).toMatch(/RAISE EXCEPTION 'No se permite autofinanciamiento: el solicitante no puede invertir en su propio préstamo'/i);
+  });
+
   it('throws an exception if investment exceeds available quota (overfunding protection)', () => {
     expect(sqlContent).toMatch(/IF\s*\(v_loan\.amount_funded\s*\+\s*p_amount\)\s*>\s*v_loan\.amount_requested\s*THEN/i);
     expect(sqlContent).toMatch(/RAISE EXCEPTION 'El monto excede el cupo disponible de la subasta'/i);
@@ -89,6 +94,12 @@ describe('Atomic Auction Investment RPC Function (Issue #18)', () => {
             throw new Error('El préstamo no se encuentra en estado de fondeo');
           }
 
+          if (loan.borrower_id === investorId) {
+            throw new Error(
+              'No se permite autofinanciamiento: el solicitante no puede invertir en su propio préstamo'
+            );
+          }
+
           if (loan.amount_funded + amount > loan.amount_requested) {
             throw new Error('El monto excede el cupo disponible de la subasta');
           }
@@ -139,6 +150,31 @@ describe('Atomic Auction Investment RPC Function (Issue #18)', () => {
       await expect(
         db.commitInvestmentAtomic('loan-draft-01', 'prof-inv-001', 500_000)
       ).rejects.toThrow('El préstamo no se encuentra en estado de fondeo');
+    });
+
+    it('rejects investment when borrower attempts to invest in their own loan listing (self-funding prevention)', async () => {
+      const db = new SimulatedPostgresEngine();
+      const openLoan: Loan = {
+        id: 'loan-open-01',
+        borrower_id: 'prof-sme-001',
+        amount_requested: 5_000_000,
+        amount_funded: 1_000_000,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        investor_rate: 45.0,
+        platform_spread: 2.5,
+        borrower_rate: 47.5,
+        base_uva_value: null,
+        category: 'working_capital',
+        status: 'funding',
+        funding_deadline: '2026-10-30T23:59:59.000Z',
+        created_at: new Date().toISOString(),
+      };
+      db.registerLoan(openLoan);
+
+      await expect(
+        db.commitInvestmentAtomic('loan-open-01', 'prof-sme-001', 500_000)
+      ).rejects.toThrow('No se permite autofinanciamiento: el solicitante no puede invertir en su propio préstamo');
     });
 
     it('prevents overfunding and handles concurrent simultaneous investments race-free', async () => {

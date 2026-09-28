@@ -182,6 +182,10 @@ export function LoanDetail({
   const isCompleted = loan.status === 'funded' || loan.amount_funded >= loan.amount_requested;
   const daysRemaining = calculateDaysRemaining(loan.funding_deadline, referenceDate);
 
+  const isBorrowerSelf = Boolean(
+    investorId && loan.borrower_id && investorId === loan.borrower_id
+  );
+
   const handleInvestmentSuccess = (result: CommitInvestmentResult) => {
     setLoan(result.loan);
   };
@@ -301,6 +305,16 @@ export function LoanDetail({
                 data-testid="detail-invest-button"
               >
                 Subasta completada
+              </Button>
+            ) : isBorrowerSelf ? (
+              <Button
+                variant="primary"
+                disabled
+                size="lg"
+                data-testid="detail-invest-button"
+                title="No podés invertir en tu propia solicitud de crédito"
+              >
+                Tu solicitud de crédito
               </Button>
             ) : (
               <Button

@@ -45,11 +45,19 @@ export function InvestmentModal({
   if (!isOpen) return null;
 
   const remainingCapacity = Math.max(0, loan.amount_requested - loan.amount_funded);
+  const isSelfFunding = Boolean(
+    investorId && loan.borrower_id && investorId === loan.borrower_id
+  );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.replace(/[^0-9]/g, '');
     setAmountStr(rawVal);
     setSubmitError(null);
+
+    if (isSelfFunding) {
+      setValidationError('No podés invertir en tu propia solicitud de crédito.');
+      return;
+    }
 
     if (!rawVal) {
       setValidationError(null);
@@ -78,10 +86,15 @@ export function InvestmentModal({
     parsedAmount > 0 &&
     parsedAmount >= MIN_INVESTMENT_TICKET &&
     parsedAmount <= remainingCapacity &&
-    !validationError;
+    !validationError &&
+    !isSelfFunding;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSelfFunding) {
+      setSubmitError('No podés invertir en tu propia solicitud de crédito.');
+      return;
+    }
     if (!isInputValid || isSubmitting) return;
 
     try {
@@ -227,6 +240,13 @@ export function InvestmentModal({
                 </div>
               </div>
 
+              {isSelfFunding && (
+                <div className={styles.errorBanner} role="alert" data-testid="self-funding-warning">
+                  <span>⚠️</span>
+                  <span>No podés invertir en tu propia solicitud de crédito.</span>
+                </div>
+              )}
+
               <Input
                 label="Monto a invertir (ARS)"
                 id="investment-amount-input"
@@ -236,10 +256,11 @@ export function InvestmentModal({
                 placeholder="10.000"
                 value={amountStr ? parseInt(amountStr, 10).toLocaleString('es-AR') : ''}
                 onChange={handleAmountChange}
+                disabled={isSelfFunding || isSubmitting}
                 error={validationError ?? undefined}
-                helperText={!validationError ? 'El monto se reservará en tu cuenta bancaria asociada' : undefined}
+                helperText={!validationError && !isSelfFunding ? 'El monto se reservará en tu cuenta bancaria asociada' : undefined}
                 data-testid="investment-amount-input"
-                autoFocus
+                autoFocus={!isSelfFunding}
               />
 
               {submitError && (

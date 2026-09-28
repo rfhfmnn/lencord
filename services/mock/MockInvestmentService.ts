@@ -45,6 +45,12 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       );
     }
 
+    if (loan.borrower_id === input.investor_id) {
+      throw new Error(
+        'Self-funding rejected: The borrower cannot invest in their own loan listing'
+      );
+    }
+
     const currentFunded = loan.amount_funded;
     const remainingAvailable = loan.amount_requested - currentFunded;
 

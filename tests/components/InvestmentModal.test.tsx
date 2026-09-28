@@ -192,4 +192,27 @@ describe('InvestmentModal Component (Task 10)', () => {
     });
     expect(screen.getByText(/¡Subasta completada al 100%!/i)).toBeInTheDocument();
   });
+
+  it('prevents borrower from committing investments into their own loan listing', async () => {
+    const services = createServices({ useMocks: true });
+
+    render(
+      <ServiceProvider services={services}>
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={mockLoan}
+          investorId={mockLoan.borrower_id} // Attempting to invest in their own loan
+        />
+      </ServiceProvider>
+    );
+
+    // Warning is displayed
+    expect(screen.getByTestId('self-funding-warning')).toBeInTheDocument();
+    expect(screen.getByText(/No podés invertir en tu propia solicitud/i)).toBeInTheDocument();
+
+    // Input and confirm button are disabled
+    expect(screen.getByTestId('investment-amount-input')).toBeDisabled();
+    expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
+  });
 });
