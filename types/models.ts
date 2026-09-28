@@ -85,6 +85,12 @@ export type BcraSituation = 1 | 2 | 3 | 4 | 5 | null;
 // Domain Entities
 // ---------------------------------------------------------------------------
 
+export interface NotificationPreferences {
+  email: boolean;
+  sms: boolean;
+  whatsapp: boolean;
+}
+
 /**
  * Platform user profile (investor, SME representative, or administrator).
  * Table: `profiles`
@@ -102,6 +108,7 @@ export interface Profile {
   first_name?: string | null;
   last_name?: string | null;
   is_verified?: boolean;
+  notification_preferences?: NotificationPreferences;
 }
 
 /**

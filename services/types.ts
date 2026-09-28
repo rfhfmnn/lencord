@@ -21,6 +21,7 @@ export interface Services {
   payments: PaymentGatewayInterface;
   notifications?: NotificationServiceInterface;
   email?: EmailServiceInterface;
+  multiChannelNotifications?: import('./notifications/channels').MultiChannelNotificationServiceInterface;
 }
 
 export type ServiceName = keyof Services;

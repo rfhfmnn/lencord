@@ -32,11 +32,19 @@ import {
   defaultMockEmailService,
 } from './email';
 import type { EmailServiceInterface } from '@/types';
+import {
+  MultiChannelNotificationService,
+  MockChannelAdapter,
+  TwilioChannelAdapter,
+  defaultMockChannelAdapter,
+  type MultiChannelNotificationServiceInterface,
+} from './notifications/channels';
 
 export interface MockServiceOptions {
   store?: MockStateStore;
   paymentGateway?: MockPaymentGateway;
   email?: EmailServiceInterface;
+  multiChannelNotifications?: MultiChannelNotificationServiceInterface;
 }
 
 /**
@@ -47,15 +55,24 @@ export function createMockServices(options?: MockServiceOptions): Services {
   const store = options?.store ?? defaultMockStateStore;
   const paymentGateway = options?.paymentGateway ?? defaultMockPaymentGateway;
   const emailService = options?.email ?? defaultMockEmailService;
+  const multiChannelNotifications =
+    options?.multiChannelNotifications ??
+    new MultiChannelNotificationService(defaultMockChannelAdapter);
 
   return {
     loans: new MockLoanService(store, paymentGateway, emailService),
-    investments: new MockInvestmentService(store, paymentGateway, emailService),
+    investments: new MockInvestmentService(
+      store,
+      paymentGateway,
+      emailService,
+      multiChannelNotifications
+    ),
     creditScoring: new MockCreditScoringService(store),
     legal: new MockLegalService(store),
     payments: paymentGateway,
     notifications: new MockNotificationService(store),
     email: emailService,
+    multiChannelNotifications,
   };
 }
 
@@ -134,6 +151,14 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
     services.notifications = liveServiceRegistry.notifications;
   } else if (Object.keys(liveServiceRegistry).length === 0) {
     services.notifications = new SupabaseNotificationService(clientProvider);
+  }
+
+  if (liveServiceRegistry.multiChannelNotifications) {
+    services.multiChannelNotifications = liveServiceRegistry.multiChannelNotifications;
+  } else if (Object.keys(liveServiceRegistry).length === 0) {
+    services.multiChannelNotifications = new MultiChannelNotificationService(
+      new TwilioChannelAdapter()
+    );
   }
 
   return services;

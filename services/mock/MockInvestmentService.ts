@@ -15,20 +15,24 @@ import type {
 } from '@/types';
 import { defaultMockPaymentGateway } from './MockPaymentGateway';
 import { defaultMockStateStore, MockStateStore } from './mockState';
+import type { MultiChannelNotificationServiceInterface } from '../notifications/channels';
 
 export class MockInvestmentService implements InvestmentServiceInterface {
   private store: MockStateStore;
   private paymentGateway?: PaymentGatewayInterface;
   private emailService?: EmailServiceInterface;
+  private multiChannelNotifications?: MultiChannelNotificationServiceInterface;
 
   constructor(
     store: MockStateStore = defaultMockStateStore,
     paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway,
-    emailService?: EmailServiceInterface
+    emailService?: EmailServiceInterface,
+    multiChannelNotifications?: MultiChannelNotificationServiceInterface
   ) {
     this.store = store;
     this.paymentGateway = paymentGateway;
     this.emailService = emailService;
+    this.multiChannelNotifications = multiChannelNotifications;
   }
 
   public async commitInvestment(
@@ -149,6 +153,36 @@ export class MockInvestmentService implements InvestmentServiceInterface {
         action_url: '/dashboard/pyme',
         created_at: new Date().toISOString(),
       });
+
+      // Dispatch high-priority loan funding alert via WhatsApp / SMS
+      if (this.multiChannelNotifications) {
+        try {
+          const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id);
+          const borrowerPhone = borrower?.phone || '+541140000000';
+          const borrowerName = borrower?.legal_name || 'PyME Prestataria';
+          this.multiChannelNotifications
+            .sendLoanFundingCompletedAlert(
+              {
+                to: borrowerPhone,
+                recipientName: borrowerName,
+                loanId: loan.id,
+                amount: loan.amount_funded,
+              },
+              borrower
+            )
+            .catch((err) => {
+              console.warn(
+                '[MockInvestmentService] Multi-channel loan funding alert error:',
+                err?.message || err
+              );
+            });
+        } catch (err: any) {
+          console.warn(
+            '[MockInvestmentService] Exception triggering multi-channel funding alert:',
+            err?.message || err
+          );
+        }
+      }
     }
 
     return {

@@ -130,6 +130,47 @@ async function handleCheckDeadlines(req: NextRequest) {
       }
     }
 
+    // 3. Scan pending installments for urgent payment reminders
+    let paymentRemindersDispatched = 0;
+    if (services.multiChannelNotifications) {
+      const pendingInstallments = (defaultMockStateStore.installments || []).filter(
+        (inst) => inst.status === 'pending'
+      );
+      for (const inst of pendingInstallments) {
+        const dueDateMs = new Date(inst.due_date).getTime();
+        const diffDays = Math.ceil((dueDateMs - now) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 3) {
+          const loan = (defaultMockStateStore.loans || []).find((l) => l.id === inst.loan_id);
+          const borrower = loan
+            ? (defaultMockStateStore.profiles || []).find((p) => p.id === loan.borrower_id)
+            : undefined;
+          if (borrower) {
+            try {
+              await services.multiChannelNotifications.sendUrgentPaymentReminderAlert(
+                {
+                  to: borrower.phone,
+                  recipientName: borrower.legal_name,
+                  loanId: inst.loan_id,
+                  installmentNumber: inst.installment_number,
+                  amount:
+                    inst.principal_amount + (inst.interest_borrower ?? 0),
+                  dueDate: inst.due_date,
+                  daysRemaining: diffDays,
+                },
+                borrower
+              );
+              paymentRemindersDispatched += 1;
+            } catch (reminderErr) {
+              console.warn(
+                '[Cron:check-deadlines] Failed to dispatch urgent payment reminder:',
+                reminderErr
+              );
+            }
+          }
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         status: 'ok',
@@ -139,6 +180,7 @@ async function handleCheckDeadlines(req: NextRequest) {
         partial_flagged: partialFlagged,
         finalized,
         notifications_dispatched: notificationsDispatched,
+        payment_reminders_dispatched: paymentRemindersDispatched,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, calculateDaysRemaining, formatRateDisplay } from '@/components/marketplace/LoanCard';
 import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
+import { NotificationPreferencesCard } from './NotificationPreferencesCard';
 import styles from './dashboard.module.css';
 
 export interface BorrowerDashboardProps {
@@ -641,6 +642,32 @@ export function BorrowerDashboard({
           </div>
         </section>
       )}
+
+      {/* User Notification Preferences (SMS / WhatsApp / Email) */}
+      <NotificationPreferencesCard
+        userId={currentBorrowerId}
+        onSave={async (prefs) => {
+          try {
+            const resolvedServices =
+              servicesFromContext ??
+              (() => {
+                try {
+                  return createServices();
+                } catch {
+                  return createServices({ useMocks: true });
+                }
+              })();
+            if (resolvedServices.multiChannelNotifications) {
+              await resolvedServices.multiChannelNotifications.updateUserPreferences(
+                currentBorrowerId,
+                prefs
+              );
+            }
+          } catch (err) {
+            console.warn('Failed to update notification preferences:', err);
+          }
+        }}
+      />
 
       {/* Electronic Promissory Note Signing Modal */}
       {currentLoan && (

@@ -157,8 +157,36 @@ export function PromissoryNoteModal({
       setErrorMessage(null);
       setIsSubmitting(false);
       setSignedContract(null);
+
+      // Trigger high-priority OTP alert dispatch (SMS / WhatsApp)
+      const services =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      if (services.multiChannelNotifications) {
+        services.multiChannelNotifications
+          .sendOtpSignatureAlert(
+            {
+              to: borrower.phone,
+              recipientName: borrower.legal_name,
+              otpCode: simulatedOtp,
+              loanId: loan.id,
+              amount: loan.amount_requested,
+            },
+            borrower
+          )
+          .catch((err) => {
+            console.warn('[PromissoryNoteModal] OTP alert dispatch notice:', err?.message || err);
+          });
+      }
     }
-  }, [isOpen, simulatedOtp]);
+  }, [isOpen, simulatedOtp, borrower, loan.id, loan.amount_requested, servicesFromContext]);
 
   if (!isOpen) return null;
 
@@ -206,6 +234,33 @@ export function PromissoryNoteModal({
     setIsLocked(false);
     setOtpDigits(['', '', '', '', '', '']);
     setErrorMessage(null);
+
+    const services =
+      servicesFromContext ??
+      (() => {
+        try {
+          return createServices();
+        } catch {
+          return createServices({ useMocks: true });
+        }
+      })();
+
+    if (services.multiChannelNotifications) {
+      services.multiChannelNotifications
+        .sendOtpSignatureAlert(
+          {
+            to: borrower.phone,
+            recipientName: borrower.legal_name,
+            otpCode: nextCode,
+            loanId: loan.id,
+            amount: loan.amount_requested,
+          },
+          borrower
+        )
+        .catch((err) => {
+          console.warn('[PromissoryNoteModal] OTP regenerate dispatch notice:', err?.message || err);
+        });
+    }
   };
 
   const handleSignConfirm = async () => {
