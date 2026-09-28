@@ -118,7 +118,7 @@ export class MockLoanService implements LoanServiceInterface {
 
     // Update document URLs in SME credit profile if present
     if (input.balance_sheet_url || input.f931_url) {
-      const creditProfile = this.store.creditProfiles.find(
+      let creditProfile = this.store.creditProfiles.find(
         (cp) => cp.profile_id === input.borrower_id
       );
       if (creditProfile) {
@@ -129,6 +129,18 @@ export class MockLoanService implements LoanServiceInterface {
           creditProfile.f931_url = input.f931_url;
         }
         creditProfile.updated_at = now.toISOString();
+      } else {
+        creditProfile = {
+          id: `cred-${Math.random().toString(36).substring(2, 9)}`,
+          profile_id: input.borrower_id,
+          bcra_situation: 1,
+          risk_tier: 'Tier B',
+          balance_sheet_url: input.balance_sheet_url ?? null,
+          f931_url: input.f931_url ?? null,
+          scoring_notes: 'Documentación cargada en solicitud de préstamo',
+          updated_at: now.toISOString(),
+        };
+        this.store.creditProfiles.push(creditProfile);
       }
     }
 
