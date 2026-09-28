@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/Button';
+import { createSupabaseBrowserClient, STORAGE_BUCKET_LOAN_DOCUMENTS } from '@/services/supabase';
 import styles from './solicitar.module.css';
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -25,6 +27,8 @@ export interface Step3FormData {
 
 export interface StepDocumentUploadProps {
   initialData?: Step3FormData;
+  borrowerId?: string;
+  supabaseClient?: SupabaseClient;
   onBack: (data?: Step3FormData) => void;
   onContinue: (data: Step3FormData) => void;
 }
@@ -37,6 +41,8 @@ function formatFileSize(bytes: number): string {
 
 export function StepDocumentUpload({
   initialData,
+  borrowerId = 'prof-sme-001',
+  supabaseClient,
   onBack,
   onContinue,
 }: StepDocumentUploadProps) {
@@ -45,9 +51,55 @@ export function StepDocumentUpload({
     bank_statements: initialData?.bank_statements ?? null,
     balance_sheet: initialData?.balance_sheet ?? null,
     f931: initialData?.f931 ?? null,
+    balance_sheet_url: initialData?.balance_sheet_url ?? null,
+    f931_url: initialData?.f931_url ?? null,
+    afip_constancia_url: initialData?.afip_constancia_url ?? null,
+    bank_statements_url: initialData?.bank_statements_url ?? null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
+
+  const uploadFileToStorage = async (key: keyof Step3FormData, file: File) => {
+    setUploading((prev) => ({ ...prev, [key]: true }));
+    setUploadErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+
+    try {
+      const client = supabaseClient || createSupabaseBrowserClient();
+      const cleanName = file.name.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileId = `${key}-${cleanName}`;
+      const storagePath = `${borrowerId}/${fileId}.pdf`;
+
+      if (client?.storage) {
+        const { error } = await client.storage
+          .from(STORAGE_BUCKET_LOAN_DOCUMENTS)
+          .upload(storagePath, file, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+
+        if (error) {
+          throw error;
+        }
+      }
+
+      setFiles((prev) => ({
+        ...prev,
+        [`${key}_url`]: storagePath,
+      }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al subir el archivo.';
+      setUploadErrors((prev) => ({ ...prev, [key]: msg }));
+    } finally {
+      setUploading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const handleFileSelection = (
     key: keyof Step3FormData,
@@ -85,6 +137,12 @@ export function StepDocumentUpload({
       return copy;
     });
 
+    setPendingFiles((prev) => ({ ...prev, [key]: selected }));
+
+    const cleanName = selected.name.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileId = `${key}-${cleanName}`;
+    const storagePath = `${borrowerId}/${fileId}.pdf`;
+
     setFiles((prev) => ({
       ...prev,
       [key]: {
@@ -92,11 +150,40 @@ export function StepDocumentUpload({
         size: selected.size,
         type: selected.type,
       },
+      [`${key}_url`]: storagePath,
     }));
+
+    uploadFileToStorage(key, selected);
+  };
+
+  const handleRetryUpload = (key: keyof Step3FormData) => {
+    const file = pendingFiles[key];
+    if (file) {
+      uploadFileToStorage(key, file);
+    }
   };
 
   const handleRemoveFile = (key: keyof Step3FormData) => {
-    setFiles((prev) => ({ ...prev, [key]: null }));
+    setFiles((prev) => ({
+      ...prev,
+      [key]: null,
+      [`${key}_url`]: null,
+    }));
+    setUploadErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+    setUploading((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+    setPendingFiles((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
     if (errors[key]) {
       setErrors((prev) => {
         const copy = { ...prev };
@@ -177,6 +264,60 @@ export function StepDocumentUpload({
                 />
               )}
             </div>
+            {uploading.afip_constancia && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                  marginTop: '0.375rem',
+                }}
+                data-testid="upload-spinner-afip"
+              >
+                <span>⏳</span>
+                <span>Subiendo archivo a almacenamiento seguro...</span>
+              </div>
+            )}
+            {uploadErrors.afip_constancia && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  marginTop: '0.5rem',
+                }}
+                role="alert"
+                data-testid="error-upload-afip"
+              >
+                <span>⚠️ {uploadErrors.afip_constancia}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRetryUpload('afip_constancia')}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #b91c1c',
+                    color: '#b91c1c',
+                    borderRadius: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  data-testid="retry-upload-afip"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             {errors.afip_constancia && (
               <span className={styles.errorMessage} role="alert" data-testid="error-afip">
                 {errors.afip_constancia}
@@ -223,6 +364,60 @@ export function StepDocumentUpload({
                 />
               )}
             </div>
+            {uploading.bank_statements && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                  marginTop: '0.375rem',
+                }}
+                data-testid="upload-spinner-bank"
+              >
+                <span>⏳</span>
+                <span>Subiendo archivo a almacenamiento seguro...</span>
+              </div>
+            )}
+            {uploadErrors.bank_statements && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  marginTop: '0.5rem',
+                }}
+                role="alert"
+                data-testid="error-upload-bank"
+              >
+                <span>⚠️ {uploadErrors.bank_statements}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRetryUpload('bank_statements')}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #b91c1c',
+                    color: '#b91c1c',
+                    borderRadius: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  data-testid="retry-upload-bank"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             {errors.bank_statements && (
               <span className={styles.errorMessage} role="alert" data-testid="error-bank">
                 {errors.bank_statements}
@@ -267,6 +462,60 @@ export function StepDocumentUpload({
                 />
               )}
             </div>
+            {uploading.balance_sheet && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                  marginTop: '0.375rem',
+                }}
+                data-testid="upload-spinner-balance"
+              >
+                <span>⏳</span>
+                <span>Subiendo archivo a almacenamiento seguro...</span>
+              </div>
+            )}
+            {uploadErrors.balance_sheet && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  marginTop: '0.5rem',
+                }}
+                role="alert"
+                data-testid="error-upload-balance"
+              >
+                <span>⚠️ {uploadErrors.balance_sheet}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRetryUpload('balance_sheet')}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #b91c1c',
+                    color: '#b91c1c',
+                    borderRadius: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  data-testid="retry-upload-balance"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             {errors.balance_sheet && (
               <span className={styles.errorMessage} role="alert" data-testid="error-balance">
                 {errors.balance_sheet}
@@ -311,6 +560,60 @@ export function StepDocumentUpload({
                 />
               )}
             </div>
+            {uploading.f931 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                  marginTop: '0.375rem',
+                }}
+                data-testid="upload-spinner-f931"
+              >
+                <span>⏳</span>
+                <span>Subiendo archivo a almacenamiento seguro...</span>
+              </div>
+            )}
+            {uploadErrors.f931 && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  marginTop: '0.5rem',
+                }}
+                role="alert"
+                data-testid="error-upload-f931"
+              >
+                <span>⚠️ {uploadErrors.f931}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRetryUpload('f931')}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #b91c1c',
+                    color: '#b91c1c',
+                    borderRadius: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                  data-testid="retry-upload-f931"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
             {errors.f931 && (
               <span className={styles.errorMessage} role="alert" data-testid="error-f931">
                 {errors.f931}
