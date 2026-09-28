@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { BcraSituation, Loan, Profile, RiskTier, SmeCreditProfile } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { formatCurrency } from '@/components/home/HeroSimulator';
@@ -16,6 +17,7 @@ export interface AdminConsoleProps {
   initialProfiles?: Record<string, Profile>;
   initialCreditProfiles?: Record<string, SmeCreditProfile>;
   className?: string;
+  pollIntervalMs?: number;
 }
 
 export function AdminConsole({
@@ -23,6 +25,7 @@ export function AdminConsole({
   initialProfiles,
   initialCreditProfiles,
   className = '',
+  pollIntervalMs,
 }: AdminConsoleProps) {
   let servicesFromContext: ReturnType<typeof useServices> | null = null;
   try {
@@ -129,9 +132,69 @@ export function AdminConsole({
     };
   }, [initialLoans, servicesFromContext]);
 
-  // Pending loans
+  // Refresh applications from service
+  const refreshApplications = useCallback(async () => {
+    try {
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      const inReviewLoans = await resolvedServices.loans.listLoans({ status: 'in_review' });
+      setLoans((prev) => {
+        const otherLoans = prev.filter((l) => l.status !== 'in_review');
+        return [...otherLoans, ...inReviewLoans];
+      });
+    } catch (err) {
+      console.error('Error refreshing applications in admin console:', err);
+    }
+  }, [servicesFromContext]);
+
+  // Periodic polling for real-time application queue updates
+  useEffect(() => {
+    const interval = pollIntervalMs ?? (initialLoans ? 0 : 5000);
+    if (!interval || interval <= 0) return;
+
+    const timer = setInterval(() => {
+      refreshApplications();
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [pollIntervalMs, initialLoans, refreshApplications]);
+
+  // Supabase Realtime channel subscription
+  useEffect(() => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const channel = supabase
+        .channel('admin-realtime-loans')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'loans' },
+          () => {
+            refreshApplications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch {
+      // In mock/test environments without real Supabase connection
+    }
+  }, [refreshApplications]);
+
+  // Pending loans ordered chronologically by submission date (newest first)
   const pendingLoans = useMemo(() => {
-    return loans.filter((l) => l.status === 'in_review');
+    return [...loans]
+      .filter((l) => l.status === 'in_review')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [loans]);
 
   // Selected loan
@@ -300,7 +363,7 @@ export function AdminConsole({
 
           {pendingLoans.length === 0 ? (
             <div className={styles.noSelectionPlaceholder} data-testid="no-pending-loans">
-              <p>No hay solicitudes pendientes de evaluación crediticia.</p>
+              <p>No hay solicitudes pendientes de revisión</p>
             </div>
           ) : (
             <div className={styles.applicationsList} data-testid="pending-loans-list">
@@ -335,11 +398,33 @@ export function AdminConsole({
                       </span>
                       <span className={styles.categoryTag}>{category}</span>
                     </div>
+
+                    <div className={styles.appItemMeta}>
+                      <span data-testid={`loan-term-${loan.id}`}>
+                        Plazo: {loan.term_months} meses
+                      </span>
+                      <span data-testid={`loan-rate-${loan.id}`}>
+                        {loan.rate_type === 'TNA_FIXED' ? 'TNA Fija' : 'CER + Spread'}
+                      </span>
+                      <span
+                        data-testid={`loan-timestamp-${loan.id}`}
+                        className={styles.timestampText}
+                      >
+                        {new Date(loan.created_at).toLocaleDateString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
             </div>
           )}
+
         </section>
 
         {/* Right Column: Application Detail & Scoring Console */}

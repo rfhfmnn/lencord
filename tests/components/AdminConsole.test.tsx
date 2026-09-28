@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { Loan, Profile, SmeCreditProfile } from '@/types';
 import { AdminConsole } from '@/components/admin/AdminConsole';
 import { ServiceProvider } from '@/context/ServiceProvider';
@@ -255,4 +255,153 @@ describe('AdminConsole Component (Task 15)', () => {
     // seed loan-seed-006 is in_review
     expect(screen.getByTestId('pending-loans-list')).toBeInTheDocument();
   });
+
+  describe('Real-Time Application Queue (Issue #35)', () => {
+    it('renders empty state with "No hay solicitudes pendientes de revisión" when queue has no pending loans', () => {
+      render(
+        <AdminConsole
+          initialLoans={[]}
+          initialProfiles={{}}
+          initialCreditProfiles={{}}
+        />
+      );
+
+      const emptyNotice = screen.getByTestId('no-pending-loans');
+      expect(emptyNotice).toBeInTheDocument();
+      expect(emptyNotice).toHaveTextContent('No hay solicitudes pendientes de revisión');
+      expect(screen.getByTestId('pending-count-badge')).toHaveTextContent('0 pendientes');
+    });
+
+    it('orders applications list chronologically by submission date (newest first)', () => {
+      const chronLoans: Loan[] = [
+        {
+          id: 'loan-oldest',
+          borrower_id: 'sme-test-1',
+          amount_requested: 5_000_000,
+          amount_funded: 0,
+          term_months: 3,
+          rate_type: 'TNA_FIXED',
+          investor_rate: 0,
+          platform_spread: 0,
+          borrower_rate: 0,
+          base_uva_value: null,
+          category: 'working_capital',
+          status: 'in_review',
+          funding_deadline: '2026-11-01T23:59:59.000Z',
+          created_at: '2026-09-01T10:00:00.000Z',
+        },
+        {
+          id: 'loan-newest',
+          borrower_id: 'sme-test-2',
+          amount_requested: 12_000_000,
+          amount_funded: 0,
+          term_months: 12,
+          rate_type: 'CER_VARIABLE',
+          investor_rate: 0,
+          platform_spread: 0,
+          borrower_rate: 0,
+          base_uva_value: null,
+          category: 'expansion',
+          status: 'in_review',
+          funding_deadline: '2026-11-20T23:59:59.000Z',
+          created_at: '2026-09-27T15:30:00.000Z',
+        },
+        {
+          id: 'loan-middle',
+          borrower_id: 'sme-test-1',
+          amount_requested: 7_500_000,
+          amount_funded: 0,
+          term_months: 6,
+          rate_type: 'TNA_FIXED',
+          investor_rate: 0,
+          platform_spread: 0,
+          borrower_rate: 0,
+          base_uva_value: null,
+          category: 'machinery',
+          status: 'in_review',
+          funding_deadline: '2026-11-10T23:59:59.000Z',
+          created_at: '2026-09-15T12:00:00.000Z',
+        },
+      ];
+
+      render(
+        <AdminConsole
+          initialLoans={chronLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      const items = screen.getAllByTestId(/^loan-item-/);
+      expect(items).toHaveLength(3);
+      expect(items[0]).toHaveAttribute('data-testid', 'loan-item-loan-newest');
+      expect(items[1]).toHaveAttribute('data-testid', 'loan-item-loan-middle');
+      expect(items[2]).toHaveAttribute('data-testid', 'loan-item-loan-oldest');
+    });
+
+    it('renders company legal name, CUIT, requested amount, term, rate preference, and submission timestamp in table/list items', () => {
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      const item1 = screen.getByTestId('loan-item-loan-review-01');
+      expect(item1).toHaveTextContent('Metalúrgica Quilmes S.R.L.');
+      expect(item1).toHaveTextContent('30712345679');
+      expect(item1).toHaveTextContent('$ 8.000.000');
+      expect(screen.getByTestId('loan-term-loan-review-01')).toHaveTextContent('Plazo: 6 meses');
+      expect(screen.getByTestId('loan-rate-loan-review-01')).toHaveTextContent('TNA Fija');
+      expect(screen.getByTestId('loan-timestamp-loan-review-01')).toBeInTheDocument();
+
+      const item2 = screen.getByTestId('loan-item-loan-review-02');
+      expect(item2).toHaveTextContent('Alimentos del Valle SAS');
+      expect(item2).toHaveTextContent('30718901234');
+      expect(item2).toHaveTextContent('$ 15.000.000');
+      expect(screen.getByTestId('loan-term-loan-review-02')).toHaveTextContent('Plazo: 12 meses');
+      expect(screen.getByTestId('loan-rate-loan-review-02')).toHaveTextContent('CER + Spread');
+      expect(screen.getByTestId('loan-timestamp-loan-review-02')).toBeInTheDocument();
+    });
+
+    it('reflects newly submitted applications without manual page reload via polling updates', async () => {
+      const store = new MockStateStore();
+      store.loans = [];
+      store.profiles = Object.values(mockProfiles);
+      store.creditProfiles = Object.values(mockCreditProfiles);
+      const services = createServices({ store, useMocks: true });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole initialProfiles={mockProfiles} pollIntervalMs={50} />
+        </ServiceProvider>
+      );
+
+      // Initially empty
+      await waitFor(() => {
+        expect(screen.getByTestId('no-pending-loans')).toBeInTheDocument();
+      });
+
+      // Submit new loan into the service layer in the background
+      await services.loans.submitLoanApplication({
+        borrower_id: 'sme-test-1',
+        amount_requested: 4_500_000,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        category: 'working_capital',
+      });
+
+      // Wait for real-time polling to pick up the newly submitted loan
+      await waitFor(() => {
+        expect(screen.queryByTestId('no-pending-loans')).not.toBeInTheDocument();
+        expect(screen.getByTestId('pending-loans-list')).toBeInTheDocument();
+      });
+
+      const list = screen.getByTestId('pending-loans-list');
+      expect(within(list).getByText('Metalúrgica Quilmes S.R.L.')).toBeInTheDocument();
+      expect(within(list).getByText('$ 4.500.000')).toBeInTheDocument();
+    });
+  });
 });
+
