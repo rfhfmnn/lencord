@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:load": "vitest run tests/load/loadTest.test.ts",
     "seed:admin": "node --no-warnings scripts/seed-admin.ts"
   },
   "dependencies": {
