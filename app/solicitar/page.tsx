@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LoanWizard } from '@/components/solicitar';
 
 export const metadata: Metadata = {
-  title: 'Solicitar Financiamiento PyME | Lencord',
+  title: 'Solicitar financiamiento PyME',
   description:
     'Formulario de solicitud de crédito PyME online en Lencord. Financiamiento colectivo con condiciones a tu medida.',
 };

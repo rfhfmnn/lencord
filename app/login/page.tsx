@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LoginForm } from '@/components/auth';
 
 export const metadata: Metadata = {
-  title: 'Iniciar Sesión | Lencord',
+  title: 'Iniciar Sesión',
   description:
     'Accedé a tu cuenta en Lencord para gestionar tus solicitudes de crédito PyME o tus inversiones colectivas.',
 };

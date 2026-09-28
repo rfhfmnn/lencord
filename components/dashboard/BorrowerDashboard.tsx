@@ -360,8 +360,8 @@ export function BorrowerDashboard({
               {currentLoan.borrower_rate > 0
                 ? formatRateDisplay(currentLoan.rate_type, currentLoan.borrower_rate)
                 : currentLoan.rate_type === 'TNA_FIXED'
-                ? 'Tasa Fija (TNA)'
-                : 'CER / UVA + Spread'}
+                  ? 'Tasa fija (TNA)'
+                  : 'CER / UVA + Spread'}
             </div>
             <div className={styles.secondaryText}>
               {currentLoan.borrower_rate > 0 ? 'Tasa final aprobada' : 'A definir en scoring'}
@@ -535,8 +535,8 @@ export function BorrowerDashboard({
                       inst.status === 'paid'
                         ? styles.statusPaid
                         : inst.status === 'overdue'
-                        ? styles.statusOverdue
-                        : styles.statusPending;
+                          ? styles.statusOverdue
+                          : styles.statusPending;
 
                     return (
                       <tr key={inst.id} data-testid={`amortization-row-${inst.installment_number}`}>

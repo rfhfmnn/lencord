@@ -57,9 +57,9 @@ export function StepBankingAndSubmission({
 
     const cleaned = formData.cbu_cvu.replace(/\D/g, '');
     if (!cleaned) {
-      newErrors.cbu_cvu = 'Ingresá la clave bancaria uniforme (CBU) o CVU de la cuenta de la empresa.';
+      newErrors.cbu_cvu = 'Ingresá el CBU/CVU de la cuenta de la empresa.';
     } else if (cleaned.length !== 22) {
-      newErrors.cbu_cvu = 'El CBU o CVU debe contener exactamente 22 dígitos numéricos.';
+      newErrors.cbu_cvu = 'El CBU/CVU debe contener exactamente 22 dígitos numéricos.';
     }
 
     if (!formData.funds_declaration) {
@@ -95,7 +95,7 @@ export function StepBankingAndSubmission({
         <div className={styles.formGrid}>
           {/* CBU / CVU */}
           <Input
-            label="CBU o CVU de acreditación de fondos *"
+            label="CBU/CVU de acreditación de fondos *"
             id="cbu_cvu"
             type="text"
             inputMode="numeric"
@@ -110,9 +110,8 @@ export function StepBankingAndSubmission({
           {/* Declaración Jurada Licitud de Fondos */}
           <div className={styles.fieldGroup}>
             <label
-              className={`${styles.checkboxCard} ${
-                formData.funds_declaration ? styles.checkboxCardSelected : ''
-              }`}
+              className={`${styles.checkboxCard} ${formData.funds_declaration ? styles.checkboxCardSelected : ''
+                }`}
               data-testid="label-funds-declaration"
             >
               <input
@@ -153,9 +152,8 @@ export function StepBankingAndSubmission({
           {/* Aceptación de Términos y Pagaré Digital */}
           <div className={styles.fieldGroup}>
             <label
-              className={`${styles.checkboxCard} ${
-                formData.terms_accepted ? styles.checkboxCardSelected : ''
-              }`}
+              className={`${styles.checkboxCard} ${formData.terms_accepted ? styles.checkboxCardSelected : ''
+                }`}
               data-testid="label-terms-accepted"
             >
               <input

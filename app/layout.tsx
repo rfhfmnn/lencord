@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'Lencord',
-  description: 'Plataforma P2P de préstamos colectivos orientada a PyMEs argentinas',
+  description: 'Plataforma peer-to-peer (P2P) de préstamos colectivos orientada a PyMEs argentinas',
 };
 
 export default function RootLayout({

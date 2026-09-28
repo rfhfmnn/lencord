@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { MarketplaceCatalog } from '@/components/marketplace';
 
 export const metadata: Metadata = {
-  title: 'Marketplace de Préstamos | Lencord',
+  title: 'Marketplace de préstamos',
   description:
     'Catálogo público de oportunidades de financiamiento colectivo para PyMEs argentinas.',
 };

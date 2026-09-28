@@ -15,9 +15,9 @@ import styles from './loan-detail.module.css';
 
 export const CATEGORY_DESTINATION_DESCRIPTIONS: Record<string, string> = {
   working_capital:
-    'Financiamiento destinado a capital de trabajo operativo, adquisición de materias primas y gestión de inventario para atender el incremento de demanda productiva.',
+    'Financiamiento destinado a capital de trabajo operativo, adquisición de materias primas y gestión de inventario para atender la demanda productiva.',
   machinery:
-    'Inversión para adquisición y modernización de bienes de capital y maquinaria industrial de última generación para incrementar la capacidad operativa.',
+    'Inversión para adquisición y modernización de bienes de capital y maquinaria para incrementar la capacidad productiva.',
   refinancing:
     'Optimización del perfil financiero de la empresa mediante la consolidación de pasivos de corto plazo en condiciones más competitivas.',
   expansion:
@@ -28,13 +28,13 @@ export const CATEGORY_DESTINATION_DESCRIPTIONS: Record<string, string> = {
 
 export function formatBcraScoreDisplay(situation: number | null | undefined): string {
   if (situation === 1) {
-    return 'Situación 1 - Normal (Cumplimiento puntual sin atrasos)';
+    return 'Situación 1 - Normal (cumplimiento puntual sin atrasos)';
   }
   if (situation === 2) {
-    return 'Situación 2 - Con seguimiento especial (Atraso menor)';
+    return 'Situación 2 - Con seguimiento especial (atraso menor)';
   }
   if (situation === 3) {
-    return 'Situación 3 - Con problemas (Atraso significativo)';
+    return 'Situación 3 - Con problemas (atraso significativo)';
   }
   if (situation === 4) {
     return 'Situación 4 - Con alto riesgo de insolvencia';
@@ -42,7 +42,7 @@ export function formatBcraScoreDisplay(situation: number | null | undefined): st
   if (situation === 5) {
     return 'Situación 5 - Irrecuperable';
   }
-  return 'Sin deuda financiera registrada en Central de Deudores BCRA';
+  return 'Sin deuda financiera registrada en Central de Deudores del BCRA';
 }
 
 export interface LoanDetailProps {
@@ -209,9 +209,8 @@ export function LoanDetail({
           </div>
 
           <span
-            className={`${styles.statusBadge} ${
-              isCompleted ? styles.statusCompleted : styles.statusFunding
-            }`}
+            className={`${styles.statusBadge} ${isCompleted ? styles.statusCompleted : styles.statusFunding
+              }`}
             data-testid="detail-status-badge"
           >
             {isCompleted ? 'Subasta completada' : 'En subasta pública'}
@@ -283,9 +282,8 @@ export function LoanDetail({
             aria-label="Progreso de fondeo"
           >
             <div
-              className={`${styles.progressBarFill} ${
-                isCompleted ? styles.progressBarFillCompleted : ''
-              }`}
+              className={`${styles.progressBarFill} ${isCompleted ? styles.progressBarFillCompleted : ''
+                }`}
               style={{ width: `${fundingPercentage}%` }}
               data-testid="detail-progress-fill"
             />

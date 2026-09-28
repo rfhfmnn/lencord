@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { BorrowerDashboard } from '@/components/dashboard/BorrowerDashboard';
 
 export const metadata: Metadata = {
-  title: 'Panel PyME | Lencord',
+  title: 'Panel PyME',
   description:
     'Monitor de solicitud de crédito, progreso de subasta y cuadro de cuotas para PyMEs en Lencord.',
 };

@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { RegisterForm } from '@/components/auth';
 
 export const metadata: Metadata = {
-  title: 'Crear Cuenta | Lencord',
+  title: 'Crear c',
   description:
     'Registrate en Lencord como PyME para solicitar financiamiento colectivo o como inversor para rentabilizar tu capital.',
 };

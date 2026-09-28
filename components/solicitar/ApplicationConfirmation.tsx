@@ -39,7 +39,7 @@ export function ApplicationConfirmation({
       </div>
 
       <div className={styles.summaryReceipt}>
-        <div className={styles.receiptTitle}>Resumen de la Solicitud</div>
+        <div className={styles.receiptTitle}>Resumen de la solicitud</div>
 
         <div className={styles.receiptRow}>
           <span className={styles.receiptLabel}>Número de trámite / ID:</span>
@@ -108,7 +108,7 @@ export function ApplicationConfirmation({
         <div className={styles.receiptRow}>
           <span className={styles.receiptLabel}>Esquema de tasa:</span>
           <span className={styles.receiptValue} data-testid="receipt-rate-type">
-            {loan.rate_type === 'TNA_FIXED' ? 'Tasa Fija (TNA)' : 'CER + spread variable'}
+            {loan.rate_type === 'TNA_FIXED' ? 'Tasa fija (TNA)' : 'CER + spread variable'}
           </span>
         </div>
       </div>

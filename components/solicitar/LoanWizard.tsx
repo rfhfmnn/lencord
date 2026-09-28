@@ -362,7 +362,7 @@ export function LoanWizard({
   return (
     <div className={styles.container} data-testid="loan-application-wizard">
       <div className={styles.wizardHeader}>
-        <h1 className={styles.mainTitle}>Solicitud de Financiamiento PyME</h1>
+        <h1 className={styles.mainTitle}>Solicitud de financiamiento PyME</h1>
         <p className={styles.subtitle}>
           Completá el formulario en 4 simples pasos para publicar tu subasta en Lencord.
         </p>

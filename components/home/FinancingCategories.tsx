@@ -15,7 +15,7 @@ export const FINANCING_CATEGORIES: FinancingCategory[] = [
   {
     id: 'working_capital',
     name: 'Capital de trabajo',
-    description: 'Financiá stock, materias primas y liquidez operativa para afrontar picos de demanda sin interrupciones.',
+    description: 'Financiá stock, materias primas y liquidez operativa para afrontar la demanda sin interrupciones.',
     tag: 'Mayor demanda',
     icon: '💼',
     href: '/solicitar?category=working_capital',
@@ -23,7 +23,7 @@ export const FINANCING_CATEGORIES: FinancingCategory[] = [
   {
     id: 'machinery',
     name: 'Maquinaria y equipamiento',
-    description: 'Modernizá tu línea de producción, incorporá tecnología de punta y ampliá la capacidad instalada de tu planta.',
+    description: 'Modernizá tu línea de producción, incorporá tecnología de punta y ampliá la capacidad instalada de tu negocio.',
     tag: 'Activos productivos',
     icon: '⚙️',
     href: '/solicitar?category=machinery',
@@ -33,13 +33,13 @@ export const FINANCING_CATEGORIES: FinancingCategory[] = [
     name: 'Refinanciación de pasivos',
     description: 'Consolidá deudas de corto plazo o sobregiros bancarios con plazos más holgados y condiciones transparentes.',
     tag: 'Optimización financiera',
-    icon: '📊',
+    icon: '🗓️',
     href: '/solicitar?category=refinancing',
   },
   {
     id: 'expansion',
     name: 'Expansión comercial',
-    description: 'Invertí en nuevas sucursales, desarrollo de canales de distribución y apertura de nuevos mercados regionales.',
+    description: 'Invertí en nuevas sucursales, desarrollo de canales de distribución y apertura de nuevos mercados.',
     tag: 'Crecimiento',
     icon: '🚀',
     href: '/solicitar?category=expansion',

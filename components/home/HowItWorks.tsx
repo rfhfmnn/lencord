@@ -19,8 +19,8 @@ export const PYME_STEPS: WorkflowStep[] = [
   },
   {
     stepNumber: 2,
-    title: 'Evaluación 24h',
-    description: 'Validamos tu situación fiscal y crediticia con la Central de Deudores del BCRA sin demoras.',
+    title: 'Evaluación',
+    description: 'Validamos tu situación fiscal y crediticia para calificar el riesgo de tu negocio.',
   },
   {
     stepNumber: 3,
@@ -38,7 +38,7 @@ export const INVESTOR_STEPS: WorkflowStep[] = [
   {
     stepNumber: 1,
     title: 'Creá tu cuenta',
-    description: 'Registro ágil con verificación de identidad (KYC) y vinculación de cuenta bancaria.',
+    description: 'Registro ágil con verificación de identidad y vinculación de cuenta bancaria.',
   },
   {
     stepNumber: 2,
@@ -68,12 +68,12 @@ export function HowItWorks({ initialAudience = 'pymes', className = '' }: HowItW
   const steps = audience === 'pymes' ? PYME_STEPS : INVESTOR_STEPS;
 
   return (
-    <section id="como-funciona" className={`${styles.section} ${className}`} aria-label="Cómo funciona Lencord">
+    <section id="como-funciona" className={`${styles.section} ${className}`} aria-label="¿Cómo funciona Lencord?">
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Cómo funciona</h2>
+          <h2 className={styles.title}>¿Cómo funciona?</h2>
           <p className={styles.subtitle}>
-            Un proceso ágil, transparente y seguro tanto para PyMEs en búsqueda de liquidez como para inversores.
+            Un proceso ágil, transparente y seguro tanto para PyMEs en búsqueda de liquidez como para inversores en busca de rendimiento.
           </p>
 
           {/* Interactive Audience Tabs */}

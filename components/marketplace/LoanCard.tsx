@@ -10,7 +10,7 @@ export const LOAN_CATEGORY_LABELS: Record<string, string> = {
   machinery: 'Maquinaria y equipamiento',
   refinancing: 'Refinanciación de pasivos',
   expansion: 'Expansión comercial',
-  new_sme: 'Nuevas PyMEs',
+  new_sme: 'Nuevas PyMEs / Startups',
 };
 
 export function formatRateDisplay(rateType: string, rate: number): string {

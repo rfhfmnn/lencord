@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LoanDetail } from '@/components/marketplace';
 
 export const metadata: Metadata = {
-  title: 'Detalle de Oportunidad | Lencord Marketplace',
+  title: 'Detalle de oportunidad',
   description:
     'Detalle de la oportunidad de financiamiento colectivo para PyME argentina con scoring crediticio y rendimiento.',
 };

@@ -8,7 +8,7 @@ import type { Loan } from '@/types';
 import styles from '@/components/solicitar/solicitar.module.css';
 
 export const metadata: Metadata = {
-  title: 'Solicitud Confirmada | Lencord',
+  title: 'Solicitud confirmada',
   description: 'Confirmación de solicitud de crédito PyME recibida y en proceso de revisión.',
 };
 

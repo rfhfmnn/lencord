@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { InvestorDashboard } from '@/components/dashboard/InvestorDashboard';
 
 export const metadata: Metadata = {
-  title: 'Panel del Inversor | Lencord',
+  title: 'Panel del inversor',
   description:
     'Tablero de control de inversiones, rendimientos y cronograma de cobros para inversores en Lencord.',
 };

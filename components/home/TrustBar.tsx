@@ -11,15 +11,15 @@ export interface TrustMetric {
 export const TRUST_METRICS: TrustMetric[] = [
   {
     id: 'pymes-financed',
-    value: '+150',
+    value: '+50',
     label: 'PyMEs financiadas',
     subtext: 'En todo el territorio argentino',
   },
   {
     id: 'historical-volume',
-    value: '$ 1.250M+',
+    value: '$ 150M+',
     label: 'Volumen operado',
-    subtext: 'Fondos canalizados a la producción',
+    subtext: 'Fondos canalizados a la inversión y al desarrollo',
   },
   {
     id: 'average-term',
