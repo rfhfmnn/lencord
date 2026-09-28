@@ -49,9 +49,9 @@ export const CATEGORY_OPTIONS: { value: LoanCategory; label: string; desc: strin
 ];
 
 export const TERM_OPTIONS = [
-  { value: 1, label: '30 días' },
-  { value: 2, label: '60 días' },
-  { value: 3, label: '90 días' },
+  { value: 1, label: '1 mes' },
+  { value: 2, label: '2 meses' },
+  { value: 3, label: '3 meses' },
   { value: 6, label: '6 meses' },
   { value: 12, label: '12 meses' },
 ];

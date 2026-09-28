@@ -10,16 +10,16 @@ export type RateType = 'fixed' | 'cer';
 export interface TermOption {
   id: string;
   label: string;
-  days: number;
+  days?: number;
   months: number;
 }
 
 export const TERM_OPTIONS: TermOption[] = [
-  { id: '30d', label: '30 días', days: 30, months: 1 },
-  { id: '60d', label: '60 días', days: 60, months: 2 },
-  { id: '90d', label: '90 días', days: 90, months: 3 },
-  { id: '6m', label: '6 meses', days: 180, months: 6 },
-  { id: '12m', label: '12 meses', days: 360, months: 12 },
+  { id: '1m', label: '1 mes', months: 1, days: 30 },
+  { id: '2m', label: '2 meses', months: 2, days: 60 },
+  { id: '3m', label: '3 meses', months: 3, days: 90 },
+  { id: '6m', label: '6 meses', months: 6, days: 180 },
+  { id: '12m', label: '12 meses', months: 12, days: 360 },
 ];
 
 export const BORROWER_MIN_AMOUNT = 100_000;
@@ -106,7 +106,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
   const [mode, setMode] = useState<SimulatorMode>(initialMode);
   const [borrowerAmount, setBorrowerAmount] = useState<number>(BORROWER_DEFAULT_AMOUNT);
   const [investorAmount, setInvestorAmount] = useState<number>(INVESTOR_DEFAULT_AMOUNT);
-  const [selectedTerm, setSelectedTerm] = useState<TermOption>(TERM_OPTIONS[2]); // Default 90 days
+  const [selectedTerm, setSelectedTerm] = useState<TermOption>(TERM_OPTIONS[2]); // Default 3 meses
   const [rateType, setRateType] = useState<RateType>('fixed');
 
   const borrowerSliderId = useId();

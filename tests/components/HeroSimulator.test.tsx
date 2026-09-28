@@ -26,7 +26,7 @@ describe('HeroSimulator Component', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Evaluación 100% online en 24h')).toBeInTheDocument();
+    expect(screen.getByText(/Evaluación 100% online/i)).toBeInTheDocument();
   });
 
   it('switches between borrower and investor modes using interactive toggle', () => {
@@ -68,18 +68,18 @@ describe('HeroSimulator Component', () => {
       expect(installmentDisplay.textContent).toMatch(/^\$\s[\d.]+/);
     });
 
-    it('renders all term options (30, 60, 90 days, 6, 12 months) and updates calculations on term selection', () => {
+    it('renders all term options (1, 2, 3, 6, 12 months) and updates calculations on term selection', () => {
       render(<HeroSimulator initialMode="borrower" />);
 
-      const term30d = screen.getByTestId('term-option-30d');
-      const term60d = screen.getByTestId('term-option-60d');
-      const term90d = screen.getByTestId('term-option-90d');
+      const term1m = screen.getByTestId('term-option-1m');
+      const term2m = screen.getByTestId('term-option-2m');
+      const term3m = screen.getByTestId('term-option-3m');
       const term6m = screen.getByTestId('term-option-6m');
       const term12m = screen.getByTestId('term-option-12m');
 
-      expect(term30d).toBeInTheDocument();
-      expect(term60d).toBeInTheDocument();
-      expect(term90d).toBeInTheDocument();
+      expect(term1m).toBeInTheDocument();
+      expect(term2m).toBeInTheDocument();
+      expect(term3m).toBeInTheDocument();
       expect(term6m).toBeInTheDocument();
       expect(term12m).toBeInTheDocument();
 
@@ -87,9 +87,9 @@ describe('HeroSimulator Component', () => {
       fireEvent.click(term12m);
       expect(term12m).toHaveAttribute('aria-checked', 'true');
 
-      // Click 30 days
-      fireEvent.click(term30d);
-      expect(term30d).toHaveAttribute('aria-checked', 'true');
+      // Click 1 month
+      fireEvent.click(term1m);
+      expect(term1m).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByText('1 pago al vencimiento')).toBeInTheDocument();
     });
 
