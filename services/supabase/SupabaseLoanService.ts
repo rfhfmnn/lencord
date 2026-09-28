@@ -277,6 +277,40 @@ export class SupabaseLoanService implements LoanServiceInterface {
     }
   }
 
+  public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+      let updatePayload: Record<string, any> = { status: 'rejected' };
+      if (reason) {
+        updatePayload.rejection_reason = reason;
+      }
+
+      let res = await client
+        .from('loans')
+        .update(updatePayload)
+        .eq('id', loanId)
+        .select()
+        .single();
+
+      if (res.error && res.error.message?.includes('rejection_reason')) {
+        res = await client
+          .from('loans')
+          .update({ status: 'rejected' })
+          .eq('id', loanId)
+          .select()
+          .single();
+      }
+
+      if (res.error) {
+        throw mapSupabaseError(res.error, `Error al rechazar el préstamo ${loanId}`);
+      }
+
+      return res.data as Loan;
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al rechazar el préstamo ${loanId}`);
+    }
+  }
+
   public async getInstallmentsByLoan(loanId: string): Promise<Installment[]> {
     try {
       const client = await this.getClient();

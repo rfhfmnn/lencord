@@ -188,6 +188,7 @@ describe('Domain Models and Enums (@/types)', () => {
       'active',
       'repaid',
       'cancelled',
+      'rejected',
     ];
     const rateTypes: RateType[] = ['TNA_FIXED', 'CER_VARIABLE'];
     const kycStatuses: KycStatus[] = ['pending', 'approved', 'rejected'];
@@ -199,7 +200,7 @@ describe('Domain Models and Enums (@/types)', () => {
 
     expect(roles).toHaveLength(4);
     expect(tiers).toHaveLength(3);
-    expect(statuses).toHaveLength(7);
+    expect(statuses).toHaveLength(8);
     expect(rateTypes).toHaveLength(2);
     expect(kycStatuses).toHaveLength(3);
     expect(investmentStatuses).toHaveLength(3);
@@ -397,6 +398,25 @@ describe('Service Layer Contracts (@/types)', () => {
           base_uva_value: null,
           category: 'working_capital',
           status: 'cancelled',
+          funding_deadline: '2026-09-01T00:00:00Z',
+          created_at: new Date().toISOString(),
+        };
+      },
+      async rejectLoan(loanId: string, reason: string) {
+        return {
+          id: loanId,
+          borrower_id: 'b_1',
+          amount_requested: 1000000,
+          amount_funded: 0,
+          term_months: 6,
+          rate_type: 'TNA_FIXED',
+          investor_rate: 45,
+          platform_spread: 3,
+          borrower_rate: 48,
+          base_uva_value: null,
+          category: 'working_capital',
+          status: 'rejected',
+          rejection_reason: reason,
           funding_deadline: '2026-09-01T00:00:00Z',
           created_at: new Date().toISOString(),
         };

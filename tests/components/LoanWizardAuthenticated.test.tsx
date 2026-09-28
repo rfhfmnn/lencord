@@ -220,6 +220,7 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
             created_at: new Date().toISOString(),
           }),
         approveAndPublishLoan: vi.fn(),
+        rejectLoan: vi.fn(),
         finalizeLoanFunding: vi.fn(),
         cancelLoan: vi.fn(),
         getInstallmentsByLoan: vi.fn(),

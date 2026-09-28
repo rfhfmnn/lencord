@@ -123,6 +123,7 @@ describe('Service Layer Factory and Supabase Activation (Issue #32)', () => {
         expect(typeof service.listLoans).toBe('function');
         expect(typeof service.submitLoanApplication).toBe('function');
         expect(typeof service.approveAndPublishLoan).toBe('function');
+        expect(typeof service.rejectLoan).toBe('function');
         expect(typeof service.finalizeLoanFunding).toBe('function');
         expect(typeof service.cancelLoan).toBe('function');
         expect(typeof service.getInstallmentsByLoan).toBe('function');

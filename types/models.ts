@@ -30,7 +30,8 @@ export type LoanStatus =
   | 'funded'
   | 'active'
   | 'repaid'
-  | 'cancelled';
+  | 'cancelled'
+  | 'rejected';
 
 /**
  * Financial rate schemes supported in the Argentine market.
@@ -134,6 +135,7 @@ export interface Loan {
   base_uva_value: number | null; // NUMERIC(10, 4) - Reference UVA value upon loan activation
   category: LoanCategory;
   status: LoanStatus;
+  rejection_reason?: string | null;
   funding_deadline: string; // ISO 8601 Timestamp
   created_at: string; // ISO 8601 Timestamp
 }

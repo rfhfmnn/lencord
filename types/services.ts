@@ -107,6 +107,7 @@ export interface LoanServiceInterface {
   listLoans(filters?: LoanFilters): Promise<Loan[]>;
   submitLoanApplication(input: SubmitLoanInput): Promise<Loan>;
   approveAndPublishLoan(input: ApproveLoanInput): Promise<Loan>;
+  rejectLoan(loanId: string, reason: string): Promise<Loan>;
   finalizeLoanFunding(loanId: string): Promise<Loan>;
   cancelLoan(loanId: string): Promise<Loan>;
   getInstallmentsByLoan(loanId: string): Promise<Installment[]>;

@@ -262,6 +262,12 @@ describe('In-Memory Mock Services and Seed Data (Issue #4)', () => {
       expect(cancelled.status).toBe('cancelled');
     });
 
+    it('rejects a loan with non-empty reason', async () => {
+      const rejected = await loanService.rejectLoan('loan-seed-001', 'Documentación apócrifa');
+      expect(rejected.status).toBe('rejected');
+      expect(rejected.rejection_reason).toBe('Documentación apócrifa');
+    });
+
     it('retrieves installments associated with a loan', async () => {
       const installments = await loanService.getInstallmentsByLoan('loan-seed-004');
       expect(installments.length).toBeGreaterThan(0);

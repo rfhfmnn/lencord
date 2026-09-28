@@ -77,6 +77,13 @@ export function AdminConsole({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  // Confirmation modal & Rejection modal states
+  const [isConfirmApprovalOpen, setIsConfirmApprovalOpen] = useState<boolean>(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState<boolean>(false);
+  const [rejectionReason, setRejectionReason] = useState<string>('');
+  const [rejectionError, setRejectionError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<boolean>(false);
+
   // Load in_review loans from service
   useEffect(() => {
     if (initialLoans) {
@@ -393,8 +400,8 @@ export function AdminConsole({
     return Number((inv + spread).toFixed(2));
   }, [investorRate, platformSpread]);
 
-  // Approval & Publication handler
-  const handleApproveAndPublish = async (e: React.FormEvent) => {
+  // Approval validation & confirmation modal trigger
+  const handleInitiateApproval = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLoan) return;
 
@@ -428,6 +435,14 @@ export function AdminConsole({
       return;
     }
 
+    // Validation passed, open confirmation modal
+    setIsConfirmApprovalOpen(true);
+  };
+
+  // Final approval execution after confirmation modal
+  const handleConfirmApproval = async () => {
+    if (!selectedLoan) return;
+
     try {
       setSubmitting(true);
       const resolvedServices =
@@ -455,6 +470,7 @@ export function AdminConsole({
       setSuccessMessage(
         `¡Préstamo ${selectedLoan.id} aprobado con éxito! La subasta ha sido publicada y ya está activa en el marketplace.`
       );
+      setIsConfirmApprovalOpen(false);
 
       // Select next pending loan if available
       const remainingPending = pendingLoans.filter((l) => l.id !== selectedLoan.id);
@@ -463,8 +479,57 @@ export function AdminConsole({
       }
     } catch (err: any) {
       setFormError(err.message || 'Error al aprobar y publicar el préstamo.');
+      setIsConfirmApprovalOpen(false);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Rejection handlers
+  const handleOpenRejectModal = () => {
+    setRejectionReason('');
+    setRejectionError(null);
+    setIsRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!selectedLoan) return;
+
+    const trimmedReason = rejectionReason.trim();
+    if (!trimmedReason) {
+      setRejectionError('Debes ingresar un motivo de rechazo no vacío.');
+      return;
+    }
+
+    try {
+      setRejecting(true);
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      const updatedLoan = await resolvedServices.loans.rejectLoan(selectedLoan.id, trimmedReason);
+
+      setLoans((prev) => prev.map((l) => (l.id === updatedLoan.id ? updatedLoan : l)));
+      setSuccessMessage(
+        `La solicitud ${selectedLoan.id} ha sido rechazada correctamente.`
+      );
+      setIsRejectModalOpen(false);
+
+      // Select next pending loan if available
+      const remainingPending = pendingLoans.filter((l) => l.id !== selectedLoan.id);
+      if (remainingPending.length > 0) {
+        setSelectedLoanId(remainingPending[0].id);
+      }
+    } catch (err: any) {
+      setRejectionError(err.message || 'Error al rechazar la solicitud.');
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -888,7 +953,7 @@ export function AdminConsole({
               </div>
 
               {/* Scoring and Publication Form */}
-              <form onSubmit={handleApproveAndPublish} data-testid="scoring-form">
+              <form onSubmit={handleInitiateApproval} data-testid="scoring-form">
                 <h3 className={styles.panelTitle}>Parametrización y Aprobación</h3>
 
                 {formError && (
@@ -1001,23 +1066,159 @@ export function AdminConsole({
                   />
                 </div>
 
-                {/* Submit Action */}
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  disabled={submitting}
-                  onClick={handleApproveAndPublish}
-                  data-testid="btn-approve-publish"
-                >
-                  {submitting ? 'Aprobando y publicando...' : 'Aprobar y publicar en subasta'}
-                </Button>
+                {/* Submit & Reject Actions */}
+                <div className={styles.formActionsGroup}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                    disabled={submitting}
+                    onClick={handleInitiateApproval}
+                    data-testid="btn-approve-publish"
+                  >
+                    {submitting ? 'Aprobando y publicando...' : 'Aprobar y publicar en subasta'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="bordered"
+                    size="md"
+                    disabled={submitting || rejecting}
+                    onClick={handleOpenRejectModal}
+                    data-testid="btn-reject-loan"
+                  >
+                    Rechazar solicitud
+                  </Button>
+                </div>
               </form>
             </div>
           )}
         </section>
       </div>
+
+      {/* Confirmation Modal for Approval & Publication */}
+      {isConfirmApprovalOpen && selectedLoan && (
+        <div className={styles.modalBackdrop} data-testid="approval-confirmation-modal">
+          <div className={styles.modalBox} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+            <h3 id="confirm-modal-title" className={styles.modalTitle}>
+              Confirmar Aprobación y Publicación
+            </h3>
+            <p className={styles.modalDescription}>
+              ¿Estás seguro de que deseas aprobar esta solicitud y publicarla inmediatamente en la subasta del marketplace?
+            </p>
+
+            <div className={styles.modalSummaryTable}>
+              <div className={styles.modalSummaryRow}>
+                <span>Solicitante:</span>
+                <strong>{selectedProfile?.legal_name ?? selectedLoan.borrower_id}</strong>
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Monto a financiar:</span>
+                <strong>{formatCurrency(selectedLoan.amount_requested)}</strong>
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Calificación Asignada:</span>
+                <TierBadge tier={riskTier} />
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Tasa Inversores:</span>
+                <strong>{investorRate}%</strong>
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Spread Lencord:</span>
+                <strong>{platformSpread}%</strong>
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Tasa Final PyME:</span>
+                <strong>{calculatedBorrowerRate.toFixed(2)}%</strong>
+              </div>
+              <div className={styles.modalSummaryRow}>
+                <span>Cierre de Subasta:</span>
+                <strong>{new Date(fundingDeadline).toLocaleString('es-AR')}</strong>
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button
+                variant="secondary"
+                size="md"
+                disabled={submitting}
+                onClick={() => setIsConfirmApprovalOpen(false)}
+                data-testid="btn-cancel-approve"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                disabled={submitting}
+                onClick={handleConfirmApproval}
+                data-testid="btn-confirm-approve"
+              >
+                {submitting ? 'Aprobando...' : 'Confirmar y publicar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {isRejectModalOpen && selectedLoan && (
+        <div className={styles.modalBackdrop} data-testid="rejection-modal">
+          <div className={styles.modalBox} role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
+            <h3 id="reject-modal-title" className={styles.modalTitle}>
+              Rechazar Solicitud de Crédito
+            </h3>
+            <p className={styles.modalDescription}>
+              Indica el motivo del rechazo para la PyME <strong>{selectedProfile?.legal_name ?? selectedLoan.borrower_id}</strong>. Esta acción marcará la solicitud como rechazada.
+            </p>
+
+            {rejectionError && (
+              <div className={styles.errorAlert} data-testid="rejection-error-alert" role="alert">
+                {rejectionError}
+              </div>
+            )}
+
+            <div className={styles.formGroup}>
+              <label htmlFor="rejection-reason-input" className={styles.formLabel}>
+                Motivo del rechazo <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <textarea
+                id="rejection-reason-input"
+                className={styles.rejectionTextarea}
+                placeholder="Ej: Ratio de apalancamiento elevado, antecedentes negativos en BCRA, o documentación insuficiente..."
+                value={rejectionReason}
+                onChange={(e) => {
+                  setRejectionReason(e.target.value);
+                  if (rejectionError) setRejectionError(null);
+                }}
+                data-testid="input-rejection-reason"
+              />
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button
+                variant="secondary"
+                size="md"
+                disabled={rejecting}
+                onClick={() => setIsRejectModalOpen(false)}
+                data-testid="btn-cancel-reject"
+              >
+                Cancelar
+              </Button>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                disabled={rejecting}
+                onClick={handleConfirmReject}
+                data-testid="btn-confirm-reject"
+              >
+                {rejecting ? 'Rechazando...' : 'Confirmar rechazo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

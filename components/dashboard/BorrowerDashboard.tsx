@@ -29,6 +29,7 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, { label: string; className: 
   active: { label: 'Préstamo activo', className: styles.badgeActive },
   repaid: { label: 'Cancelado / Pagado', className: styles.statusSettled },
   cancelled: { label: 'Cancelado', className: styles.statusRefunded },
+  rejected: { label: 'Rechazado', className: styles.statusRefunded },
 };
 
 export function BorrowerDashboard({

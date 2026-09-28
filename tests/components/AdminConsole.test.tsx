@@ -215,8 +215,12 @@ describe('AdminConsole Component (Task 15)', () => {
     fireEvent.change(platformSpreadInput, { target: { value: '2.0' } });
     fireEvent.change(deadlineInput, { target: { value: '2026-11-20T18:00' } });
 
-    // Submit approval
+    // Submit approval (opens confirmation modal)
     fireEvent.click(submitBtn);
+
+    expect(screen.getByTestId('approval-confirmation-modal')).toBeInTheDocument();
+    const confirmBtn = screen.getByTestId('btn-confirm-approve');
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
       expect(screen.getByTestId('success-alert')).toBeInTheDocument();
@@ -236,6 +240,93 @@ describe('AdminConsole Component (Task 15)', () => {
     const foundInMarketplace = activeMarketplaceLoans.find((l) => l.id === 'loan-review-01');
     expect(foundInMarketplace).toBeDefined();
     expect(foundInMarketplace?.status).toBe('funding');
+  });
+
+  it('allows cancelling the approval confirmation modal without making changes', async () => {
+    const customStore = new MockStateStore();
+    customStore.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+    customStore.profiles = Object.values(mockProfiles);
+    customStore.creditProfiles = Object.values(mockCreditProfiles);
+    const services = createServices({ store: customStore, useMocks: true });
+
+    render(
+      <ServiceProvider services={services}>
+        <AdminConsole
+          initialLoans={customStore.loans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      </ServiceProvider>
+    );
+
+    const submitBtn = screen.getByTestId('btn-approve-publish');
+    fireEvent.click(submitBtn);
+
+    expect(screen.getByTestId('approval-confirmation-modal')).toBeInTheDocument();
+
+    const cancelBtn = screen.getByTestId('btn-cancel-approve');
+    fireEvent.click(cancelBtn);
+
+    expect(screen.queryByTestId('approval-confirmation-modal')).not.toBeInTheDocument();
+    const loan = await services.loans.getLoanById('loan-review-01');
+    expect(loan?.status).toBe('in_review');
+  });
+
+  it('enforces non-empty rejection reason and updates loan status to rejected on confirmation', async () => {
+    const customStore = new MockStateStore();
+    customStore.loans = JSON.parse(JSON.stringify(mockPendingLoans));
+    customStore.profiles = Object.values(mockProfiles);
+    customStore.creditProfiles = Object.values(mockCreditProfiles);
+    const services = createServices({ store: customStore, useMocks: true });
+
+    render(
+      <ServiceProvider services={services}>
+        <AdminConsole
+          initialLoans={customStore.loans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      </ServiceProvider>
+    );
+
+    const rejectBtn = screen.getByTestId('btn-reject-loan');
+    fireEvent.click(rejectBtn);
+
+    expect(screen.getByTestId('rejection-modal')).toBeInTheDocument();
+
+    // 1. Try to confirm with empty reason -> validation error
+    const confirmRejectBtn = screen.getByTestId('btn-confirm-reject');
+    fireEvent.click(confirmRejectBtn);
+
+    expect(screen.getByTestId('rejection-error-alert')).toHaveTextContent(
+      'Debes ingresar un motivo de rechazo no vacío.'
+    );
+
+    // 2. Try to cancel rejection modal
+    const cancelRejectBtn = screen.getByTestId('btn-cancel-reject');
+    fireEvent.click(cancelRejectBtn);
+    expect(screen.queryByTestId('rejection-modal')).not.toBeInTheDocument();
+
+    // 3. Open again, provide reason and confirm
+    fireEvent.click(rejectBtn);
+    const reasonInput = screen.getByTestId('input-rejection-reason');
+    fireEvent.change(reasonInput, {
+      target: { value: 'Capacidad de repago insuficiente según balances contables.' },
+    });
+
+    fireEvent.click(screen.getByTestId('btn-confirm-reject'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('success-alert')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('success-alert')).toHaveTextContent('rechazada correctamente');
+
+    const rejectedLoan = await services.loans.getLoanById('loan-review-01');
+    expect(rejectedLoan?.status).toBe('rejected');
+    expect(rejectedLoan?.rejection_reason).toBe(
+      'Capacidad de repago insuficiente según balances contables.'
+    );
   });
 
   it('loads in_review loans from mock services when no initial loans provided', async () => {

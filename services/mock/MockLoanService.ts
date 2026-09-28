@@ -192,6 +192,17 @@ export class MockLoanService implements LoanServiceInterface {
     return JSON.parse(JSON.stringify(loan));
   }
 
+  public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
+    const loan = this.store.loans.find((l) => l.id === loanId);
+    if (!loan) {
+      throw new Error(`Loan not found: ${loanId}`);
+    }
+
+    loan.status = 'rejected';
+    loan.rejection_reason = reason;
+    return JSON.parse(JSON.stringify(loan));
+  }
+
   public async getInstallmentsByLoan(loanId: string): Promise<Installment[]> {
     const installments = this.store.installments.filter(
       (inst) => inst.loan_id === loanId
