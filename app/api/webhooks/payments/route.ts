@@ -1,11 +1,11 @@
 /**
  * Banking-as-a-Service Payment Webhook Route Handler.
  * Receives asynchronous transaction events (fund hold confirmed, transfer settled, debit failed).
- * Conforms to _docs/plan.md Section 7 & 8.2 and Issue #21.
+ * Conforms to _docs/plan.md Section 7 & 8.2 and Issue #21 & #40.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature } from '@/services/payments/crypto';
+import { isTimestampValid, verifyWebhookSignature } from '@/services/payments/crypto';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 import { createSupabaseAdminClient } from '@/services/supabase/client';
 
@@ -16,10 +16,13 @@ export interface WebhookEventPayload {
     | 'hold.released'
     | 'transfer.settled'
     | 'investment.settled'
+    | 'disbursement.settled'
+    | 'loan.disbursed'
     | 'installment.paid'
     | 'debit.settled'
     | 'debit.failed'
     | 'payment.failed';
+  timestamp?: number | string;
   data: {
     investmentId?: string;
     installmentId?: string;
@@ -41,14 +44,29 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const signature =
-      req.headers.get('x-webhook-signature') ||
       req.headers.get('x-signature') ||
+      req.headers.get('x-webhook-signature') ||
       req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+
+    const timestampHeader =
+      req.headers.get('x-timestamp') ||
+      req.headers.get('x-webhook-timestamp') ||
+      req.headers.get('timestamp');
 
     const secret = process.env.BAAS_WEBHOOK_SECRET || 'test-webhook-secret';
 
-    // 1. Cryptographic signature validation
-    const isValid = verifyWebhookSignature(rawBody, signature, secret);
+    // 1. Timestamp validation (Replay window: max 300 seconds / 5 minutes)
+    if (timestampHeader) {
+      if (!isTimestampValid(timestampHeader, 300)) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Webhook timestamp expired (replay attack prevention)' },
+          { status: 401 }
+        );
+      }
+    }
+
+    // 2. Cryptographic HMAC-SHA256 signature validation
+    const isValid = verifyWebhookSignature(rawBody, signature, secret, timestampHeader);
     if (!isValid) {
       return NextResponse.json(
         { error: 'Unauthorized: Invalid or missing webhook signature' },
@@ -73,7 +91,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Idempotency Check
+    // Also check payload timestamp if header was omitted but payload has timestamp
+    if (!timestampHeader && payload.timestamp !== undefined) {
+      if (!isTimestampValid(payload.timestamp, 300)) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Webhook timestamp expired (replay attack prevention)' },
+          { status: 401 }
+        );
+      }
+    }
+
+    // 3. Idempotency Check
     if (processedWebhookEvents.has(payload.eventId)) {
       return NextResponse.json(
         { status: 'ok', duplicated: true, eventId: payload.eventId },
@@ -81,13 +109,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Process event updates
+    // 4. Process event updates on investments and loans tables
     const { eventType, data } = payload;
 
-    // A. Update Investment records on settlement
+    // A. Update Investment and Loan records on settlement
     if (
       eventType === 'investment.settled' ||
-      eventType === 'transfer.settled' ||
       eventType === 'hold.confirmed'
     ) {
       if (data.investmentId) {
@@ -115,9 +142,112 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+
+      // Update corresponding loan if loanId is provided
+      if (data.loanId) {
+        const mockLoan = defaultMockStateStore.loans.find((l) => l.id === data.loanId);
+        if (mockLoan) {
+          if (data.amount && data.amount > 0) {
+            mockLoan.amount_funded = Math.min(
+              mockLoan.amount_requested,
+              mockLoan.amount_funded + data.amount
+            );
+            if (mockLoan.amount_funded >= mockLoan.amount_requested) {
+              mockLoan.status = 'funded';
+            }
+          }
+          if (data.status) {
+            mockLoan.status = data.status as any;
+          }
+        }
+
+        if (
+          process.env.NEXT_PUBLIC_SUPABASE_URL &&
+          process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder-project.supabase.co'
+        ) {
+          try {
+            const supabase = createSupabaseAdminClient();
+            const { data: currentLoan } = await supabase
+              .from('loans')
+              .select('*')
+              .eq('id', data.loanId)
+              .single();
+
+            if (currentLoan) {
+              const newAmountFunded = data.amount
+                ? Math.min(currentLoan.amount_requested, Number(currentLoan.amount_funded) + data.amount)
+                : currentLoan.amount_funded;
+              const newStatus =
+                data.status ||
+                (newAmountFunded >= currentLoan.amount_requested ? 'funded' : currentLoan.status);
+
+              await supabase
+                .from('loans')
+                .update({ amount_funded: newAmountFunded, status: newStatus })
+                .eq('id', data.loanId);
+            }
+          } catch {
+            // Ignore DB errors in test environments
+          }
+        }
+      }
     }
 
-    // B. Update Installment records on payment
+    // B. Update Loan records on disbursement (transition to 'active')
+    if (
+      eventType === 'transfer.settled' ||
+      eventType === 'disbursement.settled' ||
+      eventType === 'loan.disbursed'
+    ) {
+      if (data.loanId) {
+        const mockLoan = defaultMockStateStore.loans.find((l) => l.id === data.loanId);
+        if (mockLoan) {
+          mockLoan.status = 'active';
+        }
+
+        if (
+          process.env.NEXT_PUBLIC_SUPABASE_URL &&
+          process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder-project.supabase.co'
+        ) {
+          try {
+            const supabase = createSupabaseAdminClient();
+            await supabase
+              .from('loans')
+              .update({ status: 'active' })
+              .eq('id', data.loanId);
+          } catch {
+            // Ignore DB errors in test environments
+          }
+        }
+      }
+    }
+
+    // C. Update Investment on hold release
+    if (eventType === 'hold.released') {
+      if (data.investmentId) {
+        const mockInv = defaultMockStateStore.investments.find(
+          (i) => i.id === data.investmentId
+        );
+        if (mockInv) {
+          mockInv.status = 'refunded';
+        }
+
+        if (
+          process.env.NEXT_PUBLIC_SUPABASE_URL &&
+          process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://placeholder-project.supabase.co'
+        ) {
+          try {
+            const supabase = createSupabaseAdminClient();
+            await supabase
+              .from('investments')
+              .update({ status: 'refunded' })
+              .eq('id', data.investmentId);
+          } catch {}
+        }
+      }
+    }
+
+    // D. Update Installment records on payment
     if (eventType === 'installment.paid' || eventType === 'debit.settled') {
       if (data.installmentId) {
         const now = new Date().toISOString();
@@ -144,7 +274,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // C. Update Installment records on debit failure
+    // E. Update Installment records on debit failure
     if (eventType === 'debit.failed' || eventType === 'payment.failed') {
       if (data.installmentId) {
         const mockInst = defaultMockStateStore.installments.find(
@@ -169,7 +299,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Record event as processed for idempotency
+    // 5. Record event as processed for idempotency
     processedWebhookEvents.add(payload.eventId);
 
     return NextResponse.json(
