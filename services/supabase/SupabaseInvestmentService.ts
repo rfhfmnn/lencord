@@ -159,6 +159,11 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
   }
 
   public async getInvestmentsByLoan(loanId: string): Promise<Investment[]> {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(loanId)) {
+      return [];
+    }
+
     try {
       const client = await this.getClient();
       const { data, error } = await client
@@ -178,6 +183,11 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
   }
 
   public async getInvestmentsByInvestor(investorId: string): Promise<Investment[]> {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(investorId)) {
+      return [];
+    }
+
     try {
       const client = await this.getClient();
       const { data, error } = await client
@@ -203,6 +213,10 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
   }
 
   public async getInvestmentById(id: string): Promise<Investment | null> {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(id)) {
+      return null;
+    }
     try {
       const client = await this.getClient();
       const { data, error } = await client

@@ -9,6 +9,7 @@ import { TierBadge } from '@/components/ui/TierBadge';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, formatRateDisplay } from '@/components/marketplace/LoanCard';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
@@ -67,11 +68,26 @@ export function InvestorDashboard({
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
   const [loading, setLoading] = useState<boolean>(!initialInvestments);
 
-  // Sync if prop changes
+  // Sync if prop changes or detect authenticated user
   useEffect(() => {
-    if (investorId) {
-      setCurrentInvestorId(investorId);
+    async function resolveInvestorId() {
+      if (investorId && investorId !== 'prof-inv-001') {
+        setCurrentInvestorId(investorId);
+        return;
+      }
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data } = await client.auth.getUser();
+        if (data?.user?.id) {
+          setCurrentInvestorId(data.user.id);
+        } else if (investorId) {
+          setCurrentInvestorId(investorId);
+        }
+      } catch {
+        if (investorId) setCurrentInvestorId(investorId);
+      }
     }
+    resolveInvestorId();
   }, [investorId]);
 
   useEffect(() => {

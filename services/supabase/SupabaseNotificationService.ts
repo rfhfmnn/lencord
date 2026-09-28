@@ -121,24 +121,29 @@ export class SupabaseNotificationService implements NotificationServiceInterface
     let activeChannel: ReturnType<SupabaseClient['channel']> | null = null;
 
     this.getClient().then((client) => {
-      activeChannel = client
-        .channel(`public:notifications:user_${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${userId}`,
-          },
-          (payload) => {
-            if (payload.new) {
-              callback(payload.new as Notification);
+      try {
+        const channelName = `notifications_${userId}_${Math.random().toString(36).substring(2, 9)}`;
+        activeChannel = client
+          .channel(channelName)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${userId}`,
+            },
+            (payload) => {
+              if (payload.new) {
+                callback(payload.new as Notification);
+              }
             }
-          }
-        )
-        .subscribe();
-    });
+          );
+        activeChannel.subscribe();
+      } catch (subErr) {
+        console.warn('[NotificationService] Realtime subscription skipped:', subErr);
+      }
+    }).catch(() => {});
 
     return () => {
       if (activeChannel) {

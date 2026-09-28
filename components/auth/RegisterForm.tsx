@@ -200,7 +200,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       // 2. Persist profile record in profiles table
       if (data?.user) {
         try {
-          await client.from('profiles').upsert({
+          const { error: profileError } = await client.from('profiles').upsert({
             id: data.user.id,
             role: profileRole,
             tax_id: cleanTaxId,
@@ -211,9 +211,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             phone: '',
             bank_cbu_cvu: '0000000000000000000000',
             kyc_status: 'pending',
+            notification_preferences: { email: true, sms: true, whatsapp: true },
           });
-        } catch {
-          // In mocked/test environments where table upsert might differ, continue to success
+
+          if (profileError) {
+            console.error('[RegisterForm] Error creating profile:', profileError.message || profileError);
+          }
+        } catch (err: any) {
+          console.warn('[RegisterForm] Profile upsert exception:', err?.message || err);
         }
       }
 

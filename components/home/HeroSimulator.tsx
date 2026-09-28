@@ -151,7 +151,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
           <div className={styles.trustHighlights}>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon}>✓</span>
-              <span>Evaluación 100% online en 24h</span>
+              <span>Evaluación 100% online en menos de 24hs</span>
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon}>✓</span>
@@ -159,7 +159,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon}>✓</span>
-              <span>Protección y análisis de riesgo BCRA</span>
+              <span>Protección y análisis de riesgo con IA</span>
             </div>
           </div>
         </div>
@@ -240,9 +240,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                       type="button"
                       role="radio"
                       aria-checked={selectedTerm.id === term.id}
-                      className={`${styles.termButton} ${
-                        selectedTerm.id === term.id ? styles.termButtonActive : ''
-                      }`}
+                      className={`${styles.termButton} ${selectedTerm.id === term.id ? styles.termButtonActive : ''
+                        }`}
                       onClick={() => setSelectedTerm(term)}
                       data-testid={`term-option-${term.id}`}
                     >
@@ -260,9 +259,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                     type="button"
                     role="radio"
                     aria-checked={rateType === 'fixed'}
-                    className={`${styles.rateButton} ${
-                      rateType === 'fixed' ? styles.rateButtonActive : ''
-                    }`}
+                    className={`${styles.rateButton} ${rateType === 'fixed' ? styles.rateButtonActive : ''
+                      }`}
                     onClick={() => setRateType('fixed')}
                     data-testid="rate-fixed-btn"
                   >
@@ -273,9 +271,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                     type="button"
                     role="radio"
                     aria-checked={rateType === 'cer'}
-                    className={`${styles.rateButton} ${
-                      rateType === 'cer' ? styles.rateButtonActive : ''
-                    }`}
+                    className={`${styles.rateButton} ${rateType === 'cer' ? styles.rateButtonActive : ''
+                      }`}
                     onClick={() => setRateType('cer')}
                     data-testid="rate-cer-btn"
                   >
@@ -367,9 +364,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                       type="button"
                       role="radio"
                       aria-checked={selectedTerm.id === term.id}
-                      className={`${styles.termButton} ${
-                        selectedTerm.id === term.id ? styles.termButtonActive : ''
-                      }`}
+                      className={`${styles.termButton} ${selectedTerm.id === term.id ? styles.termButtonActive : ''
+                        }`}
                       onClick={() => setSelectedTerm(term)}
                       data-testid={`investor-term-option-${term.id}`}
                     >
@@ -387,9 +383,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                     type="button"
                     role="radio"
                     aria-checked={rateType === 'fixed'}
-                    className={`${styles.rateButton} ${
-                      rateType === 'fixed' ? styles.rateButtonActive : ''
-                    }`}
+                    className={`${styles.rateButton} ${rateType === 'fixed' ? styles.rateButtonActive : ''
+                      }`}
                     onClick={() => setRateType('fixed')}
                     data-testid="investor-rate-fixed-btn"
                   >
@@ -400,9 +395,8 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                     type="button"
                     role="radio"
                     aria-checked={rateType === 'cer'}
-                    className={`${styles.rateButton} ${
-                      rateType === 'cer' ? styles.rateButtonActive : ''
-                    }`}
+                    className={`${styles.rateButton} ${rateType === 'cer' ? styles.rateButtonActive : ''
+                      }`}
                     onClick={() => setRateType('cer')}
                     data-testid="investor-rate-cer-btn"
                   >
