@@ -199,6 +199,28 @@ export class MockLoanService implements LoanServiceInterface {
     return JSON.parse(JSON.stringify(loan));
   }
 
+  public async expireLoan(loanId: string): Promise<Loan> {
+    const loan = this.store.loans.find((l) => l.id === loanId);
+    if (!loan) {
+      throw new Error(`Loan not found: ${loanId}`);
+    }
+
+    loan.status = 'expired';
+    return JSON.parse(JSON.stringify(loan));
+  }
+
+  public async flagPartialAcceptance(loanId: string, deadline: string): Promise<Loan> {
+    const loan = this.store.loans.find((l) => l.id === loanId);
+    if (!loan) {
+      throw new Error(`Loan not found: ${loanId}`);
+    }
+
+    loan.partial_acceptance_flag = true;
+    loan.partial_acceptance_deadline = deadline;
+    loan.notification_dispatched = true;
+    return JSON.parse(JSON.stringify(loan));
+  }
+
   public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
     const loan = this.store.loans.find((l) => l.id === loanId);
     if (!loan) {

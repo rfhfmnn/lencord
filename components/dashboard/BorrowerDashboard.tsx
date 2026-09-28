@@ -30,6 +30,7 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, { label: string; className: 
   repaid: { label: 'Cancelado / Pagado', className: styles.statusSettled },
   cancelled: { label: 'Cancelado', className: styles.statusRefunded },
   rejected: { label: 'Rechazado', className: styles.statusRefunded },
+  expired: { label: 'Vencido / Expirado', className: styles.statusRefunded },
 };
 
 export function BorrowerDashboard({

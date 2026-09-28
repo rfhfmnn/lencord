@@ -112,6 +112,8 @@ export interface LoanServiceInterface {
   cancelLoan(loanId: string): Promise<Loan>;
   getInstallmentsByLoan(loanId: string): Promise<Installment[]>;
   activateLoan?(loanId: string): Promise<Loan>;
+  expireLoan?(loanId: string): Promise<Loan>;
+  flagPartialAcceptance?(loanId: string, deadline: string): Promise<Loan>;
 }
 
 // ---------------------------------------------------------------------------

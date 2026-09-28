@@ -283,6 +283,50 @@ export class SupabaseLoanService implements LoanServiceInterface {
     }
   }
 
+  public async expireLoan(loanId: string): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from('loans')
+        .update({ status: 'expired' })
+        .eq('id', loanId)
+        .select()
+        .single();
+
+      if (error) {
+        throw mapSupabaseError(error, `Error al marcar expirado el préstamo ${loanId}`);
+      }
+
+      return data as Loan;
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al marcar expirado el préstamo ${loanId}`);
+    }
+  }
+
+  public async flagPartialAcceptance(loanId: string, deadline: string): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from('loans')
+        .update({
+          partial_acceptance_flag: true,
+          partial_acceptance_deadline: deadline,
+          notification_dispatched: true,
+        })
+        .eq('id', loanId)
+        .select()
+        .single();
+
+      if (error) {
+        throw mapSupabaseError(error, `Error al marcar aceptación parcial del préstamo ${loanId}`);
+      }
+
+      return data as Loan;
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al marcar aceptación parcial del préstamo ${loanId}`);
+    }
+  }
+
   public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
     try {
       const client = await this.getClient();

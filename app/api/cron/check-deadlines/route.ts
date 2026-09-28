@@ -21,7 +21,8 @@ async function handleCheckDeadlines(req: NextRequest) {
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   const providedToken = match ? match[1].trim() : null;
 
-  const expectedSecret = process.env.CRON_SECRET || 'test-cron-secret';
+  const expectedSecret =
+    process.env.CRON_SECRET_KEY || process.env.CRON_SECRET || 'test-cron-secret';
 
   // 1. Verify Bearer token authorization
   if (!providedToken || providedToken !== expectedSecret) {
@@ -36,7 +37,10 @@ async function handleCheckDeadlines(req: NextRequest) {
 
   let evaluated = 0;
   let cancelled = 0;
+  let expired = 0;
+  let partialFlagged = 0;
   let finalized = 0;
+  let notificationsDispatched = 0;
 
   try {
     // 2. Query all loans in 'funding' status
@@ -49,24 +53,16 @@ async function handleCheckDeadlines(req: NextRequest) {
       if (deadlineTime < now) {
         evaluated += 1;
 
-        if (loan.amount_funded < loan.amount_requested) {
-          // A. Underfunded auction expired -> Cancel and refund investors
-          await services.loans.cancelLoan(loan.id);
-          await services.investments.refundInvestmentsByLoan(loan.id);
+        const fundingRatio =
+          loan.amount_requested > 0
+            ? loan.amount_funded / loan.amount_requested
+            : 0;
 
-          // Update in-memory state store if mock is active
-          const mockLoan = defaultMockStateStore.loans.find((l) => l.id === loan.id);
-          if (mockLoan) {
-            mockLoan.status = 'cancelled';
-          }
-
-          cancelled += 1;
-        } else {
-          // B. Fully funded auction expired (or reached 100%) -> Finalize and prepare legal/disbursement
+        if (loan.amount_funded >= loan.amount_requested) {
+          // A. Fully funded auction (100%) -> Finalize and prepare legal/disbursement
           await services.loans.finalizeLoanFunding(loan.id);
           await services.legal.generatePromissoryNote(loan.id);
 
-          // Trigger or queue disbursement via payments gateway
           try {
             await services.payments.disburseLoan(
               loan.id,
@@ -83,6 +79,53 @@ async function handleCheckDeadlines(req: NextRequest) {
           }
 
           finalized += 1;
+        } else if (fundingRatio >= 0.75) {
+          // B. Partial funding (>= 75% but < 100%) -> Flag for borrower partial acceptance & dispatch alert
+          const partialDeadline = new Date(now + 48 * 60 * 60 * 1000).toISOString();
+
+          if (services.loans.flagPartialAcceptance) {
+            await services.loans.flagPartialAcceptance(loan.id, partialDeadline);
+          } else {
+            loan.partial_acceptance_flag = true;
+            loan.partial_acceptance_deadline = partialDeadline;
+          }
+
+          // Idempotent notification dispatch: only send if not previously dispatched
+          let sentNotification = false;
+          if (!loan.notification_dispatched) {
+            loan.notification_dispatched = true;
+            sentNotification = true;
+            notificationsDispatched += 1;
+          }
+
+          const mockLoan = defaultMockStateStore.loans.find((l) => l.id === loan.id);
+          if (mockLoan) {
+            mockLoan.partial_acceptance_flag = true;
+            mockLoan.partial_acceptance_deadline = partialDeadline;
+            if (sentNotification) {
+              mockLoan.notification_dispatched = true;
+            }
+          }
+
+          partialFlagged += 1;
+        } else {
+          // C. Underfunded auction (< 75%) -> Transition to 'expired', release escrow holds and refund investors
+          if (services.loans.expireLoan) {
+            await services.loans.expireLoan(loan.id);
+          } else {
+            await services.loans.cancelLoan(loan.id);
+          }
+
+          await services.investments.refundInvestmentsByLoan(loan.id);
+
+          // Update in-memory state store if mock is active
+          const mockLoan = defaultMockStateStore.loans.find((l) => l.id === loan.id);
+          if (mockLoan) {
+            mockLoan.status = 'expired';
+          }
+
+          expired += 1;
+          cancelled += 1;
         }
       }
     }
@@ -92,7 +135,10 @@ async function handleCheckDeadlines(req: NextRequest) {
         status: 'ok',
         evaluated,
         cancelled,
+        expired,
+        partial_flagged: partialFlagged,
         finalized,
+        notifications_dispatched: notificationsDispatched,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

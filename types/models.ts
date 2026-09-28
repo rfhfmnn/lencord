@@ -31,7 +31,8 @@ export type LoanStatus =
   | 'active'
   | 'repaid'
   | 'cancelled'
-  | 'rejected';
+  | 'rejected'
+  | 'expired';
 
 /**
  * Financial rate schemes supported in the Argentine market.
@@ -136,6 +137,9 @@ export interface Loan {
   category: LoanCategory;
   status: LoanStatus;
   rejection_reason?: string | null;
+  partial_acceptance_flag?: boolean | null;
+  partial_acceptance_deadline?: string | null;
+  notification_dispatched?: boolean | null;
   funding_deadline: string; // ISO 8601 Timestamp
   created_at: string; // ISO 8601 Timestamp
 }

@@ -189,6 +189,7 @@ describe('Domain Models and Enums (@/types)', () => {
       'repaid',
       'cancelled',
       'rejected',
+      'expired',
     ];
     const rateTypes: RateType[] = ['TNA_FIXED', 'CER_VARIABLE'];
     const kycStatuses: KycStatus[] = ['pending', 'approved', 'rejected'];
@@ -200,7 +201,7 @@ describe('Domain Models and Enums (@/types)', () => {
 
     expect(roles).toHaveLength(4);
     expect(tiers).toHaveLength(3);
-    expect(statuses).toHaveLength(8);
+    expect(statuses).toHaveLength(9);
     expect(rateTypes).toHaveLength(2);
     expect(kycStatuses).toHaveLength(3);
     expect(investmentStatuses).toHaveLength(3);

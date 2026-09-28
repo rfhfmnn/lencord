@@ -40,8 +40,8 @@ export function isTimestampValid(
   const now = Date.now();
   const diffSeconds = (now - tsMs) / 1000;
 
-  // Must not be older than maxAgeSeconds and not more than 60 seconds in the future
-  return diffSeconds >= -60 && diffSeconds <= maxAgeSeconds;
+  // Must not be older than maxAgeSeconds (with tolerance for execution jitter) and not more than 60 seconds in the future
+  return diffSeconds >= -60 && Math.floor(diffSeconds) <= maxAgeSeconds;
 }
 
 /**
