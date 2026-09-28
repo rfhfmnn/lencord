@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { calculateDaysRemaining, formatRateDisplay, LOAN_CATEGORY_LABELS } from './LoanCard';
 import { InvestmentModal } from './InvestmentModal';
+import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import styles from './loan-detail.module.css';
 
 export const CATEGORY_DESTINATION_DESCRIPTIONS: Record<string, string> = {
@@ -74,6 +75,7 @@ export function LoanDetail({
   const [loading, setLoading] = useState<boolean>(!initialLoan);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isContractModalOpen, setIsContractModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialLoan) {
@@ -357,6 +359,32 @@ export function LoanDetail({
         </div>
       </div>
 
+      {/* Legal Contract Review Section when loan is funded or active */}
+      {(loan.status === 'funded' || loan.status === 'active') && (
+        <div className={styles.creditSection} data-testid="detail-legal-contract-section" style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 className={styles.sectionTitle} style={{ marginBottom: '0.25rem' }}>
+                Instrumento Legal: Pagaré Digital y Contrato de Mutuo
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.9375rem', margin: 0 }}>
+                {loan.status === 'funded'
+                  ? 'Subasta 100% financiada. Documento listo para revisión y firma electrónica mediante OTP.'
+                  : 'Préstamo activo ratificado legalmente y sellado criptográficamente.'}
+              </p>
+            </div>
+            <Button
+              variant={loan.status === 'funded' ? 'primary' : 'bordered'}
+              size="md"
+              onClick={() => setIsContractModalOpen(true)}
+              data-testid="detail-view-contract-button"
+            >
+              {loan.status === 'funded' ? 'Revisar y firmar pagaré digital' : 'Ver pagaré digital'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Investment Commitment Modal */}
       {isModalOpen && (
         <InvestmentModal
@@ -365,6 +393,18 @@ export function LoanDetail({
           loan={loan}
           onSuccess={handleInvestmentSuccess}
           investorId={investorId}
+        />
+      )}
+
+      {/* Promissory Note & Legal Contract Modal */}
+      {isContractModalOpen && (
+        <PromissoryNoteModal
+          isOpen={isContractModalOpen}
+          onClose={() => setIsContractModalOpen(false)}
+          loan={loan}
+          onSuccess={() => {
+            setLoan((prev) => (prev ? { ...prev, status: 'active' } : null));
+          }}
         />
       )}
     </div>

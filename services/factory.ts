@@ -39,7 +39,7 @@ export function createMockServices(options?: MockServiceOptions): Services {
   const paymentGateway = options?.paymentGateway ?? defaultMockPaymentGateway;
 
   return {
-    loans: new MockLoanService(store),
+    loans: new MockLoanService(store, paymentGateway),
     investments: new MockInvestmentService(store, paymentGateway),
     creditScoring: new MockCreditScoringService(store),
     legal: new MockLegalService(store),
@@ -92,7 +92,7 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
   return {
     loans:
       liveServiceRegistry.loans ??
-      new SupabaseLoanService(clientProvider),
+      new SupabaseLoanService(clientProvider, paymentGateway),
     investments:
       liveServiceRegistry.investments ??
       new SupabaseInvestmentService(clientProvider, paymentGateway),

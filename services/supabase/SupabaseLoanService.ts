@@ -10,6 +10,7 @@ import type {
   Loan,
   LoanFilters,
   LoanServiceInterface,
+  PaymentGatewayInterface,
   SubmitLoanInput,
 } from '@/types';
 import { createSupabaseServerClient, createSupabaseBrowserClient } from './client';
@@ -21,9 +22,14 @@ export type SupabaseClientProvider =
 
 export class SupabaseLoanService implements LoanServiceInterface {
   private clientProvider?: SupabaseClientProvider;
+  private paymentGateway?: PaymentGatewayInterface;
 
-  constructor(client?: SupabaseClientProvider) {
+  constructor(
+    client?: SupabaseClientProvider,
+    paymentGateway?: PaymentGatewayInterface
+  ) {
     this.clientProvider = client;
+    this.paymentGateway = paymentGateway;
   }
 
   private async getClient(): Promise<SupabaseClient> {
@@ -327,6 +333,103 @@ export class SupabaseLoanService implements LoanServiceInterface {
       return (data || []) as Installment[];
     } catch (err) {
       throw mapSupabaseError(err, `Error al obtener cuotas del préstamo ${loanId}`);
+    }
+  }
+
+  public async activateLoan(loanId: string): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+
+      // 1. Fetch target loan
+      const { data: loanData, error: fetchErr } = await client
+        .from('loans')
+        .select('*')
+        .eq('id', loanId)
+        .single();
+
+      if (fetchErr || !loanData) {
+        throw mapSupabaseError(fetchErr, `Préstamo no encontrado: ${loanId}`);
+      }
+
+      const loan = loanData as Loan;
+
+      // 2. Update status to active
+      const { data: updatedLoan, error: updateErr } = await client
+        .from('loans')
+        .update({ status: 'active' })
+        .eq('id', loanId)
+        .select()
+        .single();
+
+      if (updateErr) {
+        throw mapSupabaseError(updateErr, `Error al activar el préstamo ${loanId}`);
+      }
+
+      // 3. Trigger loan disbursement via payment gateway
+      if (this.paymentGateway) {
+        const { data: profile } = await client
+          .from('profiles')
+          .select('bank_cbu_cvu')
+          .eq('id', loan.borrower_id)
+          .maybeSingle();
+
+        const cbu = profile?.bank_cbu_cvu || '0000003100010000000001';
+        await this.paymentGateway.disburseLoan(loan.id, cbu, loan.amount_requested).catch(() => {});
+      }
+
+      // 4. Generate monthly rows in installments table
+      const { data: existingInst } = await client
+        .from('installments')
+        .select('id')
+        .eq('loan_id', loanId);
+
+      if (!existingInst || existingInst.length === 0) {
+        const term = loan.term_months || 1;
+        const annualRate = loan.borrower_rate || 45;
+        const monthlyRate = annualRate > 0 ? annualRate / 100 / 12 : 0.04;
+        let installmentAmount = 0;
+        if (term === 1) {
+          installmentAmount = loan.amount_requested * (1 + monthlyRate);
+        } else {
+          const factor = Math.pow(1 + monthlyRate, term);
+          installmentAmount = (loan.amount_requested * (monthlyRate * factor)) / (factor - 1);
+        }
+
+        let remaining = loan.amount_requested;
+        const now = new Date();
+        const investorRateRatio = loan.borrower_rate > 0 ? loan.investor_rate / loan.borrower_rate : 0.9;
+        const rows = [];
+
+        for (let i = 1; i <= term; i++) {
+          const interestTotal = remaining * monthlyRate;
+          const principal = installmentAmount - interestTotal;
+          remaining = Math.max(0, remaining - principal);
+          const dueDate = new Date(now.getTime() + i * 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+
+          const interestInvestors = Number((interestTotal * investorRateRatio).toFixed(2));
+          const interestLencord = Number((interestTotal - interestInvestors).toFixed(2));
+
+          rows.push({
+            loan_id: loan.id,
+            installment_number: i,
+            due_date: dueDate,
+            principal_amount: Number(principal.toFixed(2)),
+            interest_borrower: Number(interestTotal.toFixed(2)),
+            interest_investors: interestInvestors,
+            interest_lencord: interestLencord,
+            uva_value_applied: loan.base_uva_value,
+            status: 'pending',
+          });
+        }
+
+        await client.from('installments').insert(rows);
+      }
+
+      return updatedLoan as Loan;
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al activar préstamo ${loanId}`);
     }
   }
 }

@@ -111,6 +111,7 @@ export interface LoanServiceInterface {
   finalizeLoanFunding(loanId: string): Promise<Loan>;
   cancelLoan(loanId: string): Promise<Loan>;
   getInstallmentsByLoan(loanId: string): Promise<Installment[]>;
+  activateLoan?(loanId: string): Promise<Loan>;
 }
 
 // ---------------------------------------------------------------------------

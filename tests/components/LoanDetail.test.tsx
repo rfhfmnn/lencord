@@ -174,6 +174,16 @@ describe('LoanDetail Component (Task 10)', () => {
     expect(investBtn).toBeDisabled();
     expect(screen.getByTestId('detail-percentage')).toHaveTextContent('100% financiado');
     expect(screen.getByTestId('detail-remaining-capacity')).toHaveTextContent('$ 0');
+
+    // Renders legal contract review section once loan reaches 'funded'
+    expect(screen.getByTestId('detail-legal-contract-section')).toBeInTheDocument();
+    const viewContractBtn = screen.getByTestId('detail-view-contract-button');
+    expect(viewContractBtn).toBeInTheDocument();
+    expect(viewContractBtn).toHaveTextContent('Revisar y firmar pagaré digital');
+
+    // Clicking contract button opens PromissoryNoteModal
+    fireEvent.click(viewContractBtn);
+    expect(screen.getByTestId('promissory-note-modal')).toBeInTheDocument();
   });
 
   it('renders error state when loan is not found', async () => {

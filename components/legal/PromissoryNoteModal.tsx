@@ -137,28 +137,35 @@ export function PromissoryNoteModal({
   }, [installments, loan.amount_requested, loan.term_months, loan.borrower_rate]);
 
   // OTP state (6 digits)
+  const [currentOtp, setCurrentOtp] = useState<string>(simulatedOtp);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [failedAttempts, setFailedAttempts] = useState<number>(0);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [signedContract, setSignedContract] = useState<LegalContract | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Reset state when modal opens or closes
+  // Reset state when modal opens or closes, or when simulatedOtp prop updates
   useEffect(() => {
     if (isOpen) {
+      setCurrentOtp(simulatedOtp);
       setOtpDigits(['', '', '', '', '', '']);
+      setFailedAttempts(0);
+      setIsLocked(false);
       setErrorMessage(null);
       setIsSubmitting(false);
       setSignedContract(null);
     }
-  }, [isOpen]);
+  }, [isOpen, simulatedOtp]);
 
   if (!isOpen) return null;
 
   const fullOtpEntered = otpDigits.join('');
 
   const handleDigitChange = (index: number, value: string) => {
+    if (isLocked) return;
     setErrorMessage(null);
     const cleanValue = value.replace(/\D/g, '');
 
@@ -186,12 +193,27 @@ export function PromissoryNoteModal({
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isLocked) return;
     if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
+  const handleRegenerateOtp = () => {
+    const nextCode = String(Math.floor(100000 + Math.random() * 900000));
+    setCurrentOtp(nextCode);
+    setFailedAttempts(0);
+    setIsLocked(false);
+    setOtpDigits(['', '', '', '', '', '']);
+    setErrorMessage(null);
+  };
+
   const handleSignConfirm = async () => {
+    if (isLocked) {
+      setErrorMessage('Se superó el máximo de 3 intentos inválidos. El código OTP ha sido bloqueado. Solicitá un nuevo código para continuar.');
+      return;
+    }
+
     const code = fullOtpEntered.trim();
 
     if (code.length < 6) {
@@ -199,8 +221,15 @@ export function PromissoryNoteModal({
       return;
     }
 
-    if (code !== simulatedOtp) {
-      setErrorMessage('Código OTP inválido. Verificá el código recibido o solicitá un nuevo envío.');
+    if (code !== currentOtp) {
+      const nextFailed = failedAttempts + 1;
+      setFailedAttempts(nextFailed);
+      if (nextFailed >= 3) {
+        setIsLocked(true);
+        setErrorMessage('Se superó el máximo de 3 intentos inválidos. El código OTP ha sido bloqueado por seguridad. Solicitá un nuevo código para continuar.');
+      } else {
+        setErrorMessage(`Código OTP inválido (intento ${nextFailed} de 3). Verificá el código recibido o solicitá un nuevo envío.`);
+      }
       return;
     }
 
@@ -235,6 +264,11 @@ export function PromissoryNoteModal({
         contract_id: pagareContract.id,
         signature_hash: signatureHash,
       });
+
+      // Activate loan, disburse funds, and generate monthly installment rows
+      if (services.loans.activateLoan) {
+        await services.loans.activateLoan(loan.id);
+      }
 
       setSignedContract(signed);
 
@@ -427,7 +461,7 @@ export function PromissoryNoteModal({
                   </p>
                 </div>
                 <span className={styles.otpSimulationBadge} data-testid="simulated-otp-badge">
-                  Código de prueba: {simulatedOtp}
+                  Código de prueba: {currentOtp}
                 </span>
               </div>
 
@@ -448,8 +482,8 @@ export function PromissoryNoteModal({
                     className={`${styles.otpInputBox} ${errorMessage ? styles.otpInputError : ''}`}
                     aria-label={`Dígito ${index + 1} del código OTP`}
                     data-testid={`otp-input-${index}`}
-                    disabled={isSubmitting}
-                    autoFocus={index === 0}
+                    disabled={isSubmitting || isLocked}
+                    autoFocus={index === 0 && !isLocked}
                   />
                 ))}
               </div>
@@ -460,6 +494,20 @@ export function PromissoryNoteModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {isLocked && (
+                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                  <Button
+                    variant="bordered"
+                    size="sm"
+                    type="button"
+                    onClick={handleRegenerateOtp}
+                    data-testid="btn-regenerate-otp"
+                  >
+                    Generar nuevo código OTP
+                  </Button>
                 </div>
               )}
             </div>
@@ -492,7 +540,7 @@ export function PromissoryNoteModal({
                 variant="primary"
                 size="md"
                 onClick={handleSignConfirm}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLocked}
                 data-testid="btn-confirm-sign"
               >
                 {isSubmitting ? 'Firmando pagaré...' : 'Confirmar y firmar pagaré digital'}

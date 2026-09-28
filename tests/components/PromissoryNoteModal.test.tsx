@@ -188,6 +188,72 @@ describe('PromissoryNoteModal Component & Signing Flow (Issue #16)', () => {
     expect(screen.queryByTestId('signature-success-pane')).not.toBeInTheDocument();
   });
 
+  it('enforces a maximum of 3 invalid attempts before locking and requiring code regeneration', async () => {
+    render(
+      <ServiceProvider services={services}>
+        <PromissoryNoteModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={sampleFundedLoan}
+          borrower={sampleBorrower}
+          simulatedOtp="123456"
+        />
+      </ServiceProvider>
+    );
+
+    const enterWrongOtp = () => {
+      for (let i = 0; i < 6; i++) {
+        fireEvent.change(screen.getByTestId(`otp-input-${i}`), { target: { value: '8' } });
+      }
+      fireEvent.click(screen.getByTestId('btn-confirm-sign'));
+    };
+
+    // Attempt 1
+    enterWrongOtp();
+    expect(await screen.findByText(/intento 1 de 3/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-regenerate-otp')).not.toBeInTheDocument();
+
+    // Attempt 2
+    enterWrongOtp();
+    expect(await screen.findByText(/intento 2 de 3/i)).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-regenerate-otp')).not.toBeInTheDocument();
+
+    // Attempt 3 -> Locked!
+    enterWrongOtp();
+    expect(await screen.findByText(/bloqueado por seguridad/i)).toBeInTheDocument();
+
+    // Inputs and submit button are disabled
+    expect(screen.getByTestId('otp-input-0')).toBeDisabled();
+    expect(screen.getByTestId('btn-confirm-sign')).toBeDisabled();
+
+    // Regenerate OTP button is now visible
+    const regenerateBtn = screen.getByTestId('btn-regenerate-otp');
+    expect(regenerateBtn).toBeInTheDocument();
+
+    // Click regenerate
+    fireEvent.click(regenerateBtn);
+
+    // Inputs unlocked, error cleared
+    expect(screen.getByTestId('otp-input-0')).not.toBeDisabled();
+    expect(screen.queryByTestId('otp-error-message')).not.toBeInTheDocument();
+
+    // Verify new code is displayed in badge
+    const badge = screen.getByTestId('simulated-otp-badge');
+    const newCode = badge.textContent?.replace(/\D/g, '') || '';
+    expect(newCode).toHaveLength(6);
+    expect(newCode).not.toBe('123456');
+
+    // Entering the new code succeeds
+    for (let i = 0; i < 6; i++) {
+      fireEvent.change(screen.getByTestId(`otp-input-${i}`), { target: { value: newCode[i] } });
+    }
+    fireEvent.click(screen.getByTestId('btn-confirm-sign'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('signature-success-pane')).toBeInTheDocument();
+    });
+  });
+
   it('successfully signs contract with SHA-256 hash when valid OTP is entered', async () => {
     const onSuccessMock = vi.fn();
 
