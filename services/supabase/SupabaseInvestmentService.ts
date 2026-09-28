@@ -8,6 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   CommitInvestmentInput,
   CommitInvestmentResult,
+  EmailServiceInterface,
   Investment,
   InvestmentServiceInterface,
   Loan,
@@ -21,13 +22,16 @@ import type { SupabaseClientProvider } from './SupabaseLoanService';
 export class SupabaseInvestmentService implements InvestmentServiceInterface {
   private clientProvider?: SupabaseClientProvider;
   private paymentGateway?: PaymentGatewayInterface;
+  private emailService?: EmailServiceInterface;
 
   constructor(
     client?: SupabaseClientProvider,
-    paymentGateway?: PaymentGatewayInterface
+    paymentGateway?: PaymentGatewayInterface,
+    emailService?: EmailServiceInterface
   ) {
     this.clientProvider = client;
     this.paymentGateway = paymentGateway;
+    this.emailService = emailService;
   }
 
   private async getClient(): Promise<SupabaseClient> {

@@ -5,6 +5,7 @@
 
 import type {
   CreditScoringInterface,
+  EmailServiceInterface,
   InvestmentServiceInterface,
   LegalServiceInterface,
   LoanServiceInterface,
@@ -19,6 +20,7 @@ export interface Services {
   legal: LegalServiceInterface;
   payments: PaymentGatewayInterface;
   notifications?: NotificationServiceInterface;
+  email?: EmailServiceInterface;
 }
 
 export type ServiceName = keyof Services;

@@ -239,3 +239,86 @@ export interface NotificationServiceInterface {
     callback: (notification: Notification) => void
   ): () => void;
 }
+
+// ---------------------------------------------------------------------------
+// Transactional Email Service Interfaces
+// ---------------------------------------------------------------------------
+
+export interface EmailRecipient {
+  email: string;
+  name?: string;
+}
+
+export interface SendEmailOptions {
+  to: string | EmailRecipient;
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+}
+
+export interface SendEmailResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+export interface RegistrationEmailParams {
+  to: string;
+  recipientName: string;
+  role: 'borrower' | 'investor' | 'sme' | string;
+}
+
+export interface LoanSubmissionEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  amount: number;
+  category: string;
+}
+
+export interface CreditApprovalEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  amount: number;
+  riskTier: string;
+  investorRate: number;
+  fundingDeadline?: string;
+}
+
+export interface CreditRejectionEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  reason: string;
+}
+
+export interface InvestmentConfirmationEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  amount: number;
+  rate: number;
+}
+
+export interface InstallmentReminderEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  installmentNumber: number;
+  amount: number;
+  dueDate: string;
+}
+
+export interface EmailServiceInterface {
+  send(options: SendEmailOptions): Promise<SendEmailResult>;
+  sendRegistrationEmail(params: RegistrationEmailParams): Promise<SendEmailResult>;
+  sendLoanSubmissionEmail(params: LoanSubmissionEmailParams): Promise<SendEmailResult>;
+  sendCreditApprovalEmail(params: CreditApprovalEmailParams): Promise<SendEmailResult>;
+  sendCreditRejectionEmail(params: CreditRejectionEmailParams): Promise<SendEmailResult>;
+  sendInvestmentConfirmationEmail(params: InvestmentConfirmationEmailParams): Promise<SendEmailResult>;
+  sendInstallmentReminderEmail(params: InstallmentReminderEmailParams): Promise<SendEmailResult>;
+}
+

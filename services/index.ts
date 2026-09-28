@@ -11,3 +11,4 @@ export * from './mock';
 export * from './supabase';
 export * from './bcra';
 export * from './payments';
+export * from './email';

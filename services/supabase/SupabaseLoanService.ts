@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   ApproveLoanInput,
   Installment,
+  EmailServiceInterface,
   Loan,
   LoanFilters,
   LoanServiceInterface,
@@ -23,13 +24,16 @@ export type SupabaseClientProvider =
 export class SupabaseLoanService implements LoanServiceInterface {
   private clientProvider?: SupabaseClientProvider;
   private paymentGateway?: PaymentGatewayInterface;
+  private emailService?: EmailServiceInterface;
 
   constructor(
     client?: SupabaseClientProvider,
-    paymentGateway?: PaymentGatewayInterface
+    paymentGateway?: PaymentGatewayInterface,
+    emailService?: EmailServiceInterface
   ) {
     this.clientProvider = client;
     this.paymentGateway = paymentGateway;
+    this.emailService = emailService;
   }
 
   private async getClient(): Promise<SupabaseClient> {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseBrowserClient } from '@/services/supabase';
+import { useServices } from '@/context/ServiceProvider';
 import { validateCuit, formatCuit, cleanCuit } from '@/components/solicitar/cuitValidator';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -22,6 +23,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   defaultRole = 'borrower',
   onSuccess,
 }) => {
+  let servicesFromContext: ReturnType<typeof useServices> | null = null;
+  try {
+    servicesFromContext = useServices({ fallback: true });
+  } catch {
+    servicesFromContext = null;
+  }
+
   const [role, setRole] = useState<RegisterRole>(defaultRole);
 
   // PyME / Borrower Form State
@@ -211,6 +219,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
       setRegisteredEmail(cleanEmail);
       setIsSuccess(true);
+
+      // Trigger registration welcome email (graceful error handling)
+      if (servicesFromContext?.email) {
+        try {
+          servicesFromContext.email
+            .sendRegistrationEmail({
+              to: cleanEmail,
+              recipientName: legalName || cleanEmail,
+              role,
+            })
+            .catch((err) => {
+              console.warn('[RegisterForm] Registration email dispatch failed:', err?.message || err);
+            });
+        } catch (err: any) {
+          console.warn('[RegisterForm] Registration email trigger exception:', err?.message || err);
+        }
+      }
+
       if (onSuccess) {
         onSuccess(cleanEmail, role);
       }

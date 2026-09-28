@@ -5,6 +5,7 @@
 
 import type {
   ApproveLoanInput,
+  EmailServiceInterface,
   Installment,
   Loan,
   LoanFilters,
@@ -18,13 +19,16 @@ import { defaultMockStateStore, MockStateStore } from './mockState';
 export class MockLoanService implements LoanServiceInterface {
   private store: MockStateStore;
   private paymentGateway?: PaymentGatewayInterface;
+  private emailService?: EmailServiceInterface;
 
   constructor(
     store: MockStateStore = defaultMockStateStore,
-    paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway
+    paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway,
+    emailService?: EmailServiceInterface
   ) {
     this.store = store;
     this.paymentGateway = paymentGateway;
+    this.emailService = emailService;
   }
 
   public async getLoanById(id: string): Promise<Loan | null> {
@@ -142,6 +146,28 @@ export class MockLoanService implements LoanServiceInterface {
       created_at: now.toISOString(),
     });
 
+    // Trigger transactional email receipt (graceful error handling)
+    if (this.emailService) {
+      try {
+        const borrower = this.store.profiles.find((p) => p.id === input.borrower_id);
+        const borrowerEmail = (borrower as any)?.email || 'contacto@empresa.com.ar';
+        const recipientName = borrower?.legal_name || 'Solicitante';
+        this.emailService
+          .sendLoanSubmissionEmail({
+            to: borrowerEmail,
+            recipientName,
+            loanId: newLoan.id,
+            amount: newLoan.amount_requested,
+            category: newLoan.category,
+          })
+          .catch((err) => {
+            console.warn('[MockLoanService] Failed to send submission email:', err?.message || err);
+          });
+      } catch (err: any) {
+        console.warn('[MockLoanService] Exception in email trigger:', err?.message || err);
+      }
+    }
+
     return JSON.parse(JSON.stringify(newLoan));
   }
 
@@ -190,6 +216,30 @@ export class MockLoanService implements LoanServiceInterface {
         updated_at: new Date().toISOString(),
       };
       this.store.creditProfiles.push(creditProfile);
+    }
+
+    // Trigger transactional email for loan approval & publication (graceful error handling)
+    if (this.emailService) {
+      try {
+        const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id);
+        const borrowerEmail = (borrower as any)?.email || 'contacto@empresa.com.ar';
+        const recipientName = borrower?.legal_name || 'Solicitante';
+        this.emailService
+          .sendCreditApprovalEmail({
+            to: borrowerEmail,
+            recipientName,
+            loanId: loan.id,
+            amount: loan.amount_requested,
+            riskTier: input.risk_tier,
+            investorRate: input.investor_rate,
+            fundingDeadline: input.funding_deadline,
+          })
+          .catch((err) => {
+            console.warn('[MockLoanService] Failed to send approval email:', err?.message || err);
+          });
+      } catch (err: any) {
+        console.warn('[MockLoanService] Exception in approval email trigger:', err?.message || err);
+      }
     }
 
     return JSON.parse(JSON.stringify(loan));
@@ -265,6 +315,28 @@ export class MockLoanService implements LoanServiceInterface {
 
     loan.status = 'rejected';
     loan.rejection_reason = reason;
+
+    // Trigger transactional email for credit rejection (graceful error handling)
+    if (this.emailService) {
+      try {
+        const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id);
+        const borrowerEmail = (borrower as any)?.email || 'contacto@empresa.com.ar';
+        const recipientName = borrower?.legal_name || 'Solicitante';
+        this.emailService
+          .sendCreditRejectionEmail({
+            to: borrowerEmail,
+            recipientName,
+            loanId: loan.id,
+            reason,
+          })
+          .catch((err) => {
+            console.warn('[MockLoanService] Failed to send rejection email:', err?.message || err);
+          });
+      } catch (err: any) {
+        console.warn('[MockLoanService] Exception in rejection email trigger:', err?.message || err);
+      }
+    }
+
     return JSON.parse(JSON.stringify(loan));
   }
 

@@ -7,6 +7,7 @@
 import type {
   CommitInvestmentInput,
   CommitInvestmentResult,
+  EmailServiceInterface,
   Investment,
   InvestmentServiceInterface,
   PaymentGatewayInterface,
@@ -18,13 +19,16 @@ import { defaultMockStateStore, MockStateStore } from './mockState';
 export class MockInvestmentService implements InvestmentServiceInterface {
   private store: MockStateStore;
   private paymentGateway?: PaymentGatewayInterface;
+  private emailService?: EmailServiceInterface;
 
   constructor(
     store: MockStateStore = defaultMockStateStore,
-    paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway
+    paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway,
+    emailService?: EmailServiceInterface
   ) {
     this.store = store;
     this.paymentGateway = paymentGateway;
+    this.emailService = emailService;
   }
 
   public async commitInvestment(
@@ -110,6 +114,28 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       action_url: '/dashboard/inversor',
       created_at: new Date().toISOString(),
     });
+
+    // Trigger transactional email for investment confirmation (graceful error handling)
+    if (this.emailService) {
+      try {
+        const investor = this.store.profiles.find((p) => p.id === input.investor_id);
+        const investorEmail = (investor as any)?.email || 'inversor@lencord.com.ar';
+        const recipientName = investor?.legal_name || 'Inversor';
+        this.emailService
+          .sendInvestmentConfirmationEmail({
+            to: investorEmail,
+            recipientName,
+            loanId: loan.id,
+            amount: input.amount,
+            rate: loan.investor_rate || 45.0,
+          })
+          .catch((err) => {
+            console.warn('[MockInvestmentService] Failed to send investment email:', err?.message || err);
+          });
+      } catch (err: any) {
+        console.warn('[MockInvestmentService] Exception in investment email trigger:', err?.message || err);
+      }
+    }
 
     // If fully funded, emit notification for borrower
     if (loan.status === 'funded') {

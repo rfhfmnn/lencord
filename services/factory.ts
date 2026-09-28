@@ -26,10 +26,17 @@ import {
 } from './supabase';
 import { BcraCreditScoringService } from './bcra';
 import { BaaSPaymentGateway } from './payments';
+import {
+  MockEmailService,
+  ResendEmailService,
+  defaultMockEmailService,
+} from './email';
+import type { EmailServiceInterface } from '@/types';
 
 export interface MockServiceOptions {
   store?: MockStateStore;
   paymentGateway?: MockPaymentGateway;
+  email?: EmailServiceInterface;
 }
 
 /**
@@ -39,14 +46,16 @@ export interface MockServiceOptions {
 export function createMockServices(options?: MockServiceOptions): Services {
   const store = options?.store ?? defaultMockStateStore;
   const paymentGateway = options?.paymentGateway ?? defaultMockPaymentGateway;
+  const emailService = options?.email ?? defaultMockEmailService;
 
   return {
-    loans: new MockLoanService(store, paymentGateway),
-    investments: new MockInvestmentService(store, paymentGateway),
+    loans: new MockLoanService(store, paymentGateway, emailService),
+    investments: new MockInvestmentService(store, paymentGateway, emailService),
     creditScoring: new MockCreditScoringService(store),
     legal: new MockLegalService(store),
     payments: paymentGateway,
     notifications: new MockNotificationService(store),
+    email: emailService,
   };
 }
 
@@ -79,6 +88,7 @@ export function clearLiveServices(): void {
 export interface LiveServiceOptions {
   clientProvider?: SupabaseClientProvider;
   paymentGateway?: PaymentGatewayInterface;
+  email?: EmailServiceInterface;
 }
 
 /**
@@ -91,14 +101,18 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
     options?.paymentGateway ??
     liveServiceRegistry.payments ??
     new BaaSPaymentGateway();
+  const emailService =
+    options?.email ??
+    liveServiceRegistry.email ??
+    new ResendEmailService();
 
   const services: Services = {
     loans:
       liveServiceRegistry.loans ??
-      new SupabaseLoanService(clientProvider, paymentGateway),
+      new SupabaseLoanService(clientProvider, paymentGateway, emailService),
     investments:
       liveServiceRegistry.investments ??
-      new SupabaseInvestmentService(clientProvider, paymentGateway),
+      new SupabaseInvestmentService(clientProvider, paymentGateway, emailService),
     creditScoring:
       liveServiceRegistry.creditScoring ??
       new BcraCreditScoringService(),
@@ -107,6 +121,14 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
       new SupabaseLegalService(clientProvider),
     payments: paymentGateway,
   };
+
+  if (liveServiceRegistry.email) {
+    services.email = liveServiceRegistry.email;
+  } else if (options?.email) {
+    services.email = options.email;
+  } else if (Object.keys(liveServiceRegistry).length === 0) {
+    services.email = emailService;
+  }
 
   if (liveServiceRegistry.notifications) {
     services.notifications = liveServiceRegistry.notifications;
