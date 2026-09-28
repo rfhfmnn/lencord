@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { ServiceProvider } from '@/context';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -26,7 +27,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
-      <body className={plusJakartaSans.className}>{children}</body>
+      <body className={plusJakartaSans.className}>
+        <ServiceProvider>{children}</ServiceProvider>
+      </body>
     </html>
   );
 }
+

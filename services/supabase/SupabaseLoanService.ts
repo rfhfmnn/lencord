@@ -12,7 +12,7 @@ import type {
   LoanServiceInterface,
   SubmitLoanInput,
 } from '@/types';
-import { createSupabaseServerClient } from './client';
+import { createSupabaseServerClient, createSupabaseBrowserClient } from './client';
 import { mapSupabaseError } from './errors';
 
 export type SupabaseClientProvider =
@@ -28,6 +28,9 @@ export class SupabaseLoanService implements LoanServiceInterface {
 
   private async getClient(): Promise<SupabaseClient> {
     if (!this.clientProvider) {
+      if (typeof window !== 'undefined') {
+        return createSupabaseBrowserClient();
+      }
       return createSupabaseServerClient();
     }
     if (typeof this.clientProvider === 'function') {

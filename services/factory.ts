@@ -3,6 +3,7 @@
  * Provides mock and live service resolution based on environment configuration.
  */
 
+import type { PaymentGatewayInterface } from '@/types';
 import type { Services } from './types';
 import { isUsingMocks } from './env';
 import {
@@ -15,6 +16,14 @@ import {
   defaultMockPaymentGateway,
   defaultMockStateStore,
 } from './mock';
+import {
+  SupabaseLoanService,
+  SupabaseInvestmentService,
+  SupabaseLegalService,
+  type SupabaseClientProvider,
+} from './supabase';
+import { BcraCreditScoringService } from './bcra';
+import { BaaSPaymentGateway } from './payments';
 
 export interface MockServiceOptions {
   store?: MockStateStore;
@@ -41,7 +50,7 @@ export function createMockServices(options?: MockServiceOptions): Services {
 let liveServiceRegistry: Partial<Services> = {};
 
 /**
- * Registers live service implementations (utilized by live Supabase/BaaS integrations in #19 and #21).
+ * Registers live service implementations (utilized by live Supabase/BaaS integrations).
  */
 export function registerLiveServices(services: Partial<Services>): void {
   liveServiceRegistry = {
@@ -64,36 +73,44 @@ export function clearLiveServices(): void {
   liveServiceRegistry = {};
 }
 
+export interface LiveServiceOptions {
+  clientProvider?: SupabaseClientProvider;
+  paymentGateway?: PaymentGatewayInterface;
+}
+
 /**
  * Resolves live service implementations.
- * Throws an informative error if live services are not yet configured.
+ * Instantiates and returns SupabaseLoanService, SupabaseInvestmentService, and SupabaseLegalService.
  */
-export function createLiveServices(): Services {
-  const requiredKeys: (keyof Services)[] = [
-    'loans',
-    'investments',
-    'creditScoring',
-    'legal',
-    'payments',
-  ];
+export function createLiveServices(options?: LiveServiceOptions): Services {
+  const clientProvider = options?.clientProvider;
+  const paymentGateway =
+    options?.paymentGateway ??
+    liveServiceRegistry.payments ??
+    new BaaSPaymentGateway();
 
-  const missing = requiredKeys.filter((key) => !liveServiceRegistry[key]);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Live services are not yet configured or implemented. Missing services: [${missing.join(
-        ', '
-      )}]. Live Supabase services and BaaS payment gateway are scheduled for issues #19 and #21. Set NEXT_PUBLIC_USE_MOCKS="true" or use development mode to activate in-memory mocks.`
-    );
-  }
-
-  return liveServiceRegistry as Services;
+  return {
+    loans:
+      liveServiceRegistry.loans ??
+      new SupabaseLoanService(clientProvider),
+    investments:
+      liveServiceRegistry.investments ??
+      new SupabaseInvestmentService(clientProvider, paymentGateway),
+    creditScoring:
+      liveServiceRegistry.creditScoring ??
+      new BcraCreditScoringService(),
+    legal:
+      liveServiceRegistry.legal ??
+      new SupabaseLegalService(clientProvider),
+    payments: paymentGateway,
+  };
 }
 
 export interface ServiceFactoryOptions {
   useMocks?: boolean | string;
   store?: MockStateStore;
   paymentGateway?: MockPaymentGateway;
+  clientProvider?: SupabaseClientProvider;
   overrides?: Partial<Services>;
 }
 
@@ -111,7 +128,10 @@ export function createServices(options?: ServiceFactoryOptions): Services {
         store: options?.store,
         paymentGateway: options?.paymentGateway,
       })
-    : createLiveServices();
+    : createLiveServices({
+        clientProvider: options?.clientProvider,
+        paymentGateway: options?.paymentGateway,
+      });
 
   if (options?.overrides) {
     return {
@@ -122,3 +142,4 @@ export function createServices(options?: ServiceFactoryOptions): Services {
 
   return baseServices;
 }
+

@@ -167,14 +167,13 @@ describe('Service Provider, Factory, and Environment Switching', () => {
       expect(services.investments).toBeInstanceOf(MockInvestmentService);
     });
 
-    it('throws an informative error when live services are requested but not configured', () => {
-      expect(() => createServices({ useMocks: false })).toThrowError(
-        /Live services are not yet configured or implemented/i
-      );
-
-      expect(() => createLiveServices()).toThrowError(
-        /Missing services: \[loans, investments, creditScoring, legal, payments\]/i
-      );
+    it('instantiates and returns live Supabase services when live mode is requested', () => {
+      const services = createServices({ useMocks: false });
+      expect(services.loans).toBeDefined();
+      expect(services.investments).toBeDefined();
+      expect(services.legal).toBeDefined();
+      expect(services.creditScoring).toBeDefined();
+      expect(services.payments).toBeDefined();
     });
 
     it('resolves registered live services when configured', () => {

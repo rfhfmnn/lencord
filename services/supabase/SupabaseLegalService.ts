@@ -9,7 +9,7 @@ import type {
   LegalServiceInterface,
   SignContractInput,
 } from '@/types';
-import { createSupabaseServerClient } from './client';
+import { createSupabaseServerClient, createSupabaseBrowserClient } from './client';
 import { mapSupabaseError } from './errors';
 import type { SupabaseClientProvider } from './SupabaseLoanService';
 
@@ -22,6 +22,9 @@ export class SupabaseLegalService implements LegalServiceInterface {
 
   private async getClient(): Promise<SupabaseClient> {
     if (!this.clientProvider) {
+      if (typeof window !== 'undefined') {
+        return createSupabaseBrowserClient();
+      }
       return createSupabaseServerClient();
     }
     if (typeof this.clientProvider === 'function') {
