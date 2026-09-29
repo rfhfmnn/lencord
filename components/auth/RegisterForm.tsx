@@ -215,7 +215,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           });
 
           if (profileError) {
-            console.error('[RegisterForm] Error creating profile:', profileError.message || profileError);
+            if (!data.session && profileError.message?.toLowerCase().includes('row-level security')) {
+              // Expected when email confirmation is active: the database trigger handle_new_user()
+              // creates the profile via SECURITY DEFINER on auth.users insert.
+              console.info('[RegisterForm] Profile upsert handled by server trigger (unconfirmed session)');
+            } else {
+              console.error('[RegisterForm] Error creating profile:', profileError.message || profileError);
+            }
           }
         } catch (err: any) {
           console.warn('[RegisterForm] Profile upsert exception:', err?.message || err);
