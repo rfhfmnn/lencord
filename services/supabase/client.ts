@@ -30,6 +30,7 @@ export function createSupabaseServerClient(options?: SupabaseClientOptions): Sup
   const supabaseAnonKey =
     options?.supabaseAnonKey ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     'placeholder-anon-key';
 
   const cookieStore = options?.cookies ?? {
@@ -62,6 +63,7 @@ export function createSupabaseAdminClient(): SupabaseClient {
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     'placeholder-service-key';
 
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -87,6 +89,7 @@ export function createSupabaseBrowserClient(options?: {
   const supabaseAnonKey =
     options?.supabaseAnonKey ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     'placeholder-anon-key';
 
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
