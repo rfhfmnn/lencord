@@ -72,9 +72,22 @@ export function StepDocumentUpload({
 
     try {
       const client = supabaseClient || createSupabaseBrowserClient();
+      let activeBorrowerId = borrowerId;
+
+      if (!activeBorrowerId || activeBorrowerId === 'prof-sme-001') {
+        try {
+          const { data: sessionData } = await client.auth.getSession();
+          if (sessionData?.session?.user?.id) {
+            activeBorrowerId = sessionData.session.user.id;
+          }
+        } catch {
+          // ignore session resolution error
+        }
+      }
+
       const cleanName = file.name.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileId = `${key}-${cleanName}`;
-      const storagePath = `${borrowerId}/${fileId}.pdf`;
+      const storagePath = `${activeBorrowerId}/${fileId}.pdf`;
 
       if (client?.storage) {
         const { error } = await client.storage
@@ -94,7 +107,10 @@ export function StepDocumentUpload({
         [`${key}_url`]: storagePath,
       }));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al subir el archivo.';
+      let msg = err instanceof Error ? err.message : 'Error al subir el archivo.';
+      if (msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('violates')) {
+        msg = 'No se pudo subir el archivo: tu sesión debe estar iniciada para subir documentación.';
+      }
       setUploadErrors((prev) => ({ ...prev, [key]: msg }));
     } finally {
       setUploading((prev) => ({ ...prev, [key]: false }));

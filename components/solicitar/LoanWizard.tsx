@@ -389,6 +389,8 @@ export function LoanWizard({
       {step === 3 && (
         <StepDocumentUpload
           initialData={step3Data}
+          borrowerId={borrowerId}
+          supabaseClient={supabaseClient}
           onBack={handleStep3Back}
           onContinue={handleStep3Continue}
         />
