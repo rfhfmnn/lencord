@@ -240,8 +240,47 @@ describe('InvestorDashboard Component (Task 13)', () => {
     expect(emptyState).toBeInTheDocument();
     expect(emptyState).toHaveTextContent('No poseés inversiones activas');
 
-    const ctaButton = screen.getByRole('button', { name: /explorar marketplace/i });
+    const ctaButton = screen.getByRole('button', { name: /explorar oportunidades/i });
     expect(ctaButton).toBeInTheDocument();
+    expect(ctaButton.closest('a')).toHaveAttribute('href', '/marketplace');
+  });
+
+  describe('Issue #55: Real Profile and Removal of Demo Mockup Selector', () => {
+    it('completely removes demo selector and fictitious mock profiles from the DOM', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={mockInvestments}
+          initialLoans={mockLoans}
+          initialCreditProfiles={mockCreditProfiles}
+          initialInstallments={mockInstallments}
+        />
+      );
+
+      expect(screen.queryByLabelText(/perfil inversor/i)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('investor-select')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Inversora Austral S.A. \(Institucional\)/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Mariana Gómez Valenzuela \(Calificada\)/i)).not.toBeInTheDocument();
+    });
+
+    it('renders real authenticated profile details in header and Mi Perfil section', () => {
+      render(
+        <InvestorDashboard
+          legalName="Valeria Lynch"
+          userEmail="valeria@lencord.test"
+          cbuCvu="0720000011112222333344"
+          initialTaxId="27209876543"
+          custodyBalance={12_000_000}
+          initialInvestments={[]}
+        />
+      );
+
+      expect(screen.getByTestId('investor-name')).toHaveTextContent('Valeria Lynch');
+      expect(screen.getByTestId('profile-email')).toHaveTextContent('valeria@lencord.test');
+      expect(screen.getByTestId('profile-cbu')).toHaveTextContent('0720000011112222333344');
+      expect(screen.getByTestId('dni-badge')).toHaveTextContent('DNI cargado');
+      expect(screen.getByTestId('current-tax-id')).toHaveTextContent('27209876543');
+      expect(screen.getByTestId('illustrative-custody-balance')).toHaveTextContent('$ 12.000.000');
+    });
   });
 
   it('loads real seed data through mock services when no initial props provided', async () => {

@@ -17,6 +17,9 @@ import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
   investorId?: string;
+  legalName?: string;
+  userEmail?: string;
+  cbuCvu?: string;
   custodyBalance?: number;
   initialInvestments?: Investment[];
   initialLoans?: Loan[];
@@ -42,6 +45,9 @@ interface EnrichedInstallment {
 
 export function InvestorDashboard({
   investorId = 'prof-inv-001',
+  legalName,
+  userEmail,
+  cbuCvu,
   custodyBalance: custodyBalanceProp,
   initialInvestments,
   initialLoans,
@@ -59,6 +65,12 @@ export function InvestorDashboard({
   }
 
   const [currentInvestorId, setCurrentInvestorId] = useState<string>(investorId);
+  const [investorName, setInvestorName] = useState<string>(legalName ?? '');
+  const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? '');
+  const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? '');
+  const [custodyBalanceState, setCustodyBalanceState] = useState<number | null>(
+    custodyBalanceProp !== undefined ? custodyBalanceProp : null
+  );
   const [taxId, setTaxId] = useState<string | null>(initialTaxId ?? null);
   const [isEditingDni, setIsEditingDni] = useState<boolean>(false);
   const [dniInput, setDniInput] = useState<string>('');
@@ -102,36 +114,71 @@ export function InvestorDashboard({
   }, [investorId]);
 
   useEffect(() => {
-    if (initialTaxId !== undefined) {
-      setTaxId(initialTaxId);
-      return;
-    }
-    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
-    if (mockProfile) {
-      setTaxId(mockProfile.tax_id ?? null);
-      return;
-    }
     let isMounted = true;
-    async function fetchTaxId() {
+    async function loadProfileData() {
+      // 1. Check in mockStateStore first
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+      if (mockProfile) {
+        if (!legalName && mockProfile.legal_name) setInvestorName(mockProfile.legal_name);
+        if (!userEmail && mockProfile.email) setInvestorEmail(mockProfile.email);
+        if (!cbuCvu && mockProfile.bank_cbu_cvu) setInvestorCbu(mockProfile.bank_cbu_cvu);
+        if (
+          custodyBalanceProp === undefined &&
+          mockProfile.custody_balance !== undefined &&
+          mockProfile.custody_balance !== null
+        ) {
+          setCustodyBalanceState(mockProfile.custody_balance);
+        }
+        if (initialTaxId === undefined && mockProfile.tax_id) {
+          setTaxId(mockProfile.tax_id);
+        }
+      }
+
+      // 2. Try Supabase client for authenticated session user and profile
       try {
         const client = createSupabaseBrowserClient();
-        const { data } = await client
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user && isMounted) {
+          const u = authData.user;
+          const authName =
+            u.user_metadata?.legal_name ||
+            u.user_metadata?.name ||
+            u.user_metadata?.full_name;
+          if (!legalName && authName) setInvestorName(authName);
+          if (!userEmail && u.email) setInvestorEmail(u.email);
+        }
+
+        const { data: profile } = await client
           .from('profiles')
-          .select('tax_id')
+          .select('id, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
           .eq('id', currentInvestorId)
           .maybeSingle();
-        if (isMounted && data) {
-          setTaxId(data.tax_id ?? null);
+
+        if (profile && isMounted) {
+          if (!legalName && profile.legal_name) setInvestorName(profile.legal_name);
+          if (!userEmail && profile.email) setInvestorEmail(profile.email);
+          if (!cbuCvu && profile.bank_cbu_cvu) setInvestorCbu(profile.bank_cbu_cvu);
+          if (
+            custodyBalanceProp === undefined &&
+            profile.custody_balance !== undefined &&
+            profile.custody_balance !== null
+          ) {
+            setCustodyBalanceState(profile.custody_balance);
+          }
+          if (initialTaxId === undefined && profile.tax_id) {
+            setTaxId(profile.tax_id);
+          }
         }
       } catch {
-        // Ignored
+        // Fallback already handled
       }
     }
-    fetchTaxId();
+
+    loadProfileData();
     return () => {
       isMounted = false;
     };
-  }, [currentInvestorId, initialTaxId]);
+  }, [currentInvestorId, legalName, userEmail, cbuCvu, custodyBalanceProp, initialTaxId]);
 
   const handleSaveDni = async () => {
     setDniError(null);
@@ -365,11 +412,14 @@ export function InvestorDashboard({
 
   const effectiveCustodyBalance = useMemo(() => {
     if (custodyBalanceProp !== undefined) return custodyBalanceProp;
-    if (currentInvestorId === 'prof-inv-002') return 25_000_000;
-    if (currentInvestorId === 'prof-inv-003') return 8_500_000;
-    if (currentInvestorId === 'prof-inv-empty') return 1_000_000;
-    return 5_250_000;
-  }, [custodyBalanceProp, currentInvestorId]);
+    if (custodyBalanceState !== null && custodyBalanceState !== undefined) return custodyBalanceState;
+    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+    if (mockProfile && mockProfile.custody_balance !== undefined && mockProfile.custody_balance !== null) {
+      return mockProfile.custody_balance;
+    }
+    if (currentInvestorId === 'prof-inv-001') return 5_250_000;
+    return 0;
+  }, [custodyBalanceProp, custodyBalanceState, currentInvestorId]);
 
   if (loading) {
     return (
@@ -389,27 +439,14 @@ export function InvestorDashboard({
         <div>
           <h1 className={styles.title}>Panel del Inversor</h1>
           <p className={styles.subtitle}>
-            Seguimiento de capital invertido, rendimientos estimados y calendario de cobros.
+            {investorName ? (
+              <>
+                Bienvenido, <strong data-testid="investor-name">{investorName}</strong>. Seguimiento de capital invertido, rendimientos estimados y calendario de cobros.
+              </>
+            ) : (
+              'Seguimiento de capital invertido, rendimientos estimados y calendario de cobros.'
+            )}
           </p>
-        </div>
-
-        {/* Demo Investor Selector */}
-        <div className={styles.investorSelector}>
-          <label htmlFor="investor-select" className={styles.selectorLabel}>
-            Perfil inversor:
-          </label>
-          <select
-            id="investor-select"
-            value={currentInvestorId}
-            onChange={(e) => setCurrentInvestorId(e.target.value)}
-            className={styles.selectInput}
-            aria-label="Seleccionar cuenta de inversor"
-          >
-            <option value="prof-inv-001">Juan Ignacio Pérez (Retail)</option>
-            <option value="prof-inv-002">Inversora Austral S.A. (Institucional)</option>
-            <option value="prof-inv-003">Mariana Gómez Valenzuela (Calificada)</option>
-            <option value="prof-inv-empty">Inversor Nuevo (Sin inversiones)</option>
-          </select>
         </div>
       </header>
 
@@ -442,7 +479,7 @@ export function InvestorDashboard({
         </div>
       </section>
 
-      {/* Mi Perfil / Estado de Identidad & DNI (Issue #53) */}
+      {/* Mi Perfil / Estado de Identidad & Datos de Cuenta */}
       <section
         id="perfil"
         className={styles.section}
@@ -454,11 +491,31 @@ export function InvestorDashboard({
             Mi Perfil
           </h2>
           <p className={styles.sectionDescription}>
-            Identificación tributaria obligatoria conforme a normativa reguladora (UIF) para operar e invertir en subastas PyME.
+            Información de la cuenta, cuenta bancaria asociada e identificación tributaria conforme a normativa UIF.
           </p>
         </div>
 
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+            <div>
+              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                Correo electrónico registrado
+              </span>
+              <strong style={{ fontSize: '0.9375rem', color: '#0f172a' }} data-testid="profile-email">
+                {investorEmail || 'No informado'}
+              </strong>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                CBU/CVU bancario asociado
+              </span>
+              <strong style={{ fontSize: '0.9375rem', color: '#0f172a', fontFamily: 'monospace' }} data-testid="profile-cbu">
+                {investorCbu || 'No vinculado'}
+              </strong>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#0f172a' }}>
@@ -570,8 +627,8 @@ export function InvestorDashboard({
             disponibles en el marketplace y comenzá a rentabilizar tu capital con retornos reales.
           </p>
           <Link href="/marketplace">
-            <Button variant="primary" size="md">
-              Explorar marketplace
+            <Button variant="primary" size="md" data-testid="explore-opportunities-button">
+              Explorar oportunidades
             </Button>
           </Link>
         </section>

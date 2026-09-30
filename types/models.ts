@@ -114,6 +114,7 @@ export interface Profile {
   last_name?: string | null;
   is_verified?: boolean;
   notification_preferences?: NotificationPreferences;
+  custody_balance?: number | null;
 }
 
 /**

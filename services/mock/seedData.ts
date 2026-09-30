@@ -77,9 +77,11 @@ export const SEED_PROFILES: Profile[] = [
     role: 'investor',
     tax_id: '20301234567',
     legal_name: 'Juan Ignacio Pérez',
+    email: 'juan.perez@example.com',
     phone: '+54 11 6543-2100',
     kyc_status: 'approved',
     bank_cbu_cvu: '0070123430000055667788',
+    custody_balance: 5_250_000,
     created_at: '2026-01-10T08:00:00.000Z',
   },
   {
