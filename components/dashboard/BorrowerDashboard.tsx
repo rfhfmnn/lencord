@@ -321,14 +321,14 @@ export function BorrowerDashboard({
 
       setHasInvestorRole(true);
       setInvestorActivationSuccess(
-        '¡Perfil Inversor activado con éxito! Ahora podés explorar el marketplace e invertir.'
+        '¡Perfil inversor activado con éxito! Ahora podés explorar el marketplace e invertir.'
       );
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('auth-state-change'));
       }
     } catch (err: any) {
-      setInvestorErrors({ name: err?.message || 'Error al activar el perfil Inversor.' });
+      setInvestorErrors({ name: err?.message || 'Error al activar el perfil inversor.' });
     } finally {
       setIsActivatingInvestor(false);
     }
@@ -341,15 +341,15 @@ export function BorrowerDashboard({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <span className={styles.statusBadge} style={{ backgroundColor: '#eff6ff', color: '#1e40af', marginBottom: '0.25rem', display: 'inline-block' }}>
-                ✓ Perfil Inversor Activo
+                ✓ Perfil inversor activo
               </span>
               <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155' }}>
-                Tu cuenta dispone de permisos como Inversor. Podés participar en subastas de crédito y rentabilizar excedentes de liquidez.
+                Tu cuenta dispone de permisos como inversor. Podés participar en subastas de crédito y rentabilizar excedentes de liquidez.
               </p>
             </div>
             <Link href="/dashboard/inversor">
               <Button variant="bordered" size="sm" data-testid="btn-go-to-investor-dashboard">
-                Ir a mi Panel Inversor →
+                Ir a mi panel inversor →
               </Button>
             </Link>
           </div>
@@ -360,9 +360,9 @@ export function BorrowerDashboard({
     return (
       <section className={styles.onboardingRoleCard} data-testid="investor-onboarding-section">
         <div className={styles.onboardingRoleHeader}>
-          <div className={styles.onboardingRoleBadge}>Expansión de Cuenta</div>
+          <div className={styles.onboardingRoleBadge}>Expansión de cuenta</div>
           <h3 className={styles.onboardingRoleTitle}>
-            ¿Querés rentabilizar los excedentes de tu empresa o personales? Activá tu perfil Inversor
+            ¿Querés rentabilizar los excedentes de tu empresa o personales? Activá tu perfil inversor
           </h3>
           <p className={styles.onboardingRoleDesc}>
             Con tu misma cuenta podés invertir en préstamos a otras empresas argentinas con rendimientos competitivos y cobro mensual automatizado.
@@ -389,7 +389,7 @@ export function BorrowerDashboard({
           <form onSubmit={handleActivateInvestorRole} className={styles.onboardingRoleForm} data-testid="investor-activation-form" noValidate>
             <div className={styles.onboardingRoleGrid}>
               <Input
-                label="Nombre completo o Razón social del titular *"
+                label="Nombre completo o razón social del titular *"
                 id="input-investor-name"
                 value={investorLegalName}
                 onChange={(e) => {
@@ -421,7 +421,7 @@ export function BorrowerDashboard({
                 data-testid="input-investor-tax-id"
               />
               <Input
-                label="CBU / CVU bancario para cobro de cuotas"
+                label="CBU/CVU bancario para cobro de cuotas"
                 id="input-investor-cbu"
                 value={investorCbu}
                 onChange={(e) => {
@@ -444,7 +444,7 @@ export function BorrowerDashboard({
                 isLoading={isActivatingInvestor}
                 data-testid="btn-activate-investor-role"
               >
-                Activar perfil Inversor
+                Activar perfil inversor
               </Button>
             </div>
           </form>
@@ -692,19 +692,19 @@ export function BorrowerDashboard({
         {/* Key figures */}
         <div className={styles.breakdownGrid}>
           <div className={styles.tierStatItem} style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
-            <span className={styles.metricLabel}>Monto Solicitado</span>
+            <span className={styles.metricLabel}>Monto solicitado</span>
             <div className={styles.tierStatAmount}>{formatCurrency(currentLoan.amount_requested)}</div>
             <div className={styles.secondaryText}>Plazo: {currentLoan.term_months} meses</div>
           </div>
 
           <div className={styles.tierStatItem} style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
-            <span className={styles.metricLabel}>Esquema de Tasa</span>
+            <span className={styles.metricLabel}>Esquema de tasa</span>
             <div className={styles.tierStatAmount}>
               {currentLoan.borrower_rate > 0
                 ? formatRateDisplay(currentLoan.rate_type, currentLoan.borrower_rate)
                 : currentLoan.rate_type === 'TNA_FIXED'
                   ? 'Tasa fija (TNA)'
-                  : 'CER / UVA + Spread'}
+                  : 'CER/UVA + spread'}
             </div>
             <div className={styles.secondaryText}>
               {currentLoan.borrower_rate > 0 ? 'Tasa final aprobada' : 'A definir en scoring'}
@@ -712,7 +712,7 @@ export function BorrowerDashboard({
           </div>
 
           <div className={styles.tierStatItem} style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
-            <span className={styles.metricLabel}>Estado Actual</span>
+            <span className={styles.metricLabel}>Estado actual</span>
             <div className={styles.tierStatAmount} style={{ textTransform: 'capitalize' }}>
               {statusMeta.label}
             </div>
@@ -817,7 +817,7 @@ export function BorrowerDashboard({
               <h3 className={styles.signingTitle}>¡Subasta financiada al 100%!</h3>
               <p className={styles.signingDescription}>
                 Tu proyecto ha alcanzado el fondeo total. Para proceder con el desembolso directo de los fondos
-                en tu CBU/CVU bancario, es necesario firmar el <strong>Pagaré Digital</strong> correspondiente.
+                en tu CBU/CVU bancario, es necesario firmar el <strong>pagaré digital</strong> correspondiente.
               </p>
             </div>
           </div>
@@ -828,7 +828,7 @@ export function BorrowerDashboard({
             onClick={handleSigningClick}
             data-testid="btn-sign-promissory-note"
           >
-            Firmar Pagaré Digital
+            Firmar pagaré digital
           </Button>
         </section>
       )}
@@ -838,7 +838,7 @@ export function BorrowerDashboard({
         <section className={styles.section} aria-labelledby="amortization-table-title">
           <div className={styles.sectionHeader}>
             <h2 id="amortization-table-title" className={styles.sectionTitle}>
-              Cuadro de amortización (Sistema Francés)
+              Cuadro de amortización (sistema francés)
             </h2>
             <p className={styles.sectionDescription}>
               Detalle de cuotas mensuales, vencimientos, amortización de capital e intereses a abonar.
@@ -865,7 +865,7 @@ export function BorrowerDashboard({
                   <tr>
                     <th scope="col">Cuota #</th>
                     <th scope="col">Vencimiento</th>
-                    <th scope="col">Amortización (Capital)</th>
+                    <th scope="col">Amortización (capital)</th>
                     <th scope="col">Interés</th>
                     <th scope="col">Total cuota</th>
                     <th scope="col">Estado</th>
@@ -948,9 +948,9 @@ export function BorrowerDashboard({
             <table className={styles.table} role="table">
               <thead>
                 <tr>
-                  <th scope="col">Proyecto / Destino</th>
+                  <th scope="col">Proyecto/Destino</th>
                   <th scope="col">Monto solicitado</th>
-                  <th scope="col">Plazo y Tasa</th>
+                  <th scope="col">Plazo y tasa</th>
                   <th scope="col">Fecha de solicitud</th>
                   <th scope="col">Vencimiento de subasta</th>
                   <th scope="col">Estado</th>
@@ -970,10 +970,10 @@ export function BorrowerDashboard({
                   });
                   const formattedDeadline = loan.funding_deadline
                     ? new Date(loan.funding_deadline).toLocaleDateString('es-AR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                      })
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })
                     : 'Sin fecha límite';
 
                   const isFundingNoDeadline = loan.status === 'funding' && !loan.funding_deadline;

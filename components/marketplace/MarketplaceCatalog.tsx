@@ -202,7 +202,7 @@ export function MarketplaceCatalog({
   return (
     <div className={`${styles.catalogWrapper} ${className}`} data-testid="marketplace-catalog">
       <div className={styles.catalogHeader}>
-        <h1 className={styles.pageTitle}>Oportunidades de Inversión</h1>
+        <h1 className={styles.pageTitle}>Oportunidades de inversión</h1>
         <p className={styles.pageSubtitle}>
           Financiá proyectos de PyMEs argentinas en subastas colectivas. Cobrá capital e interés mes a mes con la seguridad de pagarés digitales.
         </p>
@@ -224,9 +224,9 @@ export function MarketplaceCatalog({
               data-testid="filter-risk-select"
             >
               <option value="all">Todos los niveles</option>
-              <option value="Tier A">Tier A (Bajo riesgo)</option>
-              <option value="Tier B">Tier B (Riesgo medio)</option>
-              <option value="Tier C">Tier C (Mayor rendimiento)</option>
+              <option value="Tier A">Tier A (bajo riesgo)</option>
+              <option value="Tier B">Tier B (riesgo medio)</option>
+              <option value="Tier C">Tier C (mayor rendimiento)</option>
             </select>
           </div>
 
@@ -243,7 +243,7 @@ export function MarketplaceCatalog({
               data-testid="filter-rate-select"
             >
               <option value="all">Todas las tasas</option>
-              <option value="TNA_FIXED">Tasa Fija (TNA)</option>
+              <option value="TNA_FIXED">Tasa fija (TNA)</option>
               <option value="CER_VARIABLE">Tasa CER + margen</option>
             </select>
           </div>

@@ -359,7 +359,7 @@ export function PromissoryNoteModal({
               <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Firma de Pagaré Digital y Mutuo
+              Firma de pagaré digital y contrato de mutuo
             </h2>
             <p className={styles.modalSubtitle}>
               Revisión del instrumento legal y ratificación de deuda mediante firma electrónica y 2FA OTP.
@@ -384,16 +384,16 @@ export function PromissoryNoteModal({
           <div className={styles.documentViewer} data-testid="document-viewer">
             <div className={styles.documentHeader}>
               <div>
-                <h3 className={styles.documentTitle}>Pagaré Digital y Contrato de Mutuo</h3>
+                <h3 className={styles.documentTitle}>Pagaré digital y contrato de mutuo</h3>
                 <span className={styles.documentLegalNumber}>Instrumento N° PAG-{loan.id.slice(0, 8).toUpperCase()}</span>
               </div>
-              <span className={styles.documentLegalNumber}>Ley 21.526 / CCCN Art. 1820</span>
+              <span className={styles.documentLegalNumber}>Ley 21.526/CCCN Art. 1820</span>
             </div>
 
             {/* Borrower & Loan Metadata */}
             <div className={styles.highlightMetaGrid} data-testid="contract-metadata">
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Deudor / Librador</span>
+                <span className={styles.metaLabel}>Deudor/librador</span>
                 <span className={styles.metaValue} data-testid="contract-borrower-name">
                   {borrower.legal_name}
                 </span>
@@ -405,13 +405,13 @@ export function PromissoryNoteModal({
                 </span>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Capital Principal</span>
+                <span className={styles.metaLabel}>Capital principal</span>
                 <span className={styles.metaValue} data-testid="contract-principal-amount">
                   {formatCurrency(loan.amount_requested)}
                 </span>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Tasa Aplicada</span>
+                <span className={styles.metaLabel}>Tasa aplicada</span>
                 <span className={styles.metaValue} data-testid="contract-interest-rate">
                   {formatRateDisplay(loan.rate_type, loan.borrower_rate)}
                 </span>
@@ -427,7 +427,7 @@ export function PromissoryNoteModal({
                 manera incondicional e irrevocable la suma de{' '}
                 <strong>{formatCurrency(loan.amount_requested)}</strong> a favor de los inversores
                 participantes de la subasta colectiva instrumentada en la plataforma Lencord, actuando Lencord
-                SAS en carácter de mandatario tecnológico y facilitador conforme a la Ley de Financiamiento
+                S.A.S. en carácter de mandatario tecnológico y facilitador conforme a la Ley de Financiamiento
                 Productivo.
               </p>
             </div>

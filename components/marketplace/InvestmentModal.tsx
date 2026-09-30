@@ -316,7 +316,7 @@ export function InvestmentModal({
                   }}
                   data-testid="success-fully-funded-banner"
                 >
-                  🎉 ¡Subasta completada al 100%!
+                  ¡Subasta completada al 100%!
                 </div>
               )}
             </div>

@@ -214,7 +214,7 @@ export function StepDocumentUpload({
 
     if (!files.afip_constancia) {
       newErrors.afip_constancia =
-        'La Constancia de inscripción AFIP / ARCA es obligatoria para continuar.';
+        'La constancia de inscripción AFIP/ARCA es obligatoria para continuar.';
     }
 
     setErrors(newErrors);

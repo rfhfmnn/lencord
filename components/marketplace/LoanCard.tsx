@@ -10,7 +10,7 @@ export const LOAN_CATEGORY_LABELS: Record<string, string> = {
   machinery: 'Maquinaria y equipamiento',
   refinancing: 'Refinanciación de pasivos',
   expansion: 'Expansión comercial',
-  new_sme: 'Nuevas PyMEs / Startups',
+  new_sme: 'Nuevas PyMEs/startups',
 };
 
 export function formatRateDisplay(rateType: string, rate: number): string {
@@ -89,7 +89,7 @@ export function LoanCard({
       {/* Financial Metrics: Rate & Term */}
       <div className={styles.financialMetrics}>
         <div className={styles.metricBlock}>
-          <span className={styles.metricLabel}>Tasa Inversor</span>
+          <span className={styles.metricLabel}>Tasa inversor</span>
           <span className={styles.metricValue} data-testid="loan-rate">
             {rateDisplay}
           </span>

@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { MarketplaceCatalog } from '@/components/marketplace';
 
 export const metadata: Metadata = {
-  title: 'Marketplace de préstamos',
+  title: 'Conocé las empresas',
   description:
     'Catálogo público de oportunidades de financiamiento colectivo para PyMEs argentinas.',
 };

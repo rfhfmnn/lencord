@@ -239,14 +239,14 @@ export const Header: React.FC<HeaderProps> = ({
   const roleBadgeClass = isBorrower
     ? styles.roleBadgePyme
     : isInvestor
-    ? styles.roleBadgeInvestor
-    : styles.roleBadgeAdmin;
+      ? styles.roleBadgeInvestor
+      : styles.roleBadgeAdmin;
 
   const dashboardHref = isBorrower
     ? '/dashboard/pyme'
     : isInvestor
-    ? '/dashboard/inversor'
-    : '/admin';
+      ? '/dashboard/inversor'
+      : '/admin';
 
   return (
     <header className={`${styles.header} ${className}`.trim()} data-testid="sticky-header">
@@ -291,7 +291,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div
                   className={styles.custodyBalance}
                   data-testid="header-custody-balance"
-                  title="Saldo ilustrativo en cuenta de custodia"
+                  title="Saldo en cuenta de custodia"
                 >
                   <span className={styles.custodyLabel}>Custodia:</span>
                   <span className={styles.custodyValue}>
@@ -347,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className={styles.roleSwitchButton}
                   data-testid="header-role-switcher"
                 >
-                  {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
+                  {isBorrower ? 'Cambiar a modo inversor' : 'Cambiar a modo PyME'}
                 </Button>
               )}
 

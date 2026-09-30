@@ -60,8 +60,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const initialRole: LoginRole = defaultRole
     ? defaultRole
     : queryParamRole === 'borrower' || queryParamRole === 'pyme' || queryParamRole === 'sme'
-    ? 'borrower'
-    : 'investor';
+      ? 'borrower'
+      : 'investor';
 
   const [selectedRole, setSelectedRole] = useState<LoginRole>(initialRole);
   const [email, setEmail] = useState('');
@@ -96,7 +96,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     if (!email.trim()) {
       newErrors.email = 'El correo electrónico es obligatorio.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = 'Ingrese un correo electrónico válido.';
+      newErrors.email = 'Ingresá un correo electrónico válido.';
     }
 
     if (!password) {
@@ -173,7 +173,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         ) {
           setAuthError('Credenciales incorrectas. Verificá tu correo electrónico y contraseña.');
         } else {
-          setAuthError(error.message || 'Error al iniciar sesión. Por favor, verifique sus datos.');
+          setAuthError(error.message || 'Error al iniciar sesión. Por favor, verificá tus datos.');
         }
         setIsLoading(false);
         return;
@@ -270,7 +270,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
       setRecoveryMessage({
         type: 'error',
-        text: 'Por favor, ingrese un correo electrónico válido para recuperar su contraseña.',
+        text: 'Por favor, ingresá un correo electrónico válido para recuperar tu contraseña.',
       });
       return;
     }
@@ -287,7 +287,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       if (error) {
         setRecoveryMessage({
           type: 'error',
-          text: error.message || 'No pudimos enviar el correo de recuperación. Reintente más tarde.',
+          text: error.message || 'No pudimos enviar el correo de recuperación. Reintentá más tarde.',
         });
       } else {
         setRecoveryMessage({
@@ -381,7 +381,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             onKeyDown={(e) => handleTabKeyDown(e, 'investor')}
             data-testid="tab-login-investor"
           >
-            <span className={styles.roleTabTitle}>Ingresar como Inversor</span>
+            <span className={styles.roleTabTitle}>Ingresar como inversor</span>
             <span className={styles.roleTabDesc}>Gestioná tus inversiones</span>
           </button>
         </div>
@@ -474,9 +474,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
               {recoveryMessage && (
                 <div
-                  className={`${styles.alert} ${
-                    recoveryMessage.type === 'success' ? styles.alertSuccess : styles.alertError
-                  }`}
+                  className={`${styles.alert} ${recoveryMessage.type === 'success' ? styles.alertSuccess : styles.alertError
+                    }`}
                   role="alert"
                 >
                   <span>{recoveryMessage.text}</span>

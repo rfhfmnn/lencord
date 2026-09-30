@@ -49,7 +49,7 @@ export const CATEGORY_OPTIONS: { value: LoanCategory; label: string; desc: strin
   },
   {
     value: 'new_sme',
-    label: 'Emprender / Nuevas PyMEs',
+    label: 'Emprender/nuevas PyMEs',
     desc: 'Inversión inicial para proyectos en etapa de consolidación.',
   },
 ];
@@ -279,9 +279,8 @@ export function StepProjectConditions({
             <label className={styles.fieldLabel}>Preferencia de tasa *</label>
             <div className={styles.radioOptionsGrid}>
               <label
-                className={`${styles.radioCard} ${
-                  formData.rate_type === 'TNA_FIXED' ? styles.radioCardSelected : ''
-                }`}
+                className={`${styles.radioCard} ${formData.rate_type === 'TNA_FIXED' ? styles.radioCardSelected : ''
+                  }`}
                 data-testid="radio-rate-fixed"
               >
                 <input
@@ -301,9 +300,8 @@ export function StepProjectConditions({
               </label>
 
               <label
-                className={`${styles.radioCard} ${
-                  formData.rate_type === 'CER_VARIABLE' ? styles.radioCardSelected : ''
-                }`}
+                className={`${styles.radioCard} ${formData.rate_type === 'CER_VARIABLE' ? styles.radioCardSelected : ''
+                  }`}
                 data-testid="radio-rate-cer"
               >
                 <input
@@ -317,7 +315,7 @@ export function StepProjectConditions({
                 <div>
                   <span className={styles.radioCardTitle}>CER + spread</span>
                   <span className={styles.radioCardDesc}>
-                    Ajustable por inflación (UVA / CER) con spread competitivo.
+                    Ajustable por inflación (UVA/CER) con spread competitivo.
                   </span>
                 </div>
               </label>
@@ -409,9 +407,8 @@ export function StepProjectConditions({
             <div className={styles.fieldTextareaWrapper}>
               <textarea
                 id="project_description"
-                className={`${styles.fieldTextarea} ${
-                  errors.description || isOverLimit ? styles.fieldTextareaError : ''
-                }`}
+                className={`${styles.fieldTextarea} ${errors.description || isOverLimit ? styles.fieldTextareaError : ''
+                  }`}
                 placeholder="Describí brevemente el destino de los fondos, el modelo de negocio y cómo impactará la financiación en la producción de tu PyME..."
                 value={formData.description}
                 onChange={handleDescriptionChange}
@@ -421,9 +418,8 @@ export function StepProjectConditions({
               <div className={styles.charCounterRow}>
                 <span className={styles.charCounterDesc}>Máximo 500 caracteres</span>
                 <span
-                  className={`${styles.charCounter} ${
-                    isOverLimit ? styles.charCounterLimitExceeded : ''
-                  }`}
+                  className={`${styles.charCounter} ${isOverLimit ? styles.charCounterLimitExceeded : ''
+                    }`}
                   data-testid="char-counter"
                 >
                   {formData.description.length}/500 caracteres

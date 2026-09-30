@@ -42,7 +42,7 @@ export function ApplicationConfirmation({
         <div className={styles.receiptTitle}>Resumen de la solicitud</div>
 
         <div className={styles.receiptRow}>
-          <span className={styles.receiptLabel}>Número de trámite / ID:</span>
+          <span className={styles.receiptLabel}>Número de trámite/ID:</span>
           <span className={styles.receiptValue} style={{ fontFamily: 'monospace' }} data-testid="receipt-loan-id">
             {loan.id}
           </span>

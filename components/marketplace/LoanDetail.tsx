@@ -344,14 +344,14 @@ export function LoanDetail({
           <div className={styles.creditItem}>
             <span className={styles.creditItemLabel}>Nivel de riesgo de solvencia</span>
             <span className={styles.creditItemValue} data-testid="detail-solvency-tier">
-              {riskTier} (Evaluado por Lencord Scoring)
+              {riskTier} (Evaluado por Lencord)
             </span>
           </div>
 
           <div className={styles.creditItem}>
             <span className={styles.creditItemLabel}>Esquema de tasa</span>
             <span className={styles.creditItemValue}>
-              {loan.rate_type === 'TNA_FIXED' ? 'Tasa fija en pesos' : 'Ajustable por inflación (CER / UVA)'}
+              {loan.rate_type === 'TNA_FIXED' ? 'Tasa fija en pesos' : 'Ajustable por inflación (CER/UVA)'}
             </span>
           </div>
         </div>
@@ -363,7 +363,7 @@ export function LoanDetail({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h2 className={styles.sectionTitle} style={{ marginBottom: '0.25rem' }}>
-                Instrumento Legal: Pagaré Digital y Contrato de Mutuo
+                Instrumento Legal: Pagaré digital y contrato de mutuo
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.9375rem', margin: 0 }}>
                 {loan.status === 'funded'

@@ -310,15 +310,15 @@ export function InvestorDashboard({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <span className={styles.statusBadge} style={{ backgroundColor: '#d1fae5', color: '#065f46', marginBottom: '0.25rem', display: 'inline-block' }}>
-                ✓ Perfil PyME Activo
+                ✓ Perfil PyME activo
               </span>
               <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155' }}>
-                Tu cuenta dispone de permisos como Empresa (PyME). Podés solicitar financiamiento y gestionar tus solicitudes de crédito comercial.
+                Tu cuenta dispone de permisos como empresa (PyME). Podés solicitar financiamiento y gestionar tus solicitudes de crédito comercial.
               </p>
             </div>
             <Link href="/dashboard/pyme">
               <Button variant="bordered" size="sm" data-testid="btn-go-to-pyme-dashboard">
-                Ir a mi Panel PyME →
+                Ir a mi panel PyME →
               </Button>
             </Link>
           </div>
@@ -329,7 +329,7 @@ export function InvestorDashboard({
     return (
       <section className={styles.onboardingRoleCard} data-testid="pyme-onboarding-card">
         <div className={styles.onboardingRoleHeader}>
-          <div className={styles.onboardingRoleBadge}>Expansión de Cuenta</div>
+          <div className={styles.onboardingRoleBadge}>Expansión de cuenta</div>
           <h3 className={styles.onboardingRoleTitle}>
             ¿Tenés una empresa y buscás financiación? Activá tu perfil PyME
           </h3>
@@ -344,7 +344,7 @@ export function InvestorDashboard({
             <div style={{ marginTop: '0.75rem' }}>
               <Link href="/dashboard/pyme">
                 <Button variant="primary" size="sm" data-testid="btn-success-go-to-pyme">
-                  Ir a mi Panel PyME →
+                  Ir a mi panel PyME →
                 </Button>
               </Link>
             </div>
@@ -678,7 +678,7 @@ export function InvestorDashboard({
       {/* Dashboard Header */}
       <header className={styles.dashboardHeader}>
         <div>
-          <h1 className={styles.title}>Panel del Inversor</h1>
+          <h1 className={styles.title}>Panel del inversor</h1>
           <p className={styles.subtitle}>
             {investorName ? (
               <>
@@ -729,7 +729,7 @@ export function InvestorDashboard({
       >
         <div className={styles.sectionHeader}>
           <h2 id="perfil-section-title" className={styles.sectionTitle}>
-            Mi Perfil
+            Mi perfil
           </h2>
           <p className={styles.sectionDescription}>
             Información de la cuenta, cuenta bancaria asociada e identificación tributaria conforme a normativa UIF.
@@ -864,8 +864,8 @@ export function InvestorDashboard({
           </div>
           <h2 className={styles.emptyStateTitle}>No poseés inversiones activas</h2>
           <p className={styles.emptyStateDescription}>
-            Aún no has participado en ninguna subasta de financiamiento PyME. Explorá las oportunidades
-            disponibles en el marketplace y comenzá a rentabilizar tu capital con retornos reales.
+            Aún no has participado en ninguna subasta de financiamiento. Explorá las oportunidades
+            disponibles en el marketplace y comenzá a rentabilizar tu capital.
           </p>
           <Link href="/marketplace">
             <Button variant="primary" size="md" data-testid="explore-opportunities-button">
@@ -878,13 +878,13 @@ export function InvestorDashboard({
           {/* Summary Metric Cards */}
           <section className={styles.metricsGrid} aria-label="Métricas principales de inversión">
             <div className={styles.metricCard} data-testid="metric-total-capital">
-              <span className={styles.metricLabel}>Total Capital Invertido</span>
+              <span className={styles.metricLabel}>Capital invertido</span>
               <span className={styles.metricValue}>{formatCurrency(totalCapitalInvertido)}</span>
               <span className={styles.metricSubtextNeutral}>Capital activo en subastas y préstamos</span>
             </div>
 
             <div className={styles.metricCard} data-testid="metric-estimated-returns">
-              <span className={styles.metricLabel}>Rendimiento Estimado / Intereses Ganados</span>
+              <span className={styles.metricLabel}>Rendimiento estimado/intereses ganados</span>
               <span className={styles.metricValue}>{formatCurrency(estimatedTotalYield)}</span>
               <span className={styles.metricSubtext}>+ Rendimiento total proyectado al vencimiento</span>
             </div>
@@ -1004,7 +1004,7 @@ export function InvestorDashboard({
               <table className={styles.table} data-testid="active-investments-table">
                 <thead>
                   <tr>
-                    <th scope="col">Destino / Oportunidad</th>
+                    <th scope="col">Destino/oportunidad</th>
                     <th scope="col">Ticket invertido</th>
                     <th scope="col">Tasa de interés</th>
                     <th scope="col">Riesgo</th>
@@ -1040,9 +1040,8 @@ export function InvestorDashboard({
                         <td>{loan ? `${loan.term_months} meses` : '-'}</td>
                         <td>
                           <span
-                            className={`${styles.statusBadge} ${
-                              isSettled ? styles.statusSettled : styles.statusCommitted
-                            }`}
+                            className={`${styles.statusBadge} ${isSettled ? styles.statusSettled : styles.statusCommitted
+                              }`}
                             data-testid={`investment-status-${investment.id}`}
                           >
                             {isSettled ? 'settled' : 'committed'}
@@ -1092,8 +1091,8 @@ export function InvestorDashboard({
                           installment.status === 'paid'
                             ? styles.statusPaid
                             : installment.status === 'overdue'
-                            ? styles.statusOverdue
-                            : styles.statusPending;
+                              ? styles.statusOverdue
+                              : styles.statusPending;
 
                         return (
                           <tr key={installment.id} data-testid={`installment-row-${installment.id}`}>

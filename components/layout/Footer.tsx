@@ -120,7 +120,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <h5 className={styles.disclaimerTitle}>Aviso legal y estructura de la plataforma</h5>
             <p className={styles.disclaimerText}>
               Lencord es una plataforma tecnológica operada bajo la estructura societaria de Sociedad por
-              Acciones Simplificada (SAS). Lencord no es una entidad financiera bajo los términos de la Ley
+              Acciones Simplificada (S.A.S.). Lencord no es una entidad financiera bajo los términos de la Ley
               N° 21.526 de Entidades Financieras y no realiza intermediación financiera directa ni captación
               pública de depósitos. La plataforma actúa exclusivamente como mandatario y facilitador
               tecnológico entre partes privadas, delegando el procesamiento de pagos, custodia temporal y
@@ -136,7 +136,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               la Central de Deudores del Banco Central de la República Argentina (BCRA) para la evaluación
               crediticia objetiva. Asimismo, implementa programas y estándares de debida diligencia en
               materia de prevención de lavado de activos y financiamiento del terrorismo, conforme a las
-              disposiciones emitidas por la Unidad de Información Financiera (UIF) de la República Argentina.
+              normas de la Unidad de Información Financiera (UIF) de la República Argentina.
             </p>
           </div>
         </div>
@@ -144,7 +144,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         {/* Bottom Bar */}
         <div className={styles.bottomBar}>
           <div>
-            © {currentYear} Lencord SAS. Todos los derechos reservados.
+            © {currentYear} Lencord S.A.S.. Todos los derechos reservados.
           </div>
           <div>
             Plataforma peer-to-peer de financiamiento colectivo para PyMEs argentinas.

@@ -5,9 +5,9 @@ import { Footer } from '@/components/layout/Footer';
 import { RegisterForm } from '@/components/auth';
 
 export const metadata: Metadata = {
-  title: 'Crear c',
+  title: 'Sumá tu PyME',
   description:
-    'Registrate en Lencord como PyME para solicitar financiamiento colectivo o como inversor para rentabilizar tu capital.',
+    'Sumá tu PyME y accedé a financiamiento colectivo para potenciar tu negocio.',
 };
 
 export default function RegistroPage() {

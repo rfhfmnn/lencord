@@ -99,7 +99,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     if (!trimmedEmail) {
       newErrors.email = 'El correo electrónico es obligatorio.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      newErrors.email = 'Ingrese un correo electrónico válido.';
+      newErrors.email = 'Ingresá un correo electrónico válido.';
     }
 
     // Common Password Validation (weak password protection)
@@ -114,7 +114,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     // SME Specific Validation
     if (role === 'borrower') {
       if (!companyName.trim()) {
-        newErrors.companyName = 'La razón social o nombre de la empresa es obligatorio.';
+        newErrors.companyName = 'La razón social o nombre de tu empresa es obligatorio.';
       }
 
       if (!cuit.trim()) {
@@ -132,13 +132,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     // Investor Specific Validation
     if (role === 'investor') {
       if (!fullName.trim()) {
-        newErrors.fullName = 'El nombre y apellido completo es obligatorio.';
+        newErrors.fullName = 'El nombre y apellido son obligatorios.';
       }
 
       const cleanId = cleanCuit(taxId);
       if (cleanId) {
         if (cleanId.length < 7 || (cleanId.length > 8 && cleanId.length < 11) || cleanId.length > 11) {
-          newErrors.taxId = 'Ingrese un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
+          newErrors.taxId = 'Ingresá un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
         } else if (cleanId.length === 11 && !validateCuit(cleanId)) {
           newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
         }
@@ -191,7 +191,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         ) {
           setServerError('Ya existe una cuenta registrada con este correo electrónico.');
         } else {
-          setServerError(signUpError.message || 'Error al procesar el registro. Intente nuevamente.');
+          setServerError(signUpError.message || 'Ocurrió un error inesperado. Por favor, intentá nuevamente.');
         }
         setIsLoading(false);
         return;
@@ -252,7 +252,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         onSuccess(cleanEmail, role);
       }
     } catch (err: any) {
-      setServerError(err?.message || 'Ocurrió un error inesperado. Por favor, reintente.');
+      setServerError(err?.message || 'Ocurrió un error inesperado. Por favor, intentá nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -292,9 +292,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Crear cuenta en Lencord</h1>
+          <h1 className={styles.title}>Creá tu cuenta en Lencord</h1>
           <p className={styles.subtitle}>
-            Financiamiento colectivo transparente y seguro para el desarrollo productivo argentino.
+            Financiamiento colectivo, transparente y seguro para el desarrollo de tu negocio.
           </p>
         </div>
 
@@ -312,7 +312,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             onClick={() => handleRoleChange('borrower')}
             data-testid="role-tab-sme"
           >
-            <span className={styles.roleTabTitle}>Soy Empresa (PyME)</span>
+            <span className={styles.roleTabTitle}>Soy PyME</span>
             <span className={styles.roleTabDesc}>Solicitar crédito productivo</span>
           </button>
           <button
@@ -323,7 +323,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             onClick={() => handleRoleChange('investor')}
             data-testid="role-tab-investor"
           >
-            <span className={styles.roleTabTitle}>Soy Inversor</span>
+            <span className={styles.roleTabTitle}>Soy inversor</span>
             <span className={styles.roleTabDesc}>Invertir y obtener rentabilidad</span>
           </button>
         </div>

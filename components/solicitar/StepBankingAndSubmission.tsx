@@ -89,7 +89,7 @@ export function StepBankingAndSubmission({
         <h2 className={styles.stepTitle}>Datos bancarios y conformidad</h2>
         <p className={styles.stepDescription}>
           Indicá la cuenta bancaria donde se acreditarán los fondos una vez adjudicada la subasta y confirmá
-          las declaraciones regulatorias (BCRA / UIF).
+          las declaraciones regulatorias (BCRA/UIF).
         </p>
 
         <div className={styles.formGrid}>

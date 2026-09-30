@@ -7,7 +7,7 @@ import { BorrowerDashboard } from '@/components/dashboard/BorrowerDashboard';
 export const metadata: Metadata = {
   title: 'Panel PyME',
   description:
-    'Monitor de solicitud de crédito, progreso de subasta y cuadro de cuotas para PyMEs en Lencord.',
+    'Monitor de solicitud de crédito, progreso de subasta y cuadro de cuotas para PyMEs.',
 };
 
 export default function BorrowerDashboardPage() {
