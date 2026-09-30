@@ -475,8 +475,6 @@ export function BorrowerDashboard({
           </div>
         </header>
 
-        {renderInvestorOnboardingCard()}
-
         <section className={styles.emptyStateCard}>
           <div className={styles.emptyStateIcon} aria-hidden="true">
             <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,6 +497,9 @@ export function BorrowerDashboard({
             </Button>
           </Link>
         </section>
+
+        {/* Dual-Role Investor Onboarding Card or Active Banner (bottom of panel) */}
+        {renderInvestorOnboardingCard()}
       </div>
     );
   }
@@ -671,9 +672,6 @@ export function BorrowerDashboard({
           </div>
         )}
       </header>
-
-      {/* Dual-Role Investor Onboarding Card or Active Banner */}
-      {renderInvestorOnboardingCard()}
 
       {/* Main Loan Header & Status Badge */}
       <div className={styles.borrowerHeroCard}>
@@ -1208,6 +1206,9 @@ export function BorrowerDashboard({
           }
         }}
       />
+
+      {/* Dual-Role Investor Onboarding Card or Active Banner (bottom of panel) */}
+      {renderInvestorOnboardingCard()}
 
       {/* Electronic Promissory Note Signing Modal */}
       {currentLoan && (
