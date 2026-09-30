@@ -401,4 +401,33 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     ).toBeInTheDocument();
     expect(mockSignUp).not.toHaveBeenCalled();
   });
+
+  it('renders login redirection guidance when email is already registered', async () => {
+    mockSignUp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'User already registered' },
+    });
+
+    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+
+    fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
+      target: { value: 'Inversor Existente' },
+    });
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
+      target: { value: 'existente@lencord.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Contraseña/i), {
+      target: { value: 'PasswordSegura2026' },
+    });
+
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    expect(await screen.findByTestId('server-error-alert')).toBeInTheDocument();
+    expect(screen.getByTestId('login-redirect-link-from-error')).toBeInTheDocument();
+    expect(screen.getByTestId('login-redirect-link-from-error')).toHaveAttribute(
+      'href',
+      expect.stringContaining('/login?email=existente%40lencord.com')
+    );
+  });
 });
+

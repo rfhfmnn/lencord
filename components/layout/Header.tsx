@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
@@ -39,6 +40,14 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onRoleSwitch,
 }) => {
+  let router: any = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter();
+  } catch {
+    router = null;
+  }
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<HeaderUser | null>(userProp ?? null);
   const [isLoading, setIsLoading] = useState<boolean>(
@@ -87,6 +96,14 @@ export const Header: React.FC<HeaderProps> = ({
           authUser.email?.split('@')[0] ||
           'Usuario';
 
+        const availableRoles: ('investor' | 'sme' | 'borrower')[] = [];
+        if (Array.isArray(authUser.user_metadata?.roles)) {
+          availableRoles.push(...authUser.user_metadata.roles);
+        }
+        if (authUser.user_metadata?.role && !availableRoles.includes(authUser.user_metadata.role)) {
+          availableRoles.push(authUser.user_metadata.role);
+        }
+
         try {
           const { data: profile } = await client
             .from('profiles')
@@ -95,7 +112,13 @@ export const Header: React.FC<HeaderProps> = ({
             .maybeSingle();
 
           if (profile) {
-            if (profile.role) role = profile.role as any;
+            if (profile.role) {
+              const activeRole = authUser.user_metadata?.active_role || profile.role;
+              role = activeRole as any;
+              if (!availableRoles.includes(profile.role as any)) {
+                availableRoles.push(profile.role as any);
+              }
+            }
             if (profile.legal_name) name = profile.legal_name;
           }
         } catch {
@@ -108,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
             email: authUser.email,
             name,
             role,
+            availableRoles: availableRoles.length > 0 ? availableRoles : [role as any],
             custodyBalance: role === 'investor' ? 1250000 : undefined,
           });
           setIsLoading(false);
@@ -202,6 +226,12 @@ export const Header: React.FC<HeaderProps> = ({
     });
     if (onRoleSwitch) {
       onRoleSwitch(targetRole);
+    }
+    const targetDashboard = targetRole === 'borrower' ? '/dashboard/pyme' : '/dashboard/inversor';
+    if (router?.push) {
+      router.push(targetDashboard);
+    } else if (typeof window !== 'undefined') {
+      window.location.href = targetDashboard;
     }
   };
 

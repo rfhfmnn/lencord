@@ -336,7 +336,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <span>{serverError}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', width: '100%' }}>
+              <span>{serverError}</span>
+              {(serverError.toLowerCase().includes('ya existe') || serverError.toLowerCase().includes('already')) && (
+                <div style={{ fontSize: '0.8125rem', color: '#991b1b', marginTop: '0.25rem' }}>
+                  <span>
+                    ¿Ya tenés una cuenta en Lencord? Podés iniciar sesión con tus credenciales y activar tu perfil adicional desde tu panel de usuario.
+                  </span>
+                  <div style={{ marginTop: '0.375rem' }}>
+                    <Link
+                      href={`/login?email=${encodeURIComponent(email)}`}
+                      className={styles.loginLink}
+                      style={{ fontWeight: 600, textDecoration: 'underline' }}
+                      data-testid="login-redirect-link-from-error"
+                    >
+                      Ir a Iniciar Sesión →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

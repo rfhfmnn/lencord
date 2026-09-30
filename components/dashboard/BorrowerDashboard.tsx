@@ -14,6 +14,7 @@ import { NotificationPreferencesCard } from './NotificationPreferencesCard';
 import { computeFundingDeadline, type DeadlineOption } from '@/components/solicitar/StepProjectConditions';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 import { createSupabaseBrowserClient } from '@/services/supabase';
+import { cleanCuit, validateCuit, formatCuit } from '@/components/solicitar/cuitValidator';
 import styles from './dashboard.module.css';
 
 export interface BorrowerDashboardProps {
@@ -72,6 +73,57 @@ export function BorrowerDashboard({
   const [customDeadlineInput, setCustomDeadlineInput] = useState<string>('');
   const [deadlineModalError, setDeadlineModalError] = useState<string | null>(null);
   const [isSavingDeadline, setIsSavingDeadline] = useState<boolean>(false);
+
+  // Dual-role Investor activation state
+  const [hasInvestorRole, setHasInvestorRole] = useState<boolean>(false);
+  const [investorLegalName, setInvestorLegalName] = useState<string>('');
+  const [investorTaxId, setInvestorTaxId] = useState<string>('');
+  const [investorCbu, setInvestorCbu] = useState<string>('');
+  const [investorErrors, setInvestorErrors] = useState<{ name?: string; taxId?: string; cbu?: string }>({});
+  const [isActivatingInvestor, setIsActivatingInvestor] = useState<boolean>(false);
+  const [investorActivationSuccess, setInvestorActivationSuccess] = useState<string | null>(null);
+
+  // Check investor role for current borrower user
+  useEffect(() => {
+    let isMounted = true;
+    async function checkInvestorRole() {
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentBorrowerId);
+      if (mockProfile && (mockProfile.role === 'investor' || (mockProfile as any).has_investor_role)) {
+        if (isMounted) setHasInvestorRole(true);
+      }
+
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user && isMounted) {
+          const userRoles = Array.isArray(authData.user.user_metadata?.roles)
+            ? authData.user.user_metadata.roles
+            : [authData.user.user_metadata?.role].filter(Boolean);
+          if (userRoles.includes('investor') || authData.user.user_metadata?.role === 'investor') {
+            setHasInvestorRole(true);
+          }
+        }
+
+        const { data: profile } = await client
+          .from('profiles')
+          .select('id, role')
+          .eq('id', currentBorrowerId)
+          .maybeSingle();
+
+        if (profile?.role === 'investor' && isMounted) {
+          setHasInvestorRole(true);
+        }
+      } catch {
+        // Ignored
+      }
+    }
+
+    checkInvestorRole();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentBorrowerId]);
+
 
   // Keep state synced with props or resolve session user
   useEffect(() => {
@@ -183,6 +235,225 @@ export function BorrowerDashboard({
     return loans[0];
   }, [loans, selectedLoanId]);
 
+  const handleActivateInvestorRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: { name?: string; taxId?: string; cbu?: string } = {};
+
+    if (!investorLegalName.trim()) {
+      errors.name = 'El nombre completo o razón social es obligatorio.';
+    }
+
+    const cleanTax = cleanCuit(investorTaxId);
+    if (!cleanTax) {
+      errors.taxId = 'El DNI o CUIT es obligatorio.';
+    } else if (cleanTax.length < 7 || (cleanTax.length > 8 && cleanTax.length < 11) || cleanTax.length > 11) {
+      errors.taxId = 'Ingrese un DNI válido (7 u 8 dígitos) o CUIT (11 dígitos).';
+    } else if (cleanTax.length === 11 && !validateCuit(cleanTax)) {
+      errors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial (ARCA/AFIP).';
+    }
+
+    const cleanBankCbu = investorCbu.replace(/\D/g, '');
+    if (cleanBankCbu && cleanBankCbu.length !== 22) {
+      errors.cbu = 'El CBU o CVU bancario debe tener exactamente 22 dígitos.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setInvestorErrors(errors);
+      return;
+    }
+
+    setIsActivatingInvestor(true);
+    setInvestorErrors({});
+
+    try {
+      const client = createSupabaseBrowserClient();
+      let currentRoles: string[] = ['borrower'];
+      try {
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user) {
+          if (Array.isArray(authData.user.user_metadata?.roles)) {
+            currentRoles = authData.user.user_metadata.roles;
+          } else if (authData.user.user_metadata?.role) {
+            currentRoles = [authData.user.user_metadata.role];
+          }
+        }
+      } catch {
+        // Ignored
+      }
+
+      const updatedRoles = Array.from(new Set([...currentRoles, 'investor']));
+
+      try {
+        await client.auth.updateUser({
+          data: {
+            roles: updatedRoles,
+            active_role: 'investor',
+            investor_legal_name: investorLegalName.trim(),
+            investor_tax_id: cleanTax,
+            investor_cbu: cleanBankCbu || undefined,
+          },
+        });
+      } catch {
+        // Ignored
+      }
+
+      // Update mock store
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentBorrowerId);
+      if (mockProfile) {
+        (mockProfile as any).has_investor_role = true;
+      }
+      const existingInvestor = defaultMockStateStore.profiles.find(
+        (p) => p.tax_id === cleanTax && p.role === 'investor'
+      );
+      if (!existingInvestor) {
+        defaultMockStateStore.profiles.push({
+          id: `prof-inv-${Date.now()}`,
+          role: 'investor',
+          tax_id: cleanTax,
+          legal_name: investorLegalName.trim(),
+          email: 'inversor@lencord.com',
+          bank_cbu_cvu: cleanBankCbu || '0000000000000000000000',
+          custody_balance: 0,
+          kyc_status: 'verified',
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+
+      setHasInvestorRole(true);
+      setInvestorActivationSuccess(
+        '¡Perfil Inversor activado con éxito! Ahora podés explorar el marketplace e invertir.'
+      );
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
+    } catch (err: any) {
+      setInvestorErrors({ name: err?.message || 'Error al activar el perfil Inversor.' });
+    } finally {
+      setIsActivatingInvestor(false);
+    }
+  };
+
+  const renderInvestorOnboardingCard = () => {
+    if (hasInvestorRole && !investorActivationSuccess) {
+      return (
+        <div className={styles.onboardingRoleCardActive} data-testid="investor-role-active-banner">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <span className={styles.statusBadge} style={{ backgroundColor: '#eff6ff', color: '#1e40af', marginBottom: '0.25rem', display: 'inline-block' }}>
+                ✓ Perfil Inversor Activo
+              </span>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155' }}>
+                Tu cuenta dispone de permisos como Inversor. Podés participar en subastas de crédito y rentabilizar excedentes de liquidez.
+              </p>
+            </div>
+            <Link href="/dashboard/inversor">
+              <Button variant="bordered" size="sm" data-testid="btn-go-to-investor-dashboard">
+                Ir a mi Panel Inversor →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <section className={styles.onboardingRoleCard} data-testid="investor-onboarding-section">
+        <div className={styles.onboardingRoleHeader}>
+          <div className={styles.onboardingRoleBadge}>Expansión de Cuenta</div>
+          <h3 className={styles.onboardingRoleTitle}>
+            ¿Querés rentabilizar los excedentes de tu empresa o personales? Activá tu perfil Inversor
+          </h3>
+          <p className={styles.onboardingRoleDesc}>
+            Con tu misma cuenta podés invertir en préstamos a otras empresas argentinas con rendimientos competitivos y cobro mensual automatizado.
+          </p>
+        </div>
+
+        {investorActivationSuccess ? (
+          <div className={styles.onboardingSuccessAlert} data-testid="investor-activation-success" role="status">
+            <p style={{ margin: 0, fontWeight: 600 }}>✓ {investorActivationSuccess}</p>
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+              <Link href="/dashboard/inversor">
+                <Button variant="primary" size="sm" data-testid="btn-success-go-to-investor">
+                  Ir a mi Panel Inversor →
+                </Button>
+              </Link>
+              <Link href="/marketplace">
+                <Button variant="bordered" size="sm" data-testid="btn-success-go-to-marketplace">
+                  Explorar Marketplace
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleActivateInvestorRole} className={styles.onboardingRoleForm} data-testid="investor-activation-form" noValidate>
+            <div className={styles.onboardingRoleGrid}>
+              <Input
+                label="Nombre completo o Razón social del titular *"
+                id="input-investor-name"
+                value={investorLegalName}
+                onChange={(e) => {
+                  setInvestorLegalName(e.target.value);
+                  if (investorErrors.name) setInvestorErrors((p) => ({ ...p, name: '' }));
+                }}
+                placeholder="Ej: Juan Pérez o Inversiones del Centro S.A."
+                error={investorErrors.name}
+                data-testid="input-investor-name"
+              />
+              <Input
+                label="DNI o CUIT del titular *"
+                id="input-investor-tax-id"
+                value={investorTaxId}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const cleaned = cleanCuit(raw);
+                  if (cleaned.length > 8) {
+                    setInvestorTaxId(formatCuit(raw));
+                  } else {
+                    setInvestorTaxId(cleaned);
+                  }
+                  if (investorErrors.taxId) setInvestorErrors((p) => ({ ...p, taxId: '' }));
+                }}
+                placeholder="Ej: 34567890 o 20-34567890-4"
+                helperText="DNI (7-8 dígitos) o CUIT (11 dígitos)."
+                className="font-mono"
+                error={investorErrors.taxId}
+                data-testid="input-investor-tax-id"
+              />
+              <Input
+                label="CBU / CVU bancario para cobro de cuotas"
+                id="input-investor-cbu"
+                value={investorCbu}
+                onChange={(e) => {
+                  setInvestorCbu(e.target.value.replace(/\D/g, '').slice(0, 22));
+                  if (investorErrors.cbu) setInvestorErrors((p) => ({ ...p, cbu: '' }));
+                }}
+                placeholder="22 dígitos bancarios"
+                helperText="Donde se acreditarán tus cobranzas mensuales."
+                className="font-mono"
+                error={investorErrors.cbu}
+                data-testid="input-investor-cbu"
+              />
+            </div>
+
+            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                isLoading={isActivatingInvestor}
+                data-testid="btn-activate-investor-role"
+              >
+                Activar perfil Inversor
+              </Button>
+            </div>
+          </form>
+        )}
+      </section>
+    );
+  };
+
+
   if (loading) {
     return (
       <div className={`${styles.dashboardContainer} ${className}`} data-testid="borrower-dashboard-loading">
@@ -203,6 +474,8 @@ export function BorrowerDashboard({
             <p className={styles.subtitle}>Seguimiento de solicitudes y obligaciones financieras.</p>
           </div>
         </header>
+
+        {renderInvestorOnboardingCard()}
 
         <section className={styles.emptyStateCard}>
           <div className={styles.emptyStateIcon} aria-hidden="true">
@@ -398,6 +671,9 @@ export function BorrowerDashboard({
           </div>
         )}
       </header>
+
+      {/* Dual-Role Investor Onboarding Card or Active Banner */}
+      {renderInvestorOnboardingCard()}
 
       {/* Main Loan Header & Status Badge */}
       <div className={styles.borrowerHeroCard}>

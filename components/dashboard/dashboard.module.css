@@ -779,4 +779,80 @@
   gap: 0.75rem;
 }
 
+/* Dual Role Onboarding Styles */
+.onboardingRoleCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #1e40af;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.onboardingRoleCardActive {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.onboardingRoleHeader {
+  margin-bottom: 1.25rem;
+}
+
+.onboardingRoleBadge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1e40af;
+  background-color: #eff6ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.onboardingRoleTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0a2540;
+  margin: 0 0 0.375rem;
+}
+
+.onboardingRoleDesc {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.onboardingRoleForm {
+  margin-top: 1rem;
+}
+
+.onboardingRoleGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .onboardingRoleGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.onboardingSuccessAlert {
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+
 

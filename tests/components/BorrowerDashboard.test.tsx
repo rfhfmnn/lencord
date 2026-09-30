@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { Installment, Loan } from '@/types';
 import { BorrowerDashboard } from '@/components/dashboard/BorrowerDashboard';
@@ -8,6 +8,9 @@ import { createServices } from '@/services/factory';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 
 describe('BorrowerDashboard Component (Task 14)', () => {
+  beforeEach(() => {
+    defaultMockStateStore.reset();
+  });
   const baseLoan: Loan = {
     id: 'loan-test-01',
     borrower_id: 'prof-sme-001',
@@ -373,5 +376,39 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     const deadlineCell = screen.getByTestId('loan-deadline-loan-no-dl');
     expect(deadlineCell).not.toHaveTextContent('Sin fecha límite');
   });
+
+  it('renders Investor onboarding section, validates DNI/CUIT, and successfully activates Investor role', async () => {
+    render(<BorrowerDashboard initialLoans={[]} />);
+
+    // In empty state, the investor onboarding section is present
+    expect(screen.getByTestId('investor-onboarding-section')).toBeInTheDocument();
+    expect(
+      screen.getByText(/¿Querés rentabilizar los excedentes de tu empresa o personales\? Activá tu perfil Inversor/i)
+    ).toBeInTheDocument();
+
+    const nameInput = screen.getByTestId('input-investor-name');
+    const taxInput = screen.getByTestId('input-investor-tax-id');
+    const submitBtn = screen.getByTestId('btn-activate-investor-role');
+
+    // 1. Submit empty -> validation errors
+    fireEvent.click(submitBtn);
+    expect(await screen.findByText(/El nombre completo o razón social es obligatorio/i)).toBeInTheDocument();
+
+    // 2. Submit invalid DNI/CUIT length
+    fireEvent.change(nameInput, { target: { value: 'Inversor Corporativo' } });
+    fireEvent.change(taxInput, { target: { value: '123' } });
+    fireEvent.click(submitBtn);
+    expect(await screen.findByText(/Ingrese un DNI válido/i)).toBeInTheDocument();
+
+    // 3. Submit valid 8-digit DNI
+    fireEvent.change(taxInput, { target: { value: '38123456' } });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('investor-activation-success')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('btn-success-go-to-investor')).toBeInTheDocument();
+  });
 });
+
 

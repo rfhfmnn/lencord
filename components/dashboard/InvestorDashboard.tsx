@@ -11,7 +11,7 @@ import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, formatRateDisplay } from '@/components/marketplace/LoanCard';
 import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Input } from '@/components/ui/Input';
-import { cleanCuit, validateCuit } from '@/components/solicitar/cuitValidator';
+import { cleanCuit, validateCuit, formatCuit } from '@/components/solicitar/cuitValidator';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 import styles from './dashboard.module.css';
 
@@ -91,6 +91,17 @@ export function InvestorDashboard({
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
   const [loading, setLoading] = useState<boolean>(!initialInvestments);
 
+  // Dual-role PyME activation state
+  const [hasBorrowerRole, setHasBorrowerRole] = useState<boolean>(false);
+  const [pymeCompanyName, setPymeCompanyName] = useState<string>('');
+  const [pymeCuit, setPymeCuit] = useState<string>('');
+  const [pymePhone, setPymePhone] = useState<string>('');
+  const [pymeCbu, setPymeCbu] = useState<string>('');
+  const [pymeErrors, setPymeErrors] = useState<{ companyName?: string; cuit?: string; cbu?: string }>({});
+  const [isActivatingPyme, setIsActivatingPyme] = useState<boolean>(false);
+  const [pymeActivationSuccess, setPymeActivationSuccess] = useState<string | null>(null);
+
+
   // Sync if prop changes or detect authenticated user
   useEffect(() => {
     async function resolveInvestorId() {
@@ -132,6 +143,9 @@ export function InvestorDashboard({
         if (initialTaxId === undefined && mockProfile.tax_id) {
           setTaxId(mockProfile.tax_id);
         }
+        if (mockProfile.role === 'borrower' || (mockProfile as any).has_pyme_role) {
+          setHasBorrowerRole(true);
+        }
       }
 
       // 2. Try Supabase client for authenticated session user and profile
@@ -146,11 +160,22 @@ export function InvestorDashboard({
             u.user_metadata?.full_name;
           if (!legalName && authName) setInvestorName(authName);
           if (!userEmail && u.email) setInvestorEmail(u.email);
+
+          const userRoles = Array.isArray(u.user_metadata?.roles)
+            ? u.user_metadata.roles
+            : [u.user_metadata?.role].filter(Boolean);
+          if (
+            userRoles.includes('borrower') ||
+            userRoles.includes('sme') ||
+            u.user_metadata?.role === 'borrower'
+          ) {
+            setHasBorrowerRole(true);
+          }
         }
 
         const { data: profile } = await client
           .from('profiles')
-          .select('id, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
+          .select('id, role, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
           .eq('id', currentInvestorId)
           .maybeSingle();
 
@@ -168,6 +193,9 @@ export function InvestorDashboard({
           if (initialTaxId === undefined && profile.tax_id) {
             setTaxId(profile.tax_id);
           }
+          if (profile.role === 'borrower') {
+            setHasBorrowerRole(true);
+          }
         }
       } catch {
         // Fallback already handled
@@ -179,6 +207,102 @@ export function InvestorDashboard({
       isMounted = false;
     };
   }, [currentInvestorId, legalName, userEmail, cbuCvu, custodyBalanceProp, initialTaxId]);
+
+  const handleActivatePymeRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: { companyName?: string; cuit?: string; cbu?: string } = {};
+
+    if (!pymeCompanyName.trim()) {
+      errors.companyName = 'La razón social o nombre de la empresa es obligatorio.';
+    }
+
+    const cleanTax = cleanCuit(pymeCuit);
+    if (!cleanTax) {
+      errors.cuit = 'El CUIT de la empresa es obligatorio.';
+    } else if (cleanTax.length !== 11 || !validateCuit(cleanTax)) {
+      errors.cuit = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial (ARCA/AFIP).';
+    }
+
+    const cleanBankCbu = pymeCbu.replace(/\D/g, '');
+    if (cleanBankCbu && cleanBankCbu.length !== 22) {
+      errors.cbu = 'El CBU o CVU bancario debe tener exactamente 22 dígitos.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPymeErrors(errors);
+      return;
+    }
+
+    setIsActivatingPyme(true);
+    setPymeErrors({});
+
+    try {
+      const client = createSupabaseBrowserClient();
+      let currentRoles: string[] = ['investor'];
+      try {
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user) {
+          if (Array.isArray(authData.user.user_metadata?.roles)) {
+            currentRoles = authData.user.user_metadata.roles;
+          } else if (authData.user.user_metadata?.role) {
+            currentRoles = [authData.user.user_metadata.role];
+          }
+        }
+      } catch {
+        // Ignored
+      }
+
+      const updatedRoles = Array.from(new Set([...currentRoles, 'borrower']));
+
+      try {
+        await client.auth.updateUser({
+          data: {
+            roles: updatedRoles,
+            active_role: 'borrower',
+            pyme_company_name: pymeCompanyName.trim(),
+            pyme_tax_id: cleanTax,
+            pyme_phone: pymePhone.trim(),
+            pyme_cbu: cleanBankCbu || undefined,
+          },
+        });
+      } catch {
+        // Ignored
+      }
+
+      // Update mock store
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+      if (mockProfile) {
+        (mockProfile as any).has_pyme_role = true;
+      }
+      const existingPyme = defaultMockStateStore.profiles.find((p) => p.tax_id === cleanTax);
+      if (!existingPyme) {
+        defaultMockStateStore.profiles.push({
+          id: `prof-sme-${Date.now()}`,
+          role: 'borrower',
+          tax_id: cleanTax,
+          legal_name: pymeCompanyName.trim(),
+          email: investorEmail || 'empresa@lencord.com',
+          bank_cbu_cvu: cleanBankCbu || '0000000000000000000000',
+          kyc_status: 'verified',
+          created_at: new Date().toISOString(),
+        } as any);
+      }
+
+      setHasBorrowerRole(true);
+      setPymeActivationSuccess(
+        '¡Perfil PyME activado con éxito! Ahora podés operar como empresa y solicitar financiamiento.'
+      );
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
+    } catch (err: any) {
+      setPymeErrors({ companyName: err?.message || 'Error al activar el perfil PyME.' });
+    } finally {
+      setIsActivatingPyme(false);
+    }
+  };
+
 
   const handleSaveDni = async () => {
     setDniError(null);
@@ -607,6 +731,117 @@ export function InvestorDashboard({
           )}
         </div>
       </section>
+
+      {/* Dual-Role PyME Onboarding Card or Active Banner */}
+      {hasBorrowerRole && !pymeActivationSuccess ? (
+        <div className={styles.onboardingRoleCardActive} data-testid="pyme-role-active-banner">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <span className={styles.statusBadge} style={{ backgroundColor: '#d1fae5', color: '#065f46', marginBottom: '0.25rem', display: 'inline-block' }}>
+                ✓ Perfil PyME Activo
+              </span>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155' }}>
+                Tu cuenta dispone de permisos como Empresa (PyME). Podés solicitar financiamiento y gestionar tus solicitudes de crédito comercial.
+              </p>
+            </div>
+            <Link href="/dashboard/pyme">
+              <Button variant="bordered" size="sm" data-testid="btn-go-to-pyme-dashboard">
+                Ir a mi Panel PyME →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <section className={styles.onboardingRoleCard} data-testid="pyme-onboarding-card">
+          <div className={styles.onboardingRoleHeader}>
+            <div className={styles.onboardingRoleBadge}>Expansión de Cuenta</div>
+            <h3 className={styles.onboardingRoleTitle}>
+              ¿Tenés una empresa y buscás financiación? Activá tu perfil PyME
+            </h3>
+            <p className={styles.onboardingRoleDesc}>
+              Con tu mismo correo electrónico podés registrar los datos legales de tu empresa para solicitar créditos productivos, descontar cheques y acceder a financiamiento de inversores.
+            </p>
+          </div>
+
+          {pymeActivationSuccess ? (
+            <div className={styles.onboardingSuccessAlert} data-testid="pyme-activation-success" role="status">
+              <p style={{ margin: 0, fontWeight: 600 }}>✓ {pymeActivationSuccess}</p>
+              <div style={{ marginTop: '0.75rem' }}>
+                <Link href="/dashboard/pyme">
+                  <Button variant="primary" size="sm" data-testid="btn-success-go-to-pyme">
+                    Ir a mi Panel PyME →
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleActivatePymeRole} className={styles.onboardingRoleForm} data-testid="pyme-activation-form" noValidate>
+              <div className={styles.onboardingRoleGrid}>
+                <Input
+                  label="Razón Social de la empresa *"
+                  id="input-pyme-company-name"
+                  value={pymeCompanyName}
+                  onChange={(e) => {
+                    setPymeCompanyName(e.target.value);
+                    if (pymeErrors.companyName) setPymeErrors((p) => ({ ...p, companyName: '' }));
+                  }}
+                  placeholder="Ej: Distribuidora Norte S.R.L."
+                  error={pymeErrors.companyName}
+                  data-testid="input-pyme-company-name"
+                />
+                <Input
+                  label="CUIT de la empresa *"
+                  id="input-pyme-cuit"
+                  value={pymeCuit}
+                  onChange={(e) => {
+                    setPymeCuit(formatCuit(e.target.value));
+                    if (pymeErrors.cuit) setPymeErrors((p) => ({ ...p, cuit: '' }));
+                  }}
+                  placeholder="30-71234567-8"
+                  helperText="11 dígitos (validación oficial ARCA/AFIP)."
+                  className="font-mono"
+                  error={pymeErrors.cuit}
+                  data-testid="input-pyme-cuit"
+                />
+                <Input
+                  label="Teléfono de contacto comercial"
+                  id="input-pyme-phone"
+                  value={pymePhone}
+                  onChange={(e) => setPymePhone(e.target.value)}
+                  placeholder="Ej: 11 4567-8900"
+                  data-testid="input-pyme-phone"
+                />
+                <Input
+                  label="CBU / CVU bancario de la empresa"
+                  id="input-pyme-cbu"
+                  value={pymeCbu}
+                  onChange={(e) => {
+                    setPymeCbu(e.target.value.replace(/\D/g, '').slice(0, 22));
+                    if (pymeErrors.cbu) setPymeErrors((p) => ({ ...p, cbu: '' }));
+                  }}
+                  placeholder="22 dígitos bancarios"
+                  helperText="Donde recibirás los fondos desembolsados."
+                  className="font-mono"
+                  error={pymeErrors.cbu}
+                  data-testid="input-pyme-cbu"
+                />
+              </div>
+
+              <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  isLoading={isActivatingPyme}
+                  data-testid="btn-activate-pyme-role"
+                >
+                  Activar perfil PyME
+                </Button>
+              </div>
+            </form>
+          )}
+        </section>
+      )}
 
       {/* Empty State when no active investments */}
       {activeInvestments.length === 0 ? (

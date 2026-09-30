@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { Installment, Investment, Loan, SmeCreditProfile } from '@/types';
 import { InvestorDashboard } from '@/components/dashboard/InvestorDashboard';
@@ -8,6 +8,9 @@ import { createServices } from '@/services/factory';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 
 describe('InvestorDashboard Component (Task 13)', () => {
+  beforeEach(() => {
+    defaultMockStateStore.reset();
+  });
   const mockLoans: Loan[] = [
     {
       id: 'loan-1',
@@ -387,5 +390,43 @@ describe('InvestorDashboard Component (Task 13)', () => {
       });
       expect(screen.getByTestId('dni-success-message')).toHaveTextContent(/DNI registrado con éxito/i);
     });
+
+    it('renders PyME onboarding card, validates official CUIT, and successfully activates PyME role', async () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId="20301234567"
+        />
+      );
+
+      // Onboarding card should be visible
+      expect(screen.getByTestId('pyme-onboarding-card')).toBeInTheDocument();
+      expect(screen.getByText(/¿Tenés una empresa y buscás financiación\? Activá tu perfil PyME/i)).toBeInTheDocument();
+
+      const nameInput = screen.getByTestId('input-pyme-company-name');
+      const cuitInput = screen.getByTestId('input-pyme-cuit');
+      const submitBtn = screen.getByTestId('btn-activate-pyme-role');
+
+      // 1. Submit empty - validation errors
+      fireEvent.click(submitBtn);
+      expect(await screen.findByText(/La razón social o nombre de la empresa es obligatorio/i)).toBeInTheDocument();
+
+      // 2. Submit invalid CUIT
+      fireEvent.change(nameInput, { target: { value: 'Logística Sur S.A.' } });
+      fireEvent.change(cuitInput, { target: { value: '30-11111111-1' } });
+      fireEvent.click(submitBtn);
+
+      expect(await screen.findByText(/El CUIT de 11 dígitos no es válido según el algoritmo oficial/i)).toBeInTheDocument();
+
+      // 3. Submit valid CUIT (30-50001091-2 is valid AFIP check digit)
+      fireEvent.change(cuitInput, { target: { value: '30-50001091-2' } });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pyme-activation-success')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('btn-success-go-to-pyme')).toBeInTheDocument();
+    });
   });
 });
+
