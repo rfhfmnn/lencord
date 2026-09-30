@@ -161,13 +161,72 @@ describe('Step 2: Project Conditions and Description (Task 11)', () => {
 
     fireEvent.click(screen.getByTestId('step2-continue-button'));
 
-    expect(onContinueMock).toHaveBeenCalledWith({
-      category: 'machinery',
-      amount_requested: 15000000,
-      term_months: 12,
-      rate_type: 'CER_VARIABLE',
-      description: 'Ampliación de capacidad productiva mediante maquinaria importada.',
+    expect(onContinueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'machinery',
+        amount_requested: 15000000,
+        term_months: 12,
+        rate_type: 'CER_VARIABLE',
+        description: 'Ampliación de capacidad productiva mediante maquinaria importada.',
+        deadline_option: 'no_limit',
+        funding_deadline: null,
+      })
+    );
+  });
+
+  it('renders interactive installment simulator with $ 0 when empty and calculates reactively (Issue #57)', () => {
+    render(<StepProjectConditions onBack={vi.fn()} onContinue={vi.fn()} />);
+
+    const simulatorCard = screen.getByTestId('installment-simulator-card');
+    expect(simulatorCard).toBeInTheDocument();
+
+    // Disclaimer should be clearly visible
+    const disclaimer = screen.getByTestId('simulator-disclaimer');
+    expect(disclaimer).toBeInTheDocument();
+    expect(disclaimer).toHaveTextContent('sistema de amortización francés');
+    expect(disclaimer).toHaveTextContent('No constituye oferta vinculante');
+
+    // When amount is cleared, installment simulator should show $ 0
+    fireEvent.change(screen.getByTestId('input-amount-requested'), { target: { value: '' } });
+    expect(screen.getByTestId('simulator-installment-value')).toHaveTextContent('$ 0');
+
+    // When amount is 0, installment simulator should show $ 0
+    fireEvent.change(screen.getByTestId('input-amount-requested'), { target: { value: '0' } });
+    expect(screen.getByTestId('simulator-installment-value')).toHaveTextContent('$ 0');
+
+    // Fill amount and term to verify reactive calculation
+    fireEvent.change(screen.getByTestId('input-amount-requested'), { target: { value: '10000000' } });
+    fireEvent.change(screen.getByTestId('select-term-months'), { target: { value: '12' } });
+
+    // Should update to non-zero formatted currency
+    const updatedValue = screen.getByTestId('simulator-installment-value').textContent;
+    expect(updatedValue).not.toBe('$ 0');
+    expect(updatedValue).toContain('$');
+  });
+
+  it('allows selecting optional auction deadline including 15 days, custom date, and no limit (Issue #56 & #57)', () => {
+    const onContinueMock = vi.fn();
+    render(<StepProjectConditions onBack={vi.fn()} onContinue={onContinueMock} />);
+
+    fireEvent.change(screen.getByTestId('select-category'), { target: { value: 'working_capital' } });
+    fireEvent.change(screen.getByTestId('input-amount-requested'), { target: { value: '5000000' } });
+    fireEvent.change(screen.getByTestId('select-term-months'), { target: { value: '6' } });
+    fireEvent.change(screen.getByTestId('textarea-description'), {
+      target: { value: 'Capital de trabajo para compra de insumos de temporada.' },
     });
+
+    // Select 15 days deadline
+    const deadlineSelect = screen.getByTestId('select-deadline-option');
+    fireEvent.change(deadlineSelect, { target: { value: '15_days' } });
+
+    fireEvent.click(screen.getByTestId('step2-continue-button'));
+
+    expect(onContinueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deadline_option: '15_days',
+        funding_deadline: expect.any(String),
+      })
+    );
   });
 });
 

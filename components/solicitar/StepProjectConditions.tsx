@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { LoanCategory, RateType } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { calculateBorrowerInstallment, formatCurrency } from '@/components/home/HeroSimulator';
 import styles from './solicitar.module.css';
+
+export type DeadlineOption = 'no_limit' | '15_days' | '30_days' | '45_days' | 'custom';
 
 export interface Step2FormData {
   category: LoanCategory;
@@ -12,6 +15,9 @@ export interface Step2FormData {
   term_months: number;
   rate_type: RateType;
   description: string;
+  deadline_option?: DeadlineOption;
+  custom_deadline?: string;
+  funding_deadline?: string | null;
 }
 
 export interface StepProjectConditionsProps {
@@ -56,6 +62,39 @@ export const TERM_OPTIONS = [
   { value: 12, label: '12 meses' },
 ];
 
+export const DEADLINE_OPTIONS: { value: DeadlineOption; label: string }[] = [
+  { value: 'no_limit', label: 'Sin fecha límite (abierta hasta completar fondeo)' },
+  { value: '15_days', label: '15 días' },
+  { value: '30_days', label: '30 días' },
+  { value: '45_days', label: '45 días' },
+  { value: 'custom', label: 'Fecha personalizada' },
+];
+
+export function computeFundingDeadline(
+  option: DeadlineOption = 'no_limit',
+  customDate?: string,
+  now: Date = new Date()
+): string | null {
+  if (option === 'no_limit') return null;
+  if (option === '15_days') {
+    const d = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
+    return d.toISOString();
+  }
+  if (option === '30_days') {
+    const d = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return d.toISOString();
+  }
+  if (option === '45_days') {
+    const d = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+    return d.toISOString();
+  }
+  if (option === 'custom' && customDate) {
+    const d = new Date(`${customDate}T23:59:59.000Z`);
+    return d.toISOString();
+  }
+  return null;
+}
+
 export function StepProjectConditions({
   initialData,
   onBack,
@@ -67,12 +106,23 @@ export function StepProjectConditions({
     term_months: initialData?.term_months ?? 6,
     rate_type: initialData?.rate_type ?? 'TNA_FIXED',
     description: initialData?.description ?? '',
+    deadline_option: initialData?.deadline_option ?? 'no_limit',
+    custom_deadline: initialData?.custom_deadline ?? '',
+    funding_deadline: initialData?.funding_deadline ?? null,
   });
 
   const [amountStr, setAmountStr] = useState<string>(
-    initialData?.amount_requested ? String(initialData.amount_requested) : '5000000'
+    initialData?.amount_requested !== undefined ? String(initialData.amount_requested) : '5000000'
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const estimatedInstallment = useMemo(() => {
+    if (!formData.amount_requested || formData.amount_requested <= 0 || isNaN(formData.amount_requested)) {
+      return 0;
+    }
+    const rateTypeParam = formData.rate_type === 'CER_VARIABLE' ? 'cer' : 'fixed';
+    return calculateBorrowerInstallment(formData.amount_requested, formData.term_months, rateTypeParam);
+  }, [formData.amount_requested, formData.term_months, formData.rate_type]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
@@ -120,6 +170,19 @@ export function StepProjectConditions({
       newErrors.description = 'La descripción supera el límite permitido de 500 caracteres.';
     }
 
+    if (formData.deadline_option === 'custom') {
+      if (!formData.custom_deadline) {
+        newErrors.custom_deadline = 'Por favor seleccioná una fecha límite personalizada.';
+      } else {
+        const selectedDate = new Date(`${formData.custom_deadline}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate.getTime() < today.getTime()) {
+          newErrors.custom_deadline = 'La fecha límite no puede ser anterior a hoy.';
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -127,7 +190,14 @@ export function StepProjectConditions({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onContinue(formData);
+      const computedDeadline = computeFundingDeadline(
+        formData.deadline_option,
+        formData.custom_deadline
+      );
+      onContinue({
+        ...formData,
+        funding_deadline: computedDeadline,
+      });
     }
   };
 
@@ -252,6 +322,83 @@ export function StepProjectConditions({
                 </div>
               </label>
             </div>
+          </div>
+
+          {/* Simulador de Cuotas y Disclaimer (Issue #57) */}
+          <div className={styles.simulatorCard} data-testid="installment-simulator-card">
+            <div className={styles.simulatorHeader}>
+              <span className={styles.simulatorLabel}>Simulador de cuota</span>
+              <div className={styles.simulatorAmount} data-testid="estimated-installment">
+                Cuota mensual estimada:{' '}
+                <span data-testid="simulator-installment-value">
+                  {formatCurrency(estimatedInstallment)}
+                </span>{' '}
+                / mes
+              </div>
+              <span className={styles.simulatorSubtext}>
+                Amortización francesa · {formData.rate_type === 'TNA_FIXED' ? 'TNA fija de referencia (48,0%)' : 'CER + 15,0% spread'}
+              </span>
+            </div>
+
+            <div className={styles.simulatorDisclaimer} role="note" data-testid="simulator-disclaimer">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" className={styles.disclaimerIcon}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className={styles.disclaimerText}>
+                <strong>Nota informativa:</strong> Cuota mensual estimada bajo sistema de amortización francés según tasa de referencia base de la plataforma. El valor final dependerá del resultado de la subasta colectiva y la tasa efectivamente ofertada por los inversores. No constituye oferta vinculante.
+              </p>
+            </div>
+          </div>
+
+          {/* Vencimiento de subasta (Issue #56) */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="deadline_option" className={styles.fieldLabel}>
+              Vencimiento de subasta (opcional)
+            </label>
+            <select
+              id="deadline_option"
+              className={styles.deadlineSelect}
+              value={formData.deadline_option}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  deadline_option: e.target.value as DeadlineOption,
+                }))
+              }
+              data-testid="select-deadline-option"
+            >
+              {DEADLINE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {formData.deadline_option === 'custom' && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <Input
+                  label="Fecha límite personalizada *"
+                  id="custom_deadline"
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={formData.custom_deadline || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData((prev) => ({ ...prev, custom_deadline: val }));
+                    if (errors.custom_deadline) {
+                      setErrors((errs) => {
+                        const copy = { ...errs };
+                        delete copy.custom_deadline;
+                        return copy;
+                      });
+                    }
+                  }}
+                  error={errors.custom_deadline}
+                  helperText="Seleccioná la fecha límite en la que concluirá la subasta."
+                  data-testid="input-custom-deadline"
+                />
+              </div>
+            )}
           </div>
 
           {/* Descripción del Proyecto (con live character counter) */}
