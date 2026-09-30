@@ -46,12 +46,6 @@ export interface LoginFormProps {
   onSuccess?: (destination: string) => void;
 }
 
-interface MissingRoleInfo {
-  missingRole: LoginRole;
-  userId: string;
-  roles: string[];
-}
-
 export const LoginForm: React.FC<LoginFormProps> = ({
   supabaseClient,
   redirectUrl,
@@ -75,10 +69,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Missing role activation state (Issue #54)
-  const [missingRoleInfo, setMissingRoleInfo] = useState<MissingRoleInfo | null>(null);
-  const [isActivatingProfile, setIsActivatingProfile] = useState(false);
 
   // Password Recovery State
   const [showRecovery, setShowRecovery] = useState(false);
@@ -145,59 +135,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       e.preventDefault();
       const nextTab: LoginRole = currentTab === 'borrower' ? 'investor' : 'borrower';
       setSelectedRole(nextTab);
-      setMissingRoleInfo(null);
+      setAuthError(null);
       const nextElem = document.getElementById(nextTab === 'borrower' ? 'tab-pyme' : 'tab-investor');
       nextElem?.focus();
-    }
-  };
-
-  const handleActivateProfile = async () => {
-    if (!missingRoleInfo) return;
-    setIsActivatingProfile(true);
-    setAuthError(null);
-
-    try {
-      const client = getClient();
-      const targetRole = missingRoleInfo.missingRole;
-      const updatedRoles = Array.from(new Set([...missingRoleInfo.roles, targetRole]));
-
-      if (client.auth.updateUser) {
-        await client.auth.updateUser({
-          data: {
-            roles: updatedRoles,
-            role: targetRole,
-            active_role: targetRole,
-          },
-        });
-      }
-
-      try {
-        if (client.from) {
-          await client.from('profiles').update({ role: targetRole }).eq('id', missingRoleInfo.userId);
-        }
-      } catch {
-        // Best effort profile update
-      }
-
-      const destination = determineRedirectDestination(targetRole, false);
-      setMissingRoleInfo(null);
-
-      if (onSuccess) {
-        onSuccess(destination);
-      } else {
-        router.push(destination);
-      }
-    } catch (err: any) {
-      setAuthError(err?.message || 'Error al activar el nuevo perfil.');
-    } finally {
-      setIsActivatingProfile(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
-    setMissingRoleInfo(null);
 
     if (!validateForm()) {
       return;
@@ -275,13 +221,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           ? collectedRoles.includes('borrower') || collectedRoles.includes('sme')
           : collectedRoles.includes('investor'));
 
-      if (!hasSelectedRole && collectedRoles.length > 0) {
-        // Authenticated successfully, but missing the requested profile
-        setMissingRoleInfo({
-          missingRole: selectedRole,
-          userId: user.id,
-          roles: collectedRoles,
-        });
+      if (!hasSelectedRole) {
+        try {
+          if (client.auth.signOut) {
+            await client.auth.signOut();
+          }
+        } catch {
+          // Ignored
+        }
+        setAuthError('Credenciales incorrectas. Verificá tu correo electrónico y contraseña.');
         setIsLoading(false);
         return;
       }
@@ -410,7 +358,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={`${styles.roleTab} ${selectedRole === 'borrower' ? styles.roleTabActive : ''}`}
             onClick={() => {
               setSelectedRole('borrower');
-              setMissingRoleInfo(null);
+              setAuthError(null);
             }}
             onKeyDown={(e) => handleTabKeyDown(e, 'borrower')}
             data-testid="tab-login-pyme"
@@ -428,7 +376,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             className={`${styles.roleTab} ${selectedRole === 'investor' ? styles.roleTabActive : ''}`}
             onClick={() => {
               setSelectedRole('investor');
-              setMissingRoleInfo(null);
+              setAuthError(null);
             }}
             onKeyDown={(e) => handleTabKeyDown(e, 'investor')}
             data-testid="tab-login-investor"
@@ -437,33 +385,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <span className={styles.roleTabDesc}>Gestioná tus inversiones</span>
           </button>
         </div>
-
-        {/* Missing Role Warning & Activation Action (Issue #54) */}
-        {missingRoleInfo && (
-          <div
-            className={styles.missingRoleBox}
-            role="alert"
-            data-testid="missing-role-alert"
-          >
-            <p className={styles.missingRoleText}>
-              {missingRoleInfo.missingRole === 'borrower'
-                ? 'Tu cuenta no posee un perfil PyME activo.'
-                : 'Tu cuenta no posee un perfil Inversor activo.'}
-            </p>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              isLoading={isActivatingProfile}
-              onClick={handleActivateProfile}
-              data-testid="activate-profile-btn"
-            >
-              {missingRoleInfo.missingRole === 'borrower'
-                ? 'Activar perfil de empresa'
-                : 'Activar perfil de inversor'}
-            </Button>
-          </div>
-        )}
 
         {/* Auth Error Alert */}
         {authError && (

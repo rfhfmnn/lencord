@@ -17,6 +17,7 @@ vi.mock('next/navigation', () => ({
 
 describe('Login with Role Selector and Unified Account Architecture (Issue #54)', () => {
   let mockSignInWithPassword: any;
+  let mockSignOut: any;
   let mockResetPasswordForEmail: any;
   let mockUpdateUser: any;
   let mockSelect: any;
@@ -28,6 +29,7 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
     mockSearchParams = new URLSearchParams();
 
     mockSignInWithPassword = vi.fn();
+    mockSignOut = vi.fn().mockResolvedValue({ error: null });
     mockResetPasswordForEmail = vi.fn().mockResolvedValue({ data: {}, error: null });
     mockUpdateUser = vi.fn().mockResolvedValue({ data: { user: {} }, error: null });
     mockUpdate = vi.fn().mockReturnValue({
@@ -42,6 +44,7 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
     mockSupabaseClient = {
       auth: {
         signInWithPassword: mockSignInWithPassword,
+        signOut: mockSignOut,
         resetPasswordForEmail: mockResetPasswordForEmail,
         updateUser: mockUpdateUser,
       },
@@ -352,8 +355,11 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
   // ---------------------------------------------------------------------------
   // 5. Missing Role Handling & Profile Activation Flow (Issue #54)
   // ---------------------------------------------------------------------------
-  describe('Missing Role Handling and One-Click Activation (Issue #54)', () => {
-    it('shows missing PyME profile alert when investor user attempts to log in via PyME tab', async () => {
+  // ---------------------------------------------------------------------------
+  // 5. Account Without Selected Role (Invalid Credentials Rejection)
+  // ---------------------------------------------------------------------------
+  describe('Account Without Selected Role Rejection', () => {
+    it('rejects investor account attempting to log in via PyME tab with invalid credentials error and signs out', async () => {
       mockSignInWithPassword.mockResolvedValue({
         data: {
           user: {
@@ -384,60 +390,16 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
 
       fireEvent.click(screen.getByTestId('submit-login-btn'));
 
-      // Missing role alert should appear without navigating
-      expect(await screen.findByTestId('missing-role-alert')).toBeInTheDocument();
-      expect(screen.getByText(/Tu cuenta no posee un perfil PyME activo\./i)).toBeInTheDocument();
-      expect(screen.getByTestId('activate-profile-btn')).toHaveTextContent(/Activar perfil de empresa/i);
+      // Auth error alert should appear with invalid credentials message
+      const alert = await screen.findByTestId('auth-error-alert');
+      expect(alert).toHaveTextContent(/Credenciales incorrectas\. Verificá tu correo electrónico y contraseña\./i);
+      expect(screen.queryByTestId('missing-role-alert')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('activate-profile-btn')).not.toBeInTheDocument();
+      expect(mockSignOut).toHaveBeenCalled();
       expect(handleSuccess).not.toHaveBeenCalled();
     });
 
-    it('activates company profile on button click and navigates to /dashboard/pyme', async () => {
-      mockSignInWithPassword.mockResolvedValue({
-        data: {
-          user: {
-            id: 'usr-only-investor-2',
-            email: 'investor2@lencord.com',
-            user_metadata: { role: 'investor' },
-          },
-        },
-        error: null,
-      });
-
-      const handleSuccess = vi.fn();
-
-      render(
-        <LoginForm
-          supabaseClient={mockSupabaseClient}
-          defaultRole="borrower"
-          onSuccess={handleSuccess}
-        />
-      );
-
-      fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
-        target: { value: 'investor2@lencord.com' },
-      });
-      fireEvent.change(screen.getByLabelText(/Contraseña/i), {
-        target: { value: 'Password123!' },
-      });
-
-      fireEvent.click(screen.getByTestId('submit-login-btn'));
-
-      const activateBtn = await screen.findByTestId('activate-profile-btn');
-      fireEvent.click(activateBtn);
-
-      await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith({
-          data: {
-            roles: ['investor', 'borrower'],
-            role: 'borrower',
-            active_role: 'borrower',
-          },
-        });
-        expect(handleSuccess).toHaveBeenCalledWith('/dashboard/pyme');
-      });
-    });
-
-    it('shows missing Inversor profile alert when borrower user attempts to log in via Inversor tab', async () => {
+    it('rejects borrower account attempting to log in via Inversor tab with invalid credentials error and signs out', async () => {
       mockSignInWithPassword.mockResolvedValue({
         data: {
           user: {
@@ -468,27 +430,15 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
 
       fireEvent.click(screen.getByTestId('submit-login-btn'));
 
-      expect(await screen.findByTestId('missing-role-alert')).toBeInTheDocument();
-      expect(screen.getByText(/Tu cuenta no posee un perfil Inversor activo\./i)).toBeInTheDocument();
-      expect(screen.getByTestId('activate-profile-btn')).toHaveTextContent(/Activar perfil de inversor/i);
+      const alert = await screen.findByTestId('auth-error-alert');
+      expect(alert).toHaveTextContent(/Credenciales incorrectas\. Verificá tu correo electrónico y contraseña\./i);
+      expect(screen.queryByTestId('missing-role-alert')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('activate-profile-btn')).not.toBeInTheDocument();
+      expect(mockSignOut).toHaveBeenCalled();
       expect(handleSuccess).not.toHaveBeenCalled();
-
-      // Click to activate investor profile
-      fireEvent.click(screen.getByTestId('activate-profile-btn'));
-
-      await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith({
-          data: {
-            roles: ['borrower', 'investor'],
-            role: 'investor',
-            active_role: 'investor',
-          },
-        });
-        expect(handleSuccess).toHaveBeenCalledWith('/dashboard/inversor');
-      });
     });
 
-    it('clears missing role warning when switching to the other role tab', async () => {
+    it('clears error alert when switching to the other role tab', async () => {
       mockSignInWithPassword.mockResolvedValue({
         data: {
           user: {
@@ -516,12 +466,12 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
 
       fireEvent.click(screen.getByTestId('submit-login-btn'));
 
-      expect(await screen.findByTestId('missing-role-alert')).toBeInTheDocument();
+      expect(await screen.findByTestId('auth-error-alert')).toBeInTheDocument();
 
       // Switch tab to Investor
       fireEvent.click(screen.getByTestId('tab-login-investor'));
 
-      expect(screen.queryByTestId('missing-role-alert')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('auth-error-alert')).not.toBeInTheDocument();
     });
   });
 

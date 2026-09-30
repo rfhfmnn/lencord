@@ -76,9 +76,8 @@ Implementar un selector de rol al iniciar sesión en `/login` ("Ingresar como Py
 - [ ] **Redirección por rol seleccionado:**
   - Al ingresar credenciales correctas con "Ingresar como PyME", el contexto de sesión activa se establece como PyME y redirige a `/dashboard/pyme` (o al return URL de `redirect` si fue solicitado).
   - Al ingresar credenciales correctas con "Ingresar como Inversor", el contexto de sesión activa se establece como Inversor y redirige a `/dashboard/inversor` (o al return URL de `redirect` si fue solicitado).
-- [ ] **Cuenta sin el rol seleccionado:**
-  - Si un usuario registrado exclusivamente como Inversor selecciona "Ingresar como PyME", tras validar contraseña se le informa de manera clara: *"Tu cuenta no posee un perfil PyME activo."*, ofreciendo un botón directo: *"Activar perfil de empresa"* sin forzarlo a registrarse desde cero.
-  - Caso recíproco para PyMEs ingresando como inversor.
+- [x] **Cuenta sin el rol seleccionado:**
+  - Si un usuario registrado exclusivamente como Inversor selecciona "Ingresar como PyME" (o viceversa), no se permite el acceso ni la activación cruzada de perfil (ya que cada tipo de cuenta requiere datos obligatorios de registro específicos como CUIT empresarial con AFIP vs DNI); el sistema rechaza el intento informando *"Credenciales incorrectas. Verificá tu correo electrónico y contraseña."* y cierra la sesión.
 - [ ] **Conmutador de rol en sesión (Role Switcher):**
   - Si la cuenta posee ambos perfiles habilitados, el menú de usuario del Header despliega una opción rápida: *"Cambiar a modo Inversor"* / *"Cambiar a modo PyME"*, alternando de contexto y redirigiendo sin desloguear.
 - [ ] **Manejo de parámetro `redirect`:**
