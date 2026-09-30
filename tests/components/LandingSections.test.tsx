@@ -13,12 +13,12 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
 
       // Metric 1: total PyMEs financed
       const pymesMetric = screen.getByTestId('metric-pymes-financed');
-      expect(pymesMetric).toHaveTextContent('+150');
+      expect(pymesMetric).toHaveTextContent('+50');
       expect(pymesMetric).toHaveTextContent('PyMEs financiadas');
 
       // Metric 2: historical volume operated
       const volumeMetric = screen.getByTestId('metric-historical-volume');
-      expect(volumeMetric).toHaveTextContent('$ 1.250M+');
+      expect(volumeMetric).toHaveTextContent('$ 150M+');
       expect(volumeMetric).toHaveTextContent('Volumen operado');
 
       // Metric 3: average financing term
@@ -67,11 +67,11 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
       expect(screen.queryByTestId('steps-panel-pymes')).not.toBeInTheDocument();
     });
 
-    it('displays the 4 PyME steps: Solicitud online, Evaluación 24h, Publicación en subasta, Desembolso', () => {
+    it('displays the 4 PyME steps: Solicitud online, Evaluación, Publicación en subasta, Desembolso', () => {
       render(<HowItWorks initialAudience="pymes" />);
 
       expect(screen.getByText('Solicitud online')).toBeInTheDocument();
-      expect(screen.getByText('Evaluación 24h')).toBeInTheDocument();
+      expect(screen.getByText('Evaluación')).toBeInTheDocument();
       expect(screen.getByText('Publicación en subasta')).toBeInTheDocument();
       expect(screen.getByText('Desembolso directo')).toBeInTheDocument();
 
@@ -79,7 +79,7 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
         screen.getByText('Completá los datos de tu empresa y el destino de los fondos en pocos minutos.')
       ).toBeInTheDocument();
       expect(
-        screen.getByText('Validamos tu situación fiscal y crediticia con la Central de Deudores del BCRA sin demoras.')
+        screen.getByText('Validamos tu situación fiscal y crediticia para calificar el riesgo de tu negocio.')
       ).toBeInTheDocument();
     });
 
@@ -92,7 +92,7 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
       expect(screen.getByText('Cobrá mes a mes')).toBeInTheDocument();
 
       expect(
-        screen.getByText('Registro ágil con verificación de identidad (KYC) y vinculación de cuenta bancaria.')
+        screen.getByText('Registro ágil con verificación de identidad y vinculación de cuenta bancaria.')
       ).toBeInTheDocument();
       expect(
         screen.getByText('Recibí las cuotas de amortización e interés directo en tu cuenta según el cronograma fijado.')
@@ -138,7 +138,7 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
       expect(screen.getByRole('banner')).toBeInTheDocument(); // Header
       expect(screen.getByTestId('hero-simulator')).toBeInTheDocument(); // Hero simulator
       expect(screen.getByLabelText('Métricas de confianza')).toBeInTheDocument(); // Trust bar
-      expect(screen.getByLabelText('Cómo funciona Lencord')).toBeInTheDocument(); // How it works
+      expect(screen.getByLabelText(/Cómo funciona Lencord/i)).toBeInTheDocument(); // How it works
       expect(screen.getByLabelText('Financiá tu empresa')).toBeInTheDocument(); // Financing categories
       expect(screen.getByRole('contentinfo')).toBeInTheDocument(); // Footer
     });

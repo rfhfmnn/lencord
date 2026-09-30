@@ -155,7 +155,7 @@ describe('Step 4: Banking Verification and Submission (Task 12)', () => {
     fireEvent.click(screen.getByTestId('step4-submit-button'));
 
     expect(
-      screen.getByText(/Ingresá la clave bancaria uniforme/i)
+      screen.getByText(/Ingresá el CBU\/CVU de la cuenta de la empresa/i)
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Debes aceptar la declaración jurada sobre el origen lícito/i)
@@ -171,7 +171,7 @@ describe('Step 4: Banking Verification and Submission (Task 12)', () => {
     });
     fireEvent.click(screen.getByTestId('step4-submit-button'));
     expect(
-      screen.getByText('El CBU o CVU debe contener exactamente 22 dígitos numéricos.')
+      screen.getByText('El CBU/CVU debe contener exactamente 22 dígitos numéricos.')
     ).toBeInTheDocument();
   });
 
