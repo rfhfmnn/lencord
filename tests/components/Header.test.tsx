@@ -102,6 +102,33 @@ describe('Header Component', () => {
       // Logout button is present
       expect(screen.getByTestId('header-logout-button')).toBeInTheDocument();
     });
+
+    it('renders "Pedir financiación" and hides "Prestar" in desktop and mobile menu (Issue #52)', async () => {
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-sme-001',
+            name: 'Metalúrgica Quilmes S.R.L.',
+            role: 'borrower',
+          }}
+        />
+      );
+
+      // Prestar should NOT be rendered in desktop nav
+      expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();
+      // Pedir financiación SHOULD be rendered in desktop nav
+      expect(screen.getByRole('link', { name: /^pedir financiación$/i })).toBeInTheDocument();
+
+      // Open mobile drawer
+      const toggle = screen.getByTestId('mobile-menu-toggle');
+      await user.click(toggle);
+
+      // In mobile menu, Prestar should still not exist, Pedir financiación should exist
+      const mobilePedir = screen.getAllByRole('link', { name: /^pedir financiación$/i });
+      expect(mobilePedir.length).toBe(2); // desktop + mobile
+      expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();
+    });
   });
 
   describe('Investor Session State', () => {
@@ -127,6 +154,32 @@ describe('Header Component', () => {
       const dashboardLink = screen.getByTestId('header-dashboard-link');
       expect(dashboardLink).toHaveAttribute('href', '/dashboard/inversor');
     });
+
+    it('renders "Prestar" and hides "Pedir financiación" in desktop and mobile menu (Issue #52)', async () => {
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-inv-001',
+            name: 'Juan Ignacio Pérez',
+            role: 'investor',
+          }}
+        />
+      );
+
+      // Prestar SHOULD be rendered in desktop nav
+      expect(screen.getByRole('link', { name: /^prestar$/i })).toBeInTheDocument();
+      // Pedir financiación should NOT be rendered
+      expect(screen.queryByRole('link', { name: /^pedir financiación$/i })).not.toBeInTheDocument();
+
+      // Open mobile drawer
+      const toggle = screen.getByTestId('mobile-menu-toggle');
+      await user.click(toggle);
+
+      const mobilePrestar = screen.getAllByRole('link', { name: /^prestar$/i });
+      expect(mobilePrestar.length).toBe(2); // desktop + mobile
+      expect(screen.queryByRole('link', { name: /^pedir financiación$/i })).not.toBeInTheDocument();
+    });
   });
 
   describe('Admin Session State', () => {
@@ -147,6 +200,53 @@ describe('Header Component', () => {
       const adminLink = screen.getByTestId('header-admin-link');
       expect(adminLink).toHaveAttribute('href', '/admin');
       expect(adminLink).toHaveTextContent('Administración');
+    });
+
+    it('renders both "Prestar" and "Pedir financiación" for admin in desktop and mobile (Issue #52)', async () => {
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-adm-001',
+            name: 'Administración Lencord',
+            role: 'admin',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('link', { name: /^prestar$/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /^pedir financiación$/i })).toBeInTheDocument();
+
+      const toggle = screen.getByTestId('mobile-menu-toggle');
+      await user.click(toggle);
+
+      expect(screen.getAllByRole('link', { name: /^prestar$/i }).length).toBe(2);
+      expect(screen.getAllByRole('link', { name: /^pedir financiación$/i }).length).toBe(2);
+    });
+  });
+
+  describe('Role Switcher (Unified Account - Issue #54)', () => {
+    it('renders role switcher when user has both borrower and investor profiles and switches context', async () => {
+      const handleRoleSwitch = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <Header
+          user={{
+            id: 'prof-dual-001',
+            name: 'Dual Profile User',
+            role: 'borrower',
+            availableRoles: ['borrower', 'investor'],
+          }}
+          onRoleSwitch={handleRoleSwitch}
+        />
+      );
+
+      const switcher = screen.getByTestId('header-role-switcher');
+      expect(switcher).toHaveTextContent('Cambiar a modo Inversor');
+
+      await user.click(switcher);
+      expect(handleRoleSwitch).toHaveBeenCalledWith('investor');
     });
   });
 

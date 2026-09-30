@@ -15,6 +15,7 @@ export interface HeaderUser {
   name?: string;
   role: 'investor' | 'sme' | 'borrower' | 'admin';
   custodyBalance?: number;
+  availableRoles?: ('investor' | 'sme' | 'borrower')[];
 }
 
 export interface HeaderProps {
@@ -25,6 +26,7 @@ export interface HeaderProps {
   onLogin?: () => void;
   onRegister?: () => void;
   onLogout?: () => void;
+  onRoleSwitch?: (newRole: 'borrower' | 'investor') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogin,
   onRegister,
   onLogout,
+  onRoleSwitch,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<HeaderUser | null>(userProp ?? null);
@@ -171,6 +174,37 @@ export const Header: React.FC<HeaderProps> = ({
   const isInvestor = currentUser?.role === 'investor';
   const isAdmin = currentUser?.role === 'admin';
 
+  const showPrestar = isLoading || !currentUser || isAdmin || isInvestor;
+  const showPedir = isLoading || !currentUser || isAdmin || isBorrower;
+
+  const hasDualRoles = Boolean(
+    currentUser?.availableRoles &&
+    currentUser.availableRoles.includes('investor') &&
+    (currentUser.availableRoles.includes('borrower') || currentUser.availableRoles.includes('sme'))
+  );
+
+  const handleRoleSwitch = async (targetRole: 'borrower' | 'investor') => {
+    if (!currentUser) return;
+    try {
+      const client = supabaseClient || createSupabaseBrowserClient();
+      await client.auth.updateUser({
+        data: {
+          active_role: targetRole,
+          role: targetRole,
+        },
+      });
+    } catch {
+      // Ignored
+    }
+    setCurrentUser({
+      ...currentUser,
+      role: targetRole,
+    });
+    if (onRoleSwitch) {
+      onRoleSwitch(targetRole);
+    }
+  };
+
   const roleBadgeText = isBorrower ? 'PyME' : isInvestor ? 'Inversor' : 'Admin';
   const roleBadgeClass = isBorrower
     ? styles.roleBadgePyme
@@ -193,12 +227,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Navigation Links */}
         <nav className={styles.desktopNav} aria-label="Navegación principal">
-          <Link href="/marketplace" className={styles.navLink}>
-            Prestar
-          </Link>
-          <Link href="/solicitar" className={styles.navLink}>
-            Pedir financiación
-          </Link>
+          {showPrestar && (
+            <Link href="/marketplace" className={styles.navLink}>
+              Prestar
+            </Link>
+          )}
+          {showPedir && (
+            <Link href="/solicitar" className={styles.navLink}>
+              Pedir financiación
+            </Link>
+          )}
           <Link href="/#como-funciona" className={styles.navLink}>
             Cómo funciona
           </Link>
@@ -268,6 +306,19 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   Mi panel
                 </Link>
+              )}
+
+              {/* Role Switcher (Unified Account) */}
+              {hasDualRoles && (
+                <Button
+                  variant="bordered"
+                  size="sm"
+                  onClick={() => handleRoleSwitch(isBorrower ? 'investor' : 'borrower')}
+                  className={styles.roleSwitchButton}
+                  data-testid="header-role-switcher"
+                >
+                  {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
+                </Button>
               )}
 
               {/* Logout Button */}
@@ -347,12 +398,16 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Menú de navegación móvil"
         >
           <nav className={styles.mobileNavLinks} aria-label="Enlaces móviles">
-            <Link href="/marketplace" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-              Prestar
-            </Link>
-            <Link href="/solicitar" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-              Pedir financiación
-            </Link>
+            {showPrestar && (
+              <Link href="/marketplace" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                Prestar
+              </Link>
+            )}
+            {showPedir && (
+              <Link href="/solicitar" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                Pedir financiación
+              </Link>
+            )}
             <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
               Cómo funciona
             </Link>
@@ -409,6 +464,22 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     Mi panel
                   </Link>
+                )}
+
+                {hasDualRoles && (
+                  <Button
+                    variant="bordered"
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      closeMobileMenu();
+                      handleRoleSwitch(isBorrower ? 'investor' : 'borrower');
+                    }}
+                    className={styles.roleSwitchButton}
+                    data-testid="mobile-role-switcher"
+                  >
+                    {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
+                  </Button>
                 )}
 
                 <Button
