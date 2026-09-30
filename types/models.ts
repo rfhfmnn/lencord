@@ -14,6 +14,11 @@
 export type UserRole = 'investor' | 'sme' | 'admin' | 'borrower';
 
 /**
+ * Account entry roles selectable in the login flow.
+ */
+export type LoginRole = 'borrower' | 'investor';
+
+/**
  * Platform risk categories for borrower creditworthiness.
  * Matches sme_credit_profiles.risk_tier ENUM in plan.md Section 6.
  */

@@ -41,7 +41,7 @@ export class MockCreditScoringService implements CreditScoringInterface {
 
     // Check if CUIT belongs to a seed profile
     const profile = this.store.profiles.find(
-      (p) => p.tax_id.replace(/\D/g, '') === cleanCuit
+      (p) => Boolean(p.tax_id && p.tax_id.replace(/\D/g, '') === cleanCuit)
     );
 
     let situation: BcraSituation = 1;
