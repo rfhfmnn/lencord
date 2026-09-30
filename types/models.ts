@@ -149,11 +149,12 @@ export interface Loan {
   base_uva_value: number | null; // NUMERIC(10, 4) - Reference UVA value upon loan activation
   category: LoanCategory;
   status: LoanStatus;
+  description?: string | null;
   rejection_reason?: string | null;
   partial_acceptance_flag?: boolean | null;
   partial_acceptance_deadline?: string | null;
   notification_dispatched?: boolean | null;
-  funding_deadline: string; // ISO 8601 Timestamp
+  funding_deadline: string | null; // ISO 8601 Timestamp or null if open auction
   created_at: string; // ISO 8601 Timestamp
 }
 

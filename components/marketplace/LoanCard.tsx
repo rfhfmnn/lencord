@@ -21,7 +21,8 @@ export function formatRateDisplay(rateType: string, rate: number): string {
   return `CER + ${formattedRate}%`;
 }
 
-export function calculateDaysRemaining(deadline: string, referenceDate: Date = new Date()): number {
+export function calculateDaysRemaining(deadline: string | null | undefined, referenceDate: Date = new Date()): number {
+  if (!deadline) return 0;
   const deadlineTime = new Date(deadline).getTime();
   const currentTime = referenceDate.getTime();
   const diffMs = deadlineTime - currentTime;

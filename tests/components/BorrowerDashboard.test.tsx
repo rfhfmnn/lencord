@@ -285,4 +285,93 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     expect(screen.getByTestId('borrower-status-badge')).toHaveTextContent('funding');
     expect(screen.getByTestId('auction-monitor-card')).toBeInTheDocument();
   });
+
+  it('renders 7-column history table with project description, deadline status, and "Sin fecha límite" badge (Issue #56)', () => {
+    const loanWithDeadline: Loan = {
+      ...baseLoan,
+      id: 'loan-history-01',
+      category: 'machinery',
+      description: 'Adquisición de torno CNC de alta precisión',
+      amount_requested: 25_000_000,
+      term_months: 24,
+      funding_deadline: '2026-12-15T00:00:00.000Z',
+      status: 'funding',
+    };
+
+    const loanWithoutDeadline: Loan = {
+      ...baseLoan,
+      id: 'loan-history-02',
+      category: 'working_capital',
+      description: null,
+      amount_requested: 5_000_000,
+      term_months: 6,
+      funding_deadline: null,
+      status: 'funding',
+    };
+
+    render(<BorrowerDashboard initialLoans={[loanWithDeadline, loanWithoutDeadline]} />);
+
+    // Table container and headers
+    expect(screen.getByTestId('borrower-loans-history')).toBeInTheDocument();
+    expect(screen.getByText('Proyecto / Destino')).toBeInTheDocument();
+    expect(screen.getByText('Monto solicitado')).toBeInTheDocument();
+    expect(screen.getByText('Plazo y Tasa')).toBeInTheDocument();
+    expect(screen.getByText('Fecha de solicitud')).toBeInTheDocument();
+    expect(screen.getByText('Vencimiento de subasta')).toBeInTheDocument();
+    expect(screen.getByText('Estado')).toBeInTheDocument();
+    expect(screen.getByText('Acciones')).toBeInTheDocument();
+
+    // Loan 1 row checks
+    const row1 = screen.getByTestId('loan-history-row-loan-history-01');
+    expect(row1).toBeInTheDocument();
+    expect(screen.getByTestId('loan-desc-loan-history-01')).toHaveTextContent('Adquisición de torno CNC de alta precisión');
+    expect(screen.getByTestId('loan-amount-loan-history-01')).toHaveTextContent('$ 25.000.000');
+    expect(screen.getByTestId('loan-terms-loan-history-01')).toHaveTextContent('24 meses');
+    expect(screen.getByTestId('loan-deadline-loan-history-01')).not.toHaveTextContent('Sin fecha límite');
+
+    // Loan 2 row checks
+    const row2 = screen.getByTestId('loan-history-row-loan-history-02');
+    expect(row2).toBeInTheDocument();
+    expect(screen.getByTestId('loan-amount-loan-history-02')).toHaveTextContent('$ 5.000.000');
+    expect(screen.getByTestId('loan-deadline-loan-history-02')).toHaveTextContent('Sin fecha límite');
+  });
+
+  it('allows opening deadline modal and updating funding deadline on a loan (Issue #56)', async () => {
+    const loanNoDeadline: Loan = {
+      ...baseLoan,
+      id: 'loan-no-dl',
+      funding_deadline: null,
+      status: 'funding',
+    };
+
+    render(<BorrowerDashboard initialLoans={[loanNoDeadline]} />);
+
+    // Click "Definir vencimiento" button
+    const defineBtn = screen.getByTestId('btn-define-deadline-loan-no-dl');
+    expect(defineBtn).toBeInTheDocument();
+    expect(defineBtn).toHaveTextContent('Definir vencimiento');
+    fireEvent.click(defineBtn);
+
+    // Modal should be open
+    const modal = screen.getByTestId('deadline-modal');
+    expect(modal).toBeInTheDocument();
+    expect(screen.getByText('Definir vencimiento de subasta')).toBeInTheDocument();
+
+    // Select 15 days option
+    const select = screen.getByTestId('modal-deadline-select');
+    fireEvent.change(select, { target: { value: '15_days' } });
+
+    // Click Save
+    const saveBtn = screen.getByTestId('btn-save-deadline');
+    fireEvent.click(saveBtn);
+
+    // Modal closes and deadline cell no longer says "Sin fecha límite"
+    await waitFor(() => {
+      expect(screen.queryByTestId('deadline-modal')).not.toBeInTheDocument();
+    });
+
+    const deadlineCell = screen.getByTestId('loan-deadline-loan-no-dl');
+    expect(deadlineCell).not.toHaveTextContent('Sin fecha límite');
+  });
 });
+

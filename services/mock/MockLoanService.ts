@@ -277,8 +277,9 @@ export class MockLoanService implements LoanServiceInterface {
         created_at: new Date().toISOString(),
       });
     } else {
-      const isPastDeadline =
-        new Date(loan.funding_deadline).getTime() <= Date.now();
+      const isPastDeadline = loan.funding_deadline
+        ? new Date(loan.funding_deadline).getTime() <= Date.now()
+        : false;
       if (isPastDeadline) {
         loan.status = 'cancelled';
       }

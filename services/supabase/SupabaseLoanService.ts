@@ -241,7 +241,9 @@ export class SupabaseLoanService implements LoanServiceInterface {
       if (loan.amount_funded >= loan.amount_requested) {
         newStatus = 'funded';
       } else {
-        const isPastDeadline = new Date(loan.funding_deadline).getTime() <= Date.now();
+        const isPastDeadline = loan.funding_deadline
+          ? new Date(loan.funding_deadline).getTime() <= Date.now()
+          : false;
         if (isPastDeadline) {
           newStatus = 'cancelled';
         }

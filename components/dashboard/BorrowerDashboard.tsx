@@ -6,10 +6,14 @@ import type { Installment, Loan, LoanStatus } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, calculateDaysRemaining, formatRateDisplay } from '@/components/marketplace/LoanCard';
 import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import { NotificationPreferencesCard } from './NotificationPreferencesCard';
+import { computeFundingDeadline, type DeadlineOption } from '@/components/solicitar/StepProjectConditions';
+import { defaultMockStateStore } from '@/services/mock/mockState';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import styles from './dashboard.module.css';
 
 export interface BorrowerDashboardProps {
@@ -61,6 +65,13 @@ export function BorrowerDashboard({
   const [isSigningModalOpen, setIsSigningModalOpen] = useState<boolean>(false);
   const [payingInstallmentId, setPayingInstallmentId] = useState<string | null>(null);
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState<string | null>(null);
+
+  // Deadline definition modal state (Issue #56)
+  const [deadlineModalLoan, setDeadlineModalLoan] = useState<Loan | null>(null);
+  const [deadlineOption, setDeadlineOption] = useState<DeadlineOption>('30_days');
+  const [customDeadlineInput, setCustomDeadlineInput] = useState<string>('');
+  const [deadlineModalError, setDeadlineModalError] = useState<string | null>(null);
+  const [isSavingDeadline, setIsSavingDeadline] = useState<boolean>(false);
 
   // Keep state synced with props or resolve session user
   useEffect(() => {
@@ -295,6 +306,64 @@ export function BorrowerDashboard({
     }
   };
 
+  const handleOpenDeadlineModal = (loan: Loan) => {
+    setDeadlineModalLoan(loan);
+    setDeadlineOption('30_days');
+    setCustomDeadlineInput('');
+    setDeadlineModalError(null);
+  };
+
+  const handleSaveDeadline = async () => {
+    if (!deadlineModalLoan) return;
+    setDeadlineModalError(null);
+
+    if (deadlineOption === 'custom') {
+      if (!customDeadlineInput) {
+        setDeadlineModalError('Por favor seleccioná una fecha personalizada.');
+        return;
+      }
+      const selected = new Date(`${customDeadlineInput}T00:00:00`);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selected.getTime() < today.getTime()) {
+        setDeadlineModalError('La fecha límite no puede ser anterior a hoy.');
+        return;
+      }
+    }
+
+    const computed = computeFundingDeadline(deadlineOption, customDeadlineInput);
+    if (!computed && deadlineOption !== 'no_limit') {
+      setDeadlineModalError('Error al calcular la fecha límite.');
+      return;
+    }
+
+    try {
+      setIsSavingDeadline(true);
+      const targetLoanId = deadlineModalLoan.id;
+      setLoans((prev) =>
+        prev.map((l) => (l.id === targetLoanId ? { ...l, funding_deadline: computed } : l))
+      );
+
+      const mockLoan = defaultMockStateStore.loans.find((l) => l.id === targetLoanId);
+      if (mockLoan) {
+        mockLoan.funding_deadline = computed;
+      }
+
+      try {
+        const client = createSupabaseBrowserClient();
+        await client.from('loans').update({ funding_deadline: computed }).eq('id', targetLoanId);
+      } catch {
+        // Ignored in mock/offline mode
+      }
+
+      setDeadlineModalLoan(null);
+    } catch (err: any) {
+      setDeadlineModalError(err?.message || 'Error al guardar el vencimiento.');
+    } finally {
+      setIsSavingDeadline(false);
+    }
+  };
+
   return (
     <div className={`${styles.dashboardContainer} ${className}`} data-testid="borrower-dashboard">
       {/* Dashboard Header */}
@@ -448,6 +517,7 @@ export function BorrowerDashboard({
               </span>
               <span> comprometidos de {formatCurrency(currentLoan.amount_requested)}</span>
             </div>
+
             <div className={styles.primaryText} data-testid="funding-percentage">
               {fundedPercent}% completado
             </div>
@@ -584,9 +654,13 @@ export function BorrowerDashboard({
         </section>
       )}
 
-      {/* Historical and all loan applications list */}
+      {/* Historical and all loan applications list (Issue #56) */}
       {loans.length > 0 && (
-        <section className={styles.historySection} aria-labelledby="loan-history-title">
+        <section
+          className={styles.historySection}
+          aria-labelledby="loan-history-title"
+          data-testid="borrower-loans-history-section"
+        >
           <div className={styles.sectionHeader}>
             <h2 id="loan-history-title" className={styles.sectionTitle}>
               Historial de solicitudes de financiamiento
@@ -597,50 +671,240 @@ export function BorrowerDashboard({
           </div>
 
           <div className={styles.tableCard} data-testid="borrower-loans-history">
-            <table className={styles.table}>
+            <table className={styles.table} role="table">
               <thead>
                 <tr>
-                  <th scope="col">Destino / Solicitud</th>
+                  <th scope="col">Proyecto / Destino</th>
                   <th scope="col">Monto solicitado</th>
-                  <th scope="col">Plazo</th>
+                  <th scope="col">Plazo y Tasa</th>
+                  <th scope="col">Fecha de solicitud</th>
+                  <th scope="col">Vencimiento de subasta</th>
                   <th scope="col">Estado</th>
-                  <th scope="col">Acción</th>
+                  <th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {loans.map((loan) => (
-                  <tr key={loan.id} data-testid={`loan-history-row-${loan.id}`}>
-                    <td>
-                      <div className={styles.primaryText}>
-                        {LOAN_CATEGORY_LABELS[loan.category] ?? loan.category}
-                      </div>
-                      <div className={styles.monoText}>ID: {loan.id}</div>
-                    </td>
-                    <td>{formatCurrency(loan.amount_requested)}</td>
-                    <td>{loan.term_months} meses</td>
-                    <td>
-                      <span
-                        className={`${styles.statusBadge} ${LOAN_STATUS_LABELS[loan.status]?.className ?? styles.statusPending}`}
-                      >
-                        {loan.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Button
-                        variant={loan.id === currentLoan.id ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setSelectedLoanId(loan.id)}
-                        data-testid={`btn-select-loan-${loan.id}`}
-                      >
-                        {loan.id === currentLoan.id ? 'Seleccionado' : 'Ver detalle'}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {loans.map((loan) => {
+                  const loanStatusMeta = LOAN_STATUS_LABELS[loan.status] ?? {
+                    label: loan.status,
+                    className: styles.statusPending,
+                  };
+                  const formattedRequestedDate = new Date(loan.created_at).toLocaleDateString('es-AR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  });
+                  const formattedDeadline = loan.funding_deadline
+                    ? new Date(loan.funding_deadline).toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                    : 'Sin fecha límite';
+
+                  const isFundingNoDeadline = loan.status === 'funding' && !loan.funding_deadline;
+
+                  return (
+                    <tr key={loan.id} data-testid={`loan-history-row-${loan.id}`}>
+                      {/* 1. Proyecto / Destino */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span className={styles.categoryBadge} data-testid={`category-badge-${loan.id}`}>
+                            {LOAN_CATEGORY_LABELS[loan.category] ?? loan.category}
+                          </span>
+                          <span
+                            className={styles.secondaryText}
+                            style={{ fontSize: '0.8125rem' }}
+                            data-testid={`loan-desc-${loan.id}`}
+                          >
+                            {loan.description || 'Sin descripción detallada'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 2. Monto solicitado */}
+                      <td data-testid={`loan-amount-${loan.id}`}>
+                        <strong>{formatCurrency(loan.amount_requested)}</strong>
+                      </td>
+
+                      {/* 3. Plazo y Tasa */}
+                      <td data-testid={`loan-terms-${loan.id}`}>
+                        <div>{loan.term_months} meses</div>
+                        <div className={styles.secondaryText} style={{ fontSize: '0.75rem' }}>
+                          {loan.rate_type === 'TNA_FIXED' ? 'Tasa Fija (TNA)' : 'CER + spread'}
+                        </div>
+                      </td>
+
+                      {/* 4. Fecha de solicitud */}
+                      <td data-testid={`loan-date-${loan.id}`}>{formattedRequestedDate}</td>
+
+                      {/* 5. Vencimiento de subasta */}
+                      <td data-testid={`loan-deadline-${loan.id}`}>
+                        {loan.funding_deadline ? (
+                          formattedDeadline
+                        ) : (
+                          <span
+                            className={styles.statusBadge}
+                            style={{ backgroundColor: '#f1f5f9', color: '#475569' }}
+                          >
+                            Sin fecha límite
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 6. Estado */}
+                      <td>
+                        <span
+                          className={`${styles.statusBadge} ${loanStatusMeta.className}`}
+                          data-testid={`loan-status-${loan.id}`}
+                        >
+                          {loanStatusMeta.label}
+                        </span>
+                      </td>
+
+                      {/* 7. Acciones */}
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Button
+                            variant={loan.id === currentLoan.id ? 'primary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setSelectedLoanId(loan.id)}
+                            data-testid={`btn-select-loan-${loan.id}`}
+                          >
+                            {loan.id === currentLoan.id ? 'Seleccionado' : 'Ver detalle'}
+                          </Button>
+
+                          {loan.status === 'funded' && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedLoanId(loan.id);
+                                handleSigningClick();
+                              }}
+                              data-testid={`btn-sign-promissory-loan-${loan.id}`}
+                            >
+                              Firmar pagaré
+                            </Button>
+                          )}
+
+                          {loan.status === 'funding' && (
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              onClick={() => handleOpenDeadlineModal(loan)}
+                              data-testid={`btn-define-deadline-${loan.id}`}
+                            >
+                              {isFundingNoDeadline ? 'Definir vencimiento' : 'Modificar vencimiento'}
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </section>
+      )}
+
+      {/* Modal para Definir o Modificar Vencimiento de Subasta (Issue #56) */}
+      {deadlineModalLoan && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="deadline-modal-title"
+          className={styles.modalOverlay}
+          data-testid="deadline-modal"
+        >
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <h3 id="deadline-modal-title" className={styles.modalTitle}>
+                Definir vencimiento de subasta
+              </h3>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setDeadlineModalLoan(null)}
+                aria-label="Cerrar modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <p className={styles.modalDescription}>
+                Establecé o modificá el plazo de cierre para el fondeo colectivo de tu solicitud de{' '}
+                <strong>{LOAN_CATEGORY_LABELS[deadlineModalLoan.category]}</strong>.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                <label htmlFor="modal-deadline-select" className={styles.fieldLabel}>
+                  Plazo de vigencia de la subasta:
+                </label>
+                <select
+                  id="modal-deadline-select"
+                  className={styles.selectInput}
+                  value={deadlineOption}
+                  onChange={(e) => setDeadlineOption(e.target.value as DeadlineOption)}
+                  data-testid="modal-deadline-select"
+                >
+                  <option value="15_days">15 días adicionales</option>
+                  <option value="30_days">30 días adicionales</option>
+                  <option value="45_days">45 días adicionales</option>
+                  <option value="custom">Fecha personalizada</option>
+                  <option value="no_limit">Sin fecha límite (abierta)</option>
+                </select>
+
+                {deadlineOption === 'custom' && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <Input
+                      label="Fecha de cierre *"
+                      id="modal-custom-date"
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      value={customDeadlineInput}
+                      onChange={(e) => {
+                        setCustomDeadlineInput(e.target.value);
+                        if (deadlineModalError) setDeadlineModalError(null);
+                      }}
+                      error={deadlineModalError ?? undefined}
+                      data-testid="modal-custom-date"
+                    />
+                  </div>
+                )}
+
+                {deadlineModalError && deadlineOption !== 'custom' && (
+                  <span className={styles.errorMessage} role="alert" data-testid="deadline-modal-error">
+                    {deadlineModalError}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <Button
+                variant="bordered"
+                size="md"
+                onClick={() => setDeadlineModalLoan(null)}
+                disabled={isSavingDeadline}
+                data-testid="btn-cancel-deadline"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                isLoading={isSavingDeadline}
+                onClick={handleSaveDeadline}
+                data-testid="btn-save-deadline"
+              >
+                Guardar vencimiento
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* User Notification Preferences (SMS / WhatsApp / Email) */}

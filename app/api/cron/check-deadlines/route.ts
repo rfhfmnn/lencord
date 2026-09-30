@@ -47,6 +47,10 @@ async function handleCheckDeadlines(req: NextRequest) {
     const fundingLoans = await services.loans.listLoans({ status: 'funding' });
 
     for (const loan of fundingLoans) {
+      if (!loan.funding_deadline) {
+        continue;
+      }
+
       const deadlineTime = new Date(loan.funding_deadline).getTime();
 
       // Check if deadline has expired
