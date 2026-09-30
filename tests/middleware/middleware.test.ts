@@ -53,6 +53,49 @@ describe('Next.js Session Middleware and Route Protection (Issue #30)', () => {
     );
   });
 
+  describe('Route Protection: /marketplace/[id] (Issue #58)', () => {
+    it('allows unauthenticated access to general catalog /marketplace', async () => {
+      const req = createMockRequest('/marketplace');
+      const mockSupabase = createMockSupabase(null);
+
+      const res = await createMiddlewareHandler(req, { supabaseClient: mockSupabase });
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('x-auth-status')).toBe('unauthenticated');
+      expect(res.headers.get('x-route-protection')).toBe('public');
+    });
+
+    it('redirects unauthenticated requests from /marketplace/[id] to /login with redirect and reason=auth_required with HTTP 307', async () => {
+      const req = createMockRequest('/marketplace/loan-pyme-001');
+      const mockSupabase = createMockSupabase(null);
+
+      const res = await createMiddlewareHandler(req, { supabaseClient: mockSupabase });
+
+      expect(res.status).toBe(307);
+      const location = res.headers.get('location');
+      expect(location).toContain('/login');
+      expect(location).toContain('reason=auth_required');
+      expect(location).toMatch(/redirect=(%2F|\/)marketplace(%2F|\/)loan-pyme-001/);
+      expect(res.headers.get('x-route-protection')).toBe('auth-required');
+    });
+
+    it('allows authenticated users to access individual auction /marketplace/[id]', async () => {
+      const req = createMockRequest('/marketplace/loan-pyme-001');
+      const mockUser = {
+        id: 'user-inv-001',
+        email: 'inversor@lencord.ar',
+        user_metadata: { role: 'investor' },
+      };
+      const mockSupabase = createMockSupabase(mockUser, 'investor');
+
+      const res = await createMiddlewareHandler(req, { supabaseClient: mockSupabase });
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('x-auth-status')).toBe('authenticated');
+      expect(res.headers.get('x-route-protection')).toBe('allowed');
+    });
+  });
+
   describe('Route Protection: /solicitar', () => {
     it('redirects unauthenticated requests to /login?redirect=/solicitar', async () => {
       const req = createMockRequest('/solicitar');

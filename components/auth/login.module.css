@@ -146,6 +146,11 @@
   color: #1e40af;
 }
 
+.alertIcon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
 /* Password Row with Forgot Password Link */
 .passwordLabelRow {
   display: flex;

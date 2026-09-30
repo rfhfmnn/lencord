@@ -613,4 +613,72 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
       ).toBeInTheDocument();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // 8. Informational Banner and Automatic Return Post-Login (Issue #58)
+  // ---------------------------------------------------------------------------
+  describe('Auction Auth Required Notice and Return (Issue #58)', () => {
+    it('displays informational banner when reason=auth_required is present in searchParams', () => {
+      mockSearchParams.set('reason', 'auth_required');
+      mockSearchParams.set('redirect', '/marketplace/loan-pyme-001');
+
+      render(<LoginForm supabaseClient={mockSupabaseClient} />);
+
+      const banner = screen.getByTestId('auth-required-banner');
+      expect(banner).toBeInTheDocument();
+      expect(banner).toHaveTextContent(
+        'Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta subasta.'
+      );
+    });
+
+    it('does not display informational banner when reason parameter is absent', () => {
+      render(<LoginForm supabaseClient={mockSupabaseClient} />);
+
+      expect(screen.queryByTestId('auth-required-banner')).not.toBeInTheDocument();
+    });
+
+    it('redirects to the specific auction URL post-login when redirect is configured', async () => {
+      mockSearchParams.set('reason', 'auth_required');
+      mockSearchParams.set('redirect', '/marketplace/loan-pyme-001');
+
+      mockSignInWithPassword.mockResolvedValueOnce({
+        data: {
+          user: {
+            id: 'user-inv-1',
+            email: 'inversor@test.com',
+            user_metadata: { role: 'investor', roles: ['investor'] },
+          },
+        },
+        error: null,
+      });
+
+      render(<LoginForm supabaseClient={mockSupabaseClient} />);
+
+      fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
+        target: { value: 'inversor@test.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Contraseña$/i), {
+        target: { value: 'SecretPassword123' },
+      });
+
+      fireEvent.click(screen.getByTestId('submit-login-btn'));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/marketplace/loan-pyme-001');
+      });
+    });
+
+    it('preserves redirect parameter on registration link', () => {
+      mockSearchParams.set('redirect', '/marketplace/loan-pyme-001');
+
+      render(<LoginForm supabaseClient={mockSupabaseClient} />);
+
+      const registerLink = screen.getByRole('link', { name: /Registrate gratis/i });
+      expect(registerLink).toHaveAttribute(
+        'href',
+        '/registro?redirect=%2Fmarketplace%2Floan-pyme-001'
+      );
+    });
+  });
 });
+

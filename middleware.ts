@@ -144,7 +144,25 @@ export async function createMiddlewareHandler(
     return response;
   }
 
-  // 4. Public routes (/, /marketplace, /login, /registro, etc.)
+  // 4. Route Protection: /marketplace/[id] (Individual auction details)
+  if (pathname.startsWith('/marketplace/')) {
+    const subPath = pathname.slice('/marketplace/'.length).trim();
+    if (subPath.length > 0) {
+      if (!user) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        loginUrl.searchParams.set('reason', 'auth_required');
+        const redirectRes = NextResponse.redirect(loginUrl, 307);
+        redirectRes.headers.set('x-route-protection', 'auth-required');
+        return redirectRes;
+      }
+
+      response.headers.set('x-route-protection', 'allowed');
+      return response;
+    }
+  }
+
+  // 5. Public routes (/, /marketplace, /login, /registro, etc.)
   response.headers.set('x-route-protection', 'public');
   return response;
 }

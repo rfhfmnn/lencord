@@ -98,6 +98,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   // Determine query param redirect if not passed as prop
   const queryRedirect = redirectUrl !== undefined ? redirectUrl : searchParams?.get('redirect');
+  const isAuthRequiredForAuction = searchParams?.get('reason') === 'auth_required';
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -366,6 +367,33 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </p>
         </div>
 
+        {/* Informational Notice: Auction Auth Required (Issue #58) */}
+        {isAuthRequiredForAuction && (
+          <div
+            className={`${styles.alert} ${styles.alertInfo}`}
+            role="status"
+            data-testid="auth-required-banner"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={styles.alertIcon}
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>
+              Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta subasta.
+            </span>
+          </div>
+        )}
+
         {/* Role Selector Tabs (Issue #54) */}
         <div
           className={styles.roleSelector}
@@ -580,7 +608,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         <div className={styles.registerPrompt}>
           ¿No tenés una cuenta en Lencord?
-          <Link href="/registro" className={styles.registerLink}>
+          <Link
+            href={queryRedirect ? `/registro?redirect=${encodeURIComponent(queryRedirect)}` : '/registro'}
+            className={styles.registerLink}
+          >
             Registrate gratis
           </Link>
         </div>
