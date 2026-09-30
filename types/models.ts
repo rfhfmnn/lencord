@@ -98,7 +98,7 @@ export interface NotificationPreferences {
 export interface Profile {
   id: string; // UUID (references auth.users)
   role: UserRole;
-  tax_id: string; // VARCHAR(11) - CUIT or CUIL, unique
+  tax_id?: string | null; // VARCHAR(11) - CUIT, CUIL or DNI (optional for new investors until investing)
   legal_name: string; // VARCHAR(255)
   phone: string; // VARCHAR(50)
   kyc_status: KycStatus;

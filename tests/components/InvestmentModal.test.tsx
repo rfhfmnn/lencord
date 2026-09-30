@@ -215,4 +215,62 @@ describe('InvestmentModal Component (Task 10)', () => {
     expect(screen.getByTestId('investment-amount-input')).toBeDisabled();
     expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
   });
+
+  describe('DNI / Tax ID Requirement (Issue #53)', () => {
+    it('disables confirm button and displays alert when investor has missing DNI', async () => {
+      render(
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={mockLoan}
+          investorTaxId={null}
+        />
+      );
+
+      // Alert is displayed
+      const alert = screen.getByTestId('missing-tax-id-alert');
+      expect(alert).toBeInTheDocument();
+      expect(alert).toHaveTextContent(
+        'Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.'
+      );
+
+      // Redirection button is present
+      const completeDniBtn = screen.getByTestId('complete-dni-button');
+      expect(completeDniBtn).toBeInTheDocument();
+      expect(completeDniBtn).toHaveTextContent('Completar DNI en mi perfil');
+
+      // Even if user types a valid amount, confirm button remains disabled
+      const input = screen.getByTestId('investment-amount-input');
+      fireEvent.change(input, { target: { value: '50000' } });
+
+      const submitBtn = screen.getByTestId('modal-confirm-button');
+      expect(submitBtn).toBeDisabled();
+    });
+
+    it('rejects investment in service layer with MISSING_TAX_ID when investor lacks tax_id', async () => {
+      const services = createServices({ useMocks: true });
+      // Add a mock profile without tax_id
+      const mockState = (services.investments as any).store;
+      if (mockState) {
+        mockState.profiles.push({
+          id: 'prof-inv-without-dni',
+          role: 'investor',
+          tax_id: null,
+          legal_name: 'Inversor Sin DNI',
+          phone: '',
+          kyc_status: 'pending',
+          bank_cbu_cvu: '0000000000000000000000',
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      await expect(
+        services.investments.commitInvestment({
+          loan_id: 'loan-seed-001',
+          investor_id: 'prof-inv-without-dni',
+          amount: 25000,
+        })
+      ).rejects.toThrow(/MISSING_TAX_ID/);
+    });
+  });
 });

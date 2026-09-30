@@ -305,4 +305,48 @@ describe('InvestorDashboard Component (Task 13)', () => {
 
     expect(screen.getByTestId('custody-disclaimer')).toBeInTheDocument();
   });
+
+  describe('Mi Perfil & DNI Status Management (Issue #53)', () => {
+    it('renders Mi Perfil section with "DNI cargado" badge when user has DNI registered', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId="20301234567"
+        />
+      );
+
+      expect(screen.getByTestId('investor-profile-section')).toBeInTheDocument();
+      expect(screen.getByTestId('dni-badge')).toHaveTextContent('DNI cargado');
+      expect(screen.getByTestId('current-tax-id')).toHaveTextContent('20301234567');
+      expect(screen.getByTestId('edit-dni-button')).toBeInTheDocument();
+    });
+
+    it('renders "DNI pendiente" badge, validates format, and updates state upon saving (Issue #53)', async () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId={null}
+        />
+      );
+
+      expect(screen.getByTestId('dni-badge')).toHaveTextContent('DNI pendiente');
+
+      const input = screen.getByTestId('input-dni');
+      const saveBtn = screen.getByTestId('save-dni-button');
+
+      // Test invalid format (too short)
+      fireEvent.change(input, { target: { value: '123' } });
+      fireEvent.click(saveBtn);
+      expect(await screen.findByText(/Ingrese un DNI válido/i)).toBeInTheDocument();
+
+      // Enter valid 8-digit DNI
+      fireEvent.change(input, { target: { value: '38123456' } });
+      fireEvent.click(saveBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dni-badge')).toHaveTextContent('DNI cargado');
+      });
+      expect(screen.getByTestId('dni-success-message')).toHaveTextContent(/DNI registrado con éxito/i);
+    });
+  });
 });

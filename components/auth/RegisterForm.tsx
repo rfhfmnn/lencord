@@ -136,12 +136,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       }
 
       const cleanId = cleanCuit(taxId);
-      if (!cleanId) {
-        newErrors.taxId = 'El DNI o CUIT es obligatorio.';
-      } else if (cleanId.length < 7) {
-        newErrors.taxId = 'Ingrese un DNI o CUIT válido (mínimo 7 dígitos).';
-      } else if (cleanId.length === 11 && !validateCuit(cleanId)) {
-        newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
+      if (cleanId) {
+        if (cleanId.length < 7 || (cleanId.length > 8 && cleanId.length < 11) || cleanId.length > 11) {
+          newErrors.taxId = 'Ingrese un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
+        } else if (cleanId.length === 11 && !validateCuit(cleanId)) {
+          newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
+        }
       }
     }
 
@@ -163,7 +163,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const client = getClient();
       const cleanEmail = email.trim().toLowerCase();
       const profileRole = role === 'borrower' ? 'borrower' : 'investor';
-      const cleanTaxId = role === 'borrower' ? cleanCuit(cuit) : cleanCuit(taxId);
+      const cleanTaxId = role === 'borrower' ? cleanCuit(cuit) : (cleanCuit(taxId) || null);
       const legalName = role === 'borrower' ? companyName.trim() : fullName.trim();
       const repName = role === 'borrower' ? representativeName.trim() : '';
 
@@ -175,7 +175,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           data: {
             role: profileRole,
             legal_name: legalName,
-            tax_id: cleanTaxId,
+            tax_id: cleanTaxId || null,
             representative_name: repName,
           },
         },
@@ -203,7 +203,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           const { error: profileError } = await client.from('profiles').upsert({
             id: data.user.id,
             role: profileRole,
-            tax_id: cleanTaxId,
+            tax_id: cleanTaxId || null,
             legal_name: legalName,
             email: cleanEmail,
             first_name: role === 'borrower' ? representativeName.trim() : fullName.trim().split(' ')[0] || '',
@@ -428,15 +428,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
               <div className={styles.formGroup}>
                 <Input
-                  label="DNI o CUIT tributario"
+                  label="DNI o CUIT tributario (opcional)"
                   name="taxId"
                   value={taxId}
                   onChange={handleTaxIdChange}
                   placeholder="Ej: 32456789 o 20-32456789-4"
                   error={errors.taxId}
-                  helperText="DNI (7-8 dígitos) o CUIT (11 dígitos)"
+                  helperText="Opcional al registrarse. Requerido posteriormente para poder invertir."
                   className="font-mono"
-                  required
                 />
               </div>
             </>

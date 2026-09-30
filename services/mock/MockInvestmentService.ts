@@ -59,6 +59,13 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       );
     }
 
+    const investor = this.store.profiles.find((p) => p.id === input.investor_id);
+    if (investor && !investor.tax_id) {
+      throw new Error(
+        'MISSING_TAX_ID: Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.'
+      );
+    }
+
     const currentFunded = loan.amount_funded;
     const remainingAvailable = loan.amount_requested - currentFunded;
 

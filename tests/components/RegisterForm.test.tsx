@@ -305,4 +305,100 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     ).toBeInTheDocument();
     expect(screen.queryByTestId('registration-confirmation')).not.toBeInTheDocument();
   });
+
+  // ---------------------------------------------------------------------------
+  // 6. Optional DNI for Investors & Format Validation (Issue #53)
+  // ---------------------------------------------------------------------------
+  it('allows investor to register without DNI and shows helper text (Issue #53)', async () => {
+    const mockUserId = 'usr-inv-nodni';
+    mockSignUp.mockResolvedValue({
+      data: {
+        user: { id: mockUserId, email: 'nodni@lencord.com' },
+        session: null,
+      },
+      error: null,
+    });
+
+    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+
+    // Helper text is displayed
+    expect(
+      screen.getByText(/Opcional al registrarse\. Requerido posteriormente para poder invertir\./i)
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
+      target: { value: 'Inversor Sin DNI' },
+    });
+    // Leave DNI empty!
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
+      target: { value: 'nodni@lencord.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Contraseña/i), {
+      target: { value: 'PasswordSegura2026' },
+    });
+
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    await waitFor(() => {
+      expect(mockSignUp).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'nodni@lencord.com',
+          options: expect.objectContaining({
+            data: expect.objectContaining({
+              role: 'investor',
+              tax_id: null,
+            }),
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: mockUserId,
+          role: 'investor',
+          tax_id: null,
+        })
+      );
+    });
+
+    expect(await screen.findByTestId('registration-confirmation')).toBeInTheDocument();
+  });
+
+  it('validates DNI/CUIT format when entered by investor (Issue #53)', async () => {
+    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+
+    fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
+      target: { value: 'Inversor Formato' },
+    });
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
+      target: { value: 'formato@lencord.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Contraseña/i), {
+      target: { value: 'PasswordSegura2026' },
+    });
+
+    // Enter invalid DNI length (5 digits)
+    fireEvent.change(screen.getByLabelText(/DNI o CUIT tributario/i), {
+      target: { value: '12345' },
+    });
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    expect(
+      await screen.findByText(/Ingrese un DNI \(7 u 8 dígitos\) o CUIT \(11 dígitos\) válido/i)
+    ).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+
+    // Enter invalid 11-digit CUIT checksum
+    fireEvent.change(screen.getByLabelText(/DNI o CUIT tributario/i), {
+      target: { value: '20-12345678-0' },
+    });
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    expect(
+      await screen.findByText(/El CUIT de 11 dígitos no es válido según el algoritmo oficial/i)
+    ).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
 });

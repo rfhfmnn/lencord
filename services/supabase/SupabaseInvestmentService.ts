@@ -58,6 +58,19 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
 
     const client = await this.getClient();
 
+    // Check investor tax_id requirement (Issue #53)
+    const { data: profile } = await client
+      .from('profiles')
+      .select('tax_id')
+      .eq('id', input.investor_id)
+      .maybeSingle();
+
+    if (profile && !profile.tax_id) {
+      throw mapSupabaseError(
+        new Error('MISSING_TAX_ID: Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.')
+      );
+    }
+
     // 1. Hold funds via Payment Gateway if configured
     let holdId: string | null = null;
     if (this.paymentGateway) {

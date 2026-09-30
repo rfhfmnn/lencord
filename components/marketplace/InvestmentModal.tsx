@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { CommitInvestmentResult, Loan } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
+import { defaultMockStateStore } from '@/services/mock/mockState';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatCurrency } from '@/components/home/HeroSimulator';
@@ -17,6 +20,7 @@ export interface InvestmentModalProps {
   loan: Loan;
   onSuccess?: (result: CommitInvestmentResult) => void;
   investorId?: string;
+  investorTaxId?: string | null;
 }
 
 export function InvestmentModal({
@@ -25,12 +29,62 @@ export function InvestmentModal({
   loan,
   onSuccess,
   investorId = 'prof-inv-001',
+  investorTaxId,
 }: InvestmentModalProps) {
+  let router: any = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter();
+  } catch {
+    router = null;
+  }
+
   const [amountStr, setAmountStr] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<CommitInvestmentResult | null>(null);
+
+  const [hasTaxId, setHasTaxId] = useState<boolean>(() => {
+    if (investorTaxId !== undefined) {
+      return Boolean(investorTaxId && investorTaxId.trim() !== '');
+    }
+    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === investorId);
+    if (mockProfile) {
+      return Boolean(mockProfile.tax_id && mockProfile.tax_id.trim() !== '');
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (investorTaxId !== undefined) {
+      setHasTaxId(Boolean(investorTaxId && investorTaxId.trim() !== ''));
+      return;
+    }
+
+    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === investorId);
+    if (mockProfile) {
+      setHasTaxId(Boolean(mockProfile.tax_id && mockProfile.tax_id.trim() !== ''));
+      return;
+    }
+
+    let isMounted = true;
+    async function checkTaxId() {
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data } = await client.from('profiles').select('tax_id').eq('id', investorId).maybeSingle();
+        if (isMounted && data) {
+          setHasTaxId(Boolean(data.tax_id && data.tax_id.trim() !== ''));
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    checkTaxId();
+    return () => {
+      isMounted = false;
+    };
+  }, [investorId, investorTaxId]);
 
   const titleId = useId();
 
@@ -93,6 +147,10 @@ export function InvestmentModal({
     e.preventDefault();
     if (isSelfFunding) {
       setSubmitError('No podés invertir en tu propia solicitud de crédito.');
+      return;
+    }
+    if (!hasTaxId) {
+      setSubmitError('Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.');
       return;
     }
     if (!isInputValid || isSubmitting) return;
@@ -247,6 +305,31 @@ export function InvestmentModal({
                 </div>
               )}
 
+              {!hasTaxId && (
+                <div className={styles.errorBanner} role="alert" data-testid="missing-tax-id-alert">
+                  <span>⚠️</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                    <span>Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.</span>
+                    <Button
+                      type="button"
+                      variant="bordered"
+                      size="sm"
+                      onClick={() => {
+                        handleClose();
+                        if (router?.push) {
+                          router.push('/dashboard/inversor#perfil');
+                        } else if (typeof window !== 'undefined') {
+                          window.location.href = '/dashboard/inversor#perfil';
+                        }
+                      }}
+                      data-testid="complete-dni-button"
+                    >
+                      Completar DNI en mi perfil
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <Input
                 label="Monto a invertir (ARS)"
                 id="investment-amount-input"
@@ -290,7 +373,7 @@ export function InvestmentModal({
               <Button
                 variant="primary"
                 type="submit"
-                disabled={!isInputValid || isSubmitting}
+                disabled={!isInputValid || isSubmitting || !hasTaxId}
                 isLoading={isSubmitting}
                 data-testid="modal-confirm-button"
               >

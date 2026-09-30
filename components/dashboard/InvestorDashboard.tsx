@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { LOAN_CATEGORY_LABELS, formatRateDisplay } from '@/components/marketplace/LoanCard';
 import { createSupabaseBrowserClient } from '@/services/supabase';
+import { Input } from '@/components/ui/Input';
+import { cleanCuit, validateCuit } from '@/components/solicitar/cuitValidator';
+import { defaultMockStateStore } from '@/services/mock/mockState';
 import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
@@ -19,6 +22,7 @@ export interface InvestorDashboardProps {
   initialLoans?: Loan[];
   initialInstallments?: Installment[];
   initialCreditProfiles?: Record<string, SmeCreditProfile>;
+  initialTaxId?: string | null;
   className?: string;
 }
 
@@ -43,6 +47,7 @@ export function InvestorDashboard({
   initialLoans,
   initialInstallments,
   initialCreditProfiles,
+  initialTaxId,
   className = '',
 }: InvestorDashboardProps) {
   let servicesFromContext: ReturnType<typeof useServices> | null = null;
@@ -54,6 +59,12 @@ export function InvestorDashboard({
   }
 
   const [currentInvestorId, setCurrentInvestorId] = useState<string>(investorId);
+  const [taxId, setTaxId] = useState<string | null>(initialTaxId ?? null);
+  const [isEditingDni, setIsEditingDni] = useState<boolean>(false);
+  const [dniInput, setDniInput] = useState<string>('');
+  const [dniError, setDniError] = useState<string | null>(null);
+  const [dniSuccess, setDniSuccess] = useState<string | null>(null);
+  const [isSavingDni, setIsSavingDni] = useState<boolean>(false);
   const [investments, setInvestments] = useState<Investment[]>(initialInvestments ?? []);
   const [loansMap, setLoansMap] = useState<Record<string, Loan>>(() => {
     if (!initialLoans) return {};
@@ -89,6 +100,78 @@ export function InvestorDashboard({
     }
     resolveInvestorId();
   }, [investorId]);
+
+  useEffect(() => {
+    if (initialTaxId !== undefined) {
+      setTaxId(initialTaxId);
+      return;
+    }
+    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+    if (mockProfile) {
+      setTaxId(mockProfile.tax_id ?? null);
+      return;
+    }
+    let isMounted = true;
+    async function fetchTaxId() {
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data } = await client
+          .from('profiles')
+          .select('tax_id')
+          .eq('id', currentInvestorId)
+          .maybeSingle();
+        if (isMounted && data) {
+          setTaxId(data.tax_id ?? null);
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    fetchTaxId();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentInvestorId, initialTaxId]);
+
+  const handleSaveDni = async () => {
+    setDniError(null);
+    setDniSuccess(null);
+    const cleaned = cleanCuit(dniInput);
+    if (!cleaned) {
+      setDniError('El DNI o CUIT es obligatorio.');
+      return;
+    }
+    if (cleaned.length < 7 || (cleaned.length > 8 && cleaned.length < 11) || cleaned.length > 11) {
+      setDniError('Ingrese un DNI válido (7 u 8 dígitos) o CUIT (11 dígitos).');
+      return;
+    }
+    if (cleaned.length === 11 && !validateCuit(cleaned)) {
+      setDniError('El CUIT de 11 dígitos no es válido según el algoritmo oficial (ARCA/AFIP).');
+      return;
+    }
+
+    try {
+      setIsSavingDni(true);
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+      if (mockProfile) {
+        mockProfile.tax_id = cleaned;
+      }
+      try {
+        const client = createSupabaseBrowserClient();
+        await client.from('profiles').update({ tax_id: cleaned }).eq('id', currentInvestorId);
+      } catch {
+        // Ignored
+      }
+
+      setTaxId(cleaned);
+      setIsEditingDni(false);
+      setDniSuccess('DNI registrado con éxito.');
+    } catch (err: any) {
+      setDniError(err?.message || 'Error al guardar el DNI.');
+    } finally {
+      setIsSavingDni(false);
+    }
+  };
 
   useEffect(() => {
     if (initialInvestments) {
@@ -356,6 +439,115 @@ export function InvestorDashboard({
               <strong>Aviso regulatorio:</strong> Los fondos líquidos y transacciones se encuentran bajo custodia de una entidad financiera y/o Proveedor de Servicios de Pago (PSP) autorizado por el Banco Central de la República Argentina (BCRA). Lencord es una plataforma tecnológica y no realiza intermediación financiera, captación no autorizada ni custodia directa de saldos monetarios de terceros.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Mi Perfil / Estado de Identidad & DNI (Issue #53) */}
+      <section
+        id="perfil"
+        className={styles.section}
+        aria-labelledby="perfil-section-title"
+        data-testid="investor-profile-section"
+      >
+        <div className={styles.sectionHeader}>
+          <h2 id="perfil-section-title" className={styles.sectionTitle}>
+            Mi Perfil
+          </h2>
+          <p className={styles.sectionDescription}>
+            Identificación tributaria obligatoria conforme a normativa reguladora (UIF) para operar e invertir en subastas PyME.
+          </p>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#0f172a' }}>
+                Documento de Identidad (DNI/CUIT):
+              </span>
+              <span
+                data-testid="dni-badge"
+                className={`${styles.statusBadge} ${taxId ? styles.statusSettled : styles.statusPending}`}
+              >
+                {taxId ? 'DNI cargado' : 'DNI pendiente'}
+              </span>
+            </div>
+
+            {taxId && !isEditingDni && (
+              <Button
+                variant="bordered"
+                size="sm"
+                onClick={() => {
+                  setDniInput(taxId);
+                  setIsEditingDni(true);
+                  setDniError(null);
+                  setDniSuccess(null);
+                }}
+                data-testid="edit-dni-button"
+              >
+                Modificar DNI
+              </Button>
+            )}
+          </div>
+
+          {taxId && !isEditingDni && (
+            <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#475569' }}>
+              Número registrado: <strong className="font-mono" data-testid="current-tax-id">{taxId}</strong>
+            </div>
+          )}
+
+          {(!taxId || isEditingDni) && (
+            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '400px' }}>
+              <Input
+                label="Ingresá tu DNI o CUIT"
+                id="input-profile-dni"
+                value={dniInput}
+                onChange={(e) => {
+                  setDniInput(e.target.value);
+                  if (dniError) setDniError(null);
+                }}
+                placeholder="Ej: 32456789 o 20-32456789-4"
+                error={dniError ?? undefined}
+                helperText="DNI (7-8 dígitos) o CUIT (11 dígitos)."
+                className="font-mono"
+                data-testid="input-dni"
+              />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {isEditingDni && (
+                  <Button
+                    type="button"
+                    variant="bordered"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingDni(false);
+                      setDniError(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSavingDni}
+                  onClick={handleSaveDni}
+                  data-testid="save-dni-button"
+                >
+                  Guardar DNI
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {dniSuccess && (
+            <div
+              style={{ marginTop: '0.75rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.875rem' }}
+              role="status"
+              data-testid="dni-success-message"
+            >
+              ✓ {dniSuccess}
+            </div>
+          )}
         </div>
       </section>
 
