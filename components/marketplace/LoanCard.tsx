@@ -30,6 +30,17 @@ export function calculateDaysRemaining(deadline: string | null | undefined, refe
   return Math.max(0, diffDays);
 }
 
+export function truncateDescription(description?: string | null, maxLength: number = 90): string {
+  if (!description || !description.trim()) {
+    return 'Sin descripción informada para este proyecto.';
+  }
+  const clean = description.trim();
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+  return `${clean.slice(0, maxLength)}...`;
+}
+
 export interface LoanCardProps {
   loan: Loan;
   riskTier?: RiskTier;
@@ -69,6 +80,11 @@ export function LoanCard({
         </span>
         <TierBadge tier={riskTier} data-testid="loan-risk-badge" />
       </div>
+
+      {/* Brief Project Description (Issue #59) */}
+      <p className={styles.projectDescription} data-testid="loan-description">
+        {truncateDescription(loan.description)}
+      </p>
 
       {/* Financial Metrics: Rate & Term */}
       <div className={styles.financialMetrics}>

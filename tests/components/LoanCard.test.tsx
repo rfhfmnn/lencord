@@ -6,6 +6,7 @@ import {
   LoanCard,
   formatRateDisplay,
   calculateDaysRemaining,
+  truncateDescription,
 } from '@/components/marketplace/LoanCard';
 
 describe('LoanCard Component (Task 9)', () => {
@@ -105,4 +106,54 @@ describe('LoanCard Component (Task 9)', () => {
     const progressFill = screen.getByTestId('loan-progress-fill');
     expect(progressFill).toHaveStyle({ width: '100%' });
   });
+
+  describe('Project Description (Issue #59)', () => {
+    it('renders brief description when provided in loan', () => {
+      const loanWithDesc: Loan = {
+        ...mockLoan,
+        description: 'Financiamiento para compra de materia prima y stock estacional.',
+      };
+      render(<LoanCard loan={loanWithDesc} riskTier="Tier A" />);
+      const descEl = screen.getByTestId('loan-description');
+      expect(descEl).toBeInTheDocument();
+      expect(descEl).toHaveTextContent('Financiamiento para compra de materia prima y stock estacional.');
+    });
+
+    it('truncates description exceeding 90 characters with ellipsis', () => {
+      const longDescription =
+        'Este es un proyecto productivo de una PyME metalúrgica de Córdoba para ampliar su capacidad operativa y comprar tornos CNC de alta precisión.';
+      const loanWithLongDesc: Loan = {
+        ...mockLoan,
+        description: longDescription,
+      };
+      render(<LoanCard loan={loanWithLongDesc} riskTier="Tier A" />);
+      const descEl = screen.getByTestId('loan-description');
+      expect(descEl).toHaveTextContent(`${longDescription.slice(0, 90)}...`);
+    });
+
+    it('renders fallback description when loan description is not provided or empty', () => {
+      render(<LoanCard loan={mockLoan} riskTier="Tier A" />);
+      const descEl = screen.getByTestId('loan-description');
+      expect(descEl).toHaveTextContent('Sin descripción informada para este proyecto.');
+
+      const emptyLoan: Loan = { ...mockLoan, description: '   ' };
+      render(<LoanCard loan={emptyLoan} riskTier="Tier A" />);
+      const allDescs = screen.getAllByTestId('loan-description');
+      expect(allDescs[1]).toHaveTextContent('Sin descripción informada para este proyecto.');
+    });
+
+    it('truncateDescription helper handles edge cases correctly', () => {
+      expect(truncateDescription(null)).toBe('Sin descripción informada para este proyecto.');
+      expect(truncateDescription(undefined)).toBe('Sin descripción informada para este proyecto.');
+      expect(truncateDescription('')).toBe('Sin descripción informada para este proyecto.');
+      expect(truncateDescription('   ')).toBe('Sin descripción informada para este proyecto.');
+
+      const exactly90 = 'A'.repeat(90);
+      expect(truncateDescription(exactly90)).toBe(exactly90);
+
+      const exactly91 = 'A'.repeat(91);
+      expect(truncateDescription(exactly91)).toBe(`${'A'.repeat(90)}...`);
+    });
+  });
 });
+

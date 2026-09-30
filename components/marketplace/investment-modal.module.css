@@ -192,3 +192,95 @@
   font-weight: 600;
   color: #0f172a;
 }
+
+/* Financial Rates Section (Issue #59) */
+.ratesSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.rateBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rateLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rateValue {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0a2540;
+  font-feature-settings: 'tnum';
+}
+
+/* Yield / Returns Summary (Issue #59) */
+.yieldContainer {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.yieldRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.yieldLabel {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.yieldProfit {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #065f46;
+  font-feature-settings: 'tnum';
+}
+
+.yieldDivider {
+  height: 1px;
+  background-color: #e2e8f0;
+  width: 100%;
+}
+
+.yieldTotalLabel {
+  font-size: 0.875rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.yieldTotalValue {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0a2540;
+  font-feature-settings: 'tnum';
+}
+
+@media (max-width: 400px) {
+  .ratesSummary {
+    gap: 0.375rem;
+    padding: 0.5rem;
+  }
+  .rateValue {
+    font-size: 0.8125rem;
+  }
+}

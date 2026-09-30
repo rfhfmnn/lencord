@@ -14,6 +14,68 @@ import styles from './investment-modal.module.css';
 
 export const MIN_INVESTMENT_TICKET = 10000;
 
+export interface FinancialRates {
+  tna: number;
+  tem: number;
+  tea: number;
+  tnaDisplay: string;
+  temDisplay: string;
+  teaDisplay: string;
+}
+
+export function calculateFinancialRates(loan: Loan): FinancialRates {
+  const tna = loan.investor_rate;
+  const tem = tna / 12;
+  const tea = (Math.pow(1 + tem / 100, 12) - 1) * 100;
+
+  const tnaFormatted = tna.toFixed(1).replace('.', ',');
+  const temFormatted = Number(tem.toFixed(2)).toLocaleString('es-AR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  });
+  const teaFormatted = tea.toFixed(1).replace('.', ',');
+
+  const tnaDisplay = loan.rate_type === 'CER_VARIABLE' ? `CER + ${tnaFormatted}%` : `${tnaFormatted}% TNA`;
+  const temDisplay = `${temFormatted}% TEM`;
+  const teaDisplay = `${teaFormatted}% TEA`;
+
+  return {
+    tna,
+    tem,
+    tea,
+    tnaDisplay,
+    temDisplay,
+    teaDisplay,
+  };
+}
+
+export interface InvestmentReturn {
+  profit: number;
+  totalReturn: number;
+}
+
+export function calculateInvestmentReturn(
+  amount: number,
+  termMonths: number,
+  investorRate: number
+): InvestmentReturn {
+  if (
+    !amount ||
+    isNaN(amount) ||
+    amount < MIN_INVESTMENT_TICKET ||
+    termMonths <= 0 ||
+    investorRate <= 0
+  ) {
+    return { profit: 0, totalReturn: 0 };
+  }
+
+  const tem = investorRate / 12;
+  const profit = Math.round(amount * (tem / 100) * termMonths);
+  const totalReturn = amount + profit;
+
+  return { profit, totalReturn };
+}
+
 export interface InvestmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -136,6 +198,12 @@ export function InvestmentModal({
   };
 
   const parsedAmount = amountStr ? parseInt(amountStr, 10) : 0;
+  const { tnaDisplay, temDisplay, teaDisplay } = calculateFinancialRates(loan);
+  const { profit, totalReturn } = calculateInvestmentReturn(
+    parsedAmount,
+    loan.term_months,
+    loan.investor_rate
+  );
   const isInputValid =
     parsedAmount > 0 &&
     parsedAmount >= MIN_INVESTMENT_TICKET &&
@@ -298,6 +366,28 @@ export function InvestmentModal({
                 </div>
               </div>
 
+              {/* Financial Rates Section (Issue #59) */}
+              <div className={styles.ratesSummary} data-testid="financial-rates">
+                <div className={styles.rateBlock}>
+                  <span className={styles.rateLabel}>TNA</span>
+                  <span className={styles.rateValue} data-testid="modal-rate-tna">
+                    {tnaDisplay}
+                  </span>
+                </div>
+                <div className={styles.rateBlock}>
+                  <span className={styles.rateLabel}>TEM</span>
+                  <span className={styles.rateValue} data-testid="modal-rate-tem">
+                    {temDisplay}
+                  </span>
+                </div>
+                <div className={styles.rateBlock}>
+                  <span className={styles.rateLabel}>TEA</span>
+                  <span className={styles.rateValue} data-testid="modal-rate-tea">
+                    {teaDisplay}
+                  </span>
+                </div>
+              </div>
+
               {isSelfFunding && (
                 <div className={styles.errorBanner} role="alert" data-testid="self-funding-warning">
                   <span>⚠️</span>
@@ -345,6 +435,23 @@ export function InvestmentModal({
                 data-testid="investment-amount-input"
                 autoFocus={!isSelfFunding}
               />
+
+              {/* Dynamic Estimated Yield / Return (Issue #59) */}
+              <div className={styles.yieldContainer} data-testid="investment-returns-summary">
+                <div className={styles.yieldRow}>
+                  <span className={styles.yieldLabel}>Importe a ganar</span>
+                  <span className={styles.yieldProfit} data-testid="modal-estimated-profit">
+                    {formatCurrency(profit)}
+                  </span>
+                </div>
+                <div className={styles.yieldDivider} />
+                <div className={styles.yieldRow}>
+                  <span className={styles.yieldTotalLabel}>Monto total a cobrar</span>
+                  <span className={styles.yieldTotalValue} data-testid="modal-total-return">
+                    {formatCurrency(totalReturn)}
+                  </span>
+                </div>
+              </div>
 
               {submitError && (
                 <div className={styles.errorBanner} role="alert" data-testid="modal-submit-error">

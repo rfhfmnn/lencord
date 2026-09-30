@@ -3,7 +3,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Loan } from '@/types';
-import { InvestmentModal, MIN_INVESTMENT_TICKET } from '@/components/marketplace/InvestmentModal';
+import {
+  InvestmentModal,
+  MIN_INVESTMENT_TICKET,
+  calculateFinancialRates,
+  calculateInvestmentReturn,
+} from '@/components/marketplace/InvestmentModal';
 import { ServiceProvider } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 
@@ -271,6 +276,143 @@ describe('InvestmentModal Component (Task 10)', () => {
           amount: 25000,
         })
       ).rejects.toThrow(/MISSING_TAX_ID/);
+    });
+  });
+
+  describe('Financial Rates & Returns Calculation (Issue #59)', () => {
+    it('displays normalized financial rates: TNA, TEM, TEA', () => {
+      render(
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={mockLoan}
+        />
+      );
+
+      // Verify container presence
+      expect(screen.getByTestId('financial-rates')).toBeInTheDocument();
+
+      // Rates for mockLoan (investor_rate: 45.0, TNA_FIXED)
+      // TNA: 45,0% TNA
+      const tnaEl = screen.getByTestId('modal-rate-tna');
+      expect(tnaEl).toHaveTextContent('45,0% TNA');
+
+      // TEM: 45 / 12 = 3.75% TEM
+      const temEl = screen.getByTestId('modal-rate-tem');
+      expect(temEl).toHaveTextContent('3,75% TEM');
+
+      // TEA: ((1 + 0.0375)^12 - 1) * 100 = 55.5% TEA
+      const teaEl = screen.getByTestId('modal-rate-tea');
+      expect(teaEl).toHaveTextContent('55,5% TEA');
+    });
+
+    it('formats CER variable rate properly in TNA rate block', () => {
+      const cerLoan: Loan = {
+        ...mockLoan,
+        rate_type: 'CER_VARIABLE',
+        investor_rate: 12.0,
+      };
+
+      render(
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={cerLoan}
+        />
+      );
+
+      expect(screen.getByTestId('modal-rate-tna')).toHaveTextContent('CER + 12,0%');
+      expect(screen.getByTestId('modal-rate-tem')).toHaveTextContent('1,0% TEM');
+      expect(screen.getByTestId('modal-rate-tea')).toHaveTextContent('12,7% TEA');
+    });
+
+    it('displays $ 0 for estimated profit and total return when input is empty or below minimum ticket', () => {
+      render(
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={mockLoan}
+        />
+      );
+
+      const returnsSummary = screen.getByTestId('investment-returns-summary');
+      expect(returnsSummary).toBeInTheDocument();
+
+      // Empty input initially
+      expect(screen.getByTestId('modal-estimated-profit')).toHaveTextContent('$ 0');
+      expect(screen.getByTestId('modal-total-return')).toHaveTextContent('$ 0');
+
+      // Value below minimum ticket (5.000 < 10.000)
+      const input = screen.getByTestId('investment-amount-input');
+      fireEvent.change(input, { target: { value: '5000' } });
+
+      expect(screen.getByTestId('modal-estimated-profit')).toHaveTextContent('$ 0');
+      expect(screen.getByTestId('modal-total-return')).toHaveTextContent('$ 0');
+    });
+
+    it('reactively calculates profit and total return on valid input changes', () => {
+      render(
+        <InvestmentModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={mockLoan} // 6 months, 45% TNA -> TEM = 3.75%
+        />
+      );
+
+      const input = screen.getByTestId('investment-amount-input');
+
+      // Input $ 100.000:
+      // profit = 100.000 * 0.0375 * 6 = 22.500
+      // total = 100.000 + 22.500 = 122.500
+      fireEvent.change(input, { target: { value: '100000' } });
+      expect(screen.getByTestId('modal-estimated-profit')).toHaveTextContent('$ 22.500');
+      expect(screen.getByTestId('modal-total-return')).toHaveTextContent('$ 122.500');
+
+      // Update to $ 500.000:
+      // profit = 500.000 * 0.0375 * 6 = 112.500
+      // total = 500.000 + 112.500 = 612.500
+      fireEvent.change(input, { target: { value: '500000' } });
+      expect(screen.getByTestId('modal-estimated-profit')).toHaveTextContent('$ 112.500');
+      expect(screen.getByTestId('modal-total-return')).toHaveTextContent('$ 612.500');
+    });
+
+    it('calculateFinancialRates helper accurately computes TNA, TEM, and TEA values', () => {
+      const rates45 = calculateFinancialRates(mockLoan);
+      expect(rates45.tna).toBe(45);
+      expect(rates45.tem).toBe(3.75);
+      expect(rates45.tea).toBeCloseTo(55.545, 2);
+      expect(rates45.tnaDisplay).toBe('45,0% TNA');
+      expect(rates45.temDisplay).toBe('3,75% TEM');
+      expect(rates45.teaDisplay).toBe('55,5% TEA');
+
+      const loan48: Loan = { ...mockLoan, investor_rate: 48.0 };
+      const rates48 = calculateFinancialRates(loan48);
+      expect(rates48.tna).toBe(48);
+      expect(rates48.tem).toBe(4);
+      expect(rates48.tea).toBeCloseTo(60.103, 2);
+      expect(rates48.tnaDisplay).toBe('48,0% TNA');
+      expect(rates48.temDisplay).toBe('4,0% TEM');
+      expect(rates48.teaDisplay).toBe('60,1% TEA');
+    });
+
+    it('calculateInvestmentReturn helper accurately computes returns and handles edge cases', () => {
+      expect(calculateInvestmentReturn(0, 6, 45)).toEqual({ profit: 0, totalReturn: 0 });
+      expect(calculateInvestmentReturn(9999, 6, 45)).toEqual({ profit: 0, totalReturn: 0 });
+      expect(calculateInvestmentReturn(-50000, 6, 45)).toEqual({ profit: 0, totalReturn: 0 });
+      expect(calculateInvestmentReturn(100000, 0, 45)).toEqual({ profit: 0, totalReturn: 0 });
+      expect(calculateInvestmentReturn(100000, 6, 0)).toEqual({ profit: 0, totalReturn: 0 });
+
+      // 100.000 at 45% for 1 month: 100.000 * 0.0375 * 1 = 3750
+      expect(calculateInvestmentReturn(100000, 1, 45)).toEqual({
+        profit: 3750,
+        totalReturn: 103750,
+      });
+
+      // 100.000 at 45% for 12 months: 100.000 * 0.0375 * 12 = 45000
+      expect(calculateInvestmentReturn(100000, 12, 45)).toEqual({
+        profit: 45000,
+        totalReturn: 145000,
+      });
     });
   });
 });

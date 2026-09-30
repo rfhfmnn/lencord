@@ -216,22 +216,22 @@ Permitir que los usuarios no autenticados exploren libremente el catálogo gener
 Exhibir una breve descripción del proyecto o PyME solicitante en cada tarjeta del catálogo de oportunidades del marketplace (`LoanCard.tsx`), y dentro del modal "Invertir en esta PyME" (`InvestmentModal.tsx`), calcular en tiempo real el importe neto a ganar junto a la visualización clara de las tres tasas de referencia: TNA, TEA y TEM.
 
 ### Acceptance criteria
-- [ ] **Descripción breve en tarjeta de préstamo (`LoanCard.tsx`):**
+- [x] **Descripción breve en tarjeta de préstamo (`LoanCard.tsx`):**
   - Cada tarjeta en `/marketplace` renderiza un extracto de la descripción del proyecto (1 a 2 líneas).
   - La descripción es visible para todos los usuarios (con y sin sesión iniciada).
   - Si la descripción supera los 90 caracteres, se trunca limpiamente con puntos suspensivos (`...`) preservando la altura uniforme de la grilla de tarjetas.
-- [ ] **Cálculo dinámico en Modal de Inversión (`InvestmentModal.tsx`):**
+- [x] **Cálculo dinámico en Modal de Inversión (`InvestmentModal.tsx`):**
   - Al ingresar o editar el monto en pesos a invertir:
     1. **Importe a ganar:** Calcula el interés estimado a percibir según el plazo del préstamo:
        `rendimiento = monto * (TEM / 100) * plazo_meses`.
     2. **Monto total a cobrar:** Muestra la suma de Capital + Intereses estimados (`monto + rendimiento`).
   - Si el monto ingresado está vacío o es menor al ticket mínimo ($10.000), el importe a ganar muestra `$ 0` sin arrojar errores.
-- [ ] **Detalle explícito de tasas financieras:**
+- [x] **Detalle explícito de tasas financieras:**
   - El modal incluye una sección clara con las tres tasas normalizadas:
     - **TNA (Tasa Nominal Anual):** Tasa nominal de la subasta (ej: `45,0% TNA`).
     - **TEM (Tasa Efectiva Mensual):** `TNA / 12` (ej: `3,75% TEM`).
     - **TEA (Tasa Efectiva Anual):** `((1 + TEM/100)^12 - 1) * 100` (ej: `55,5% TEA`).
-- [ ] **Pruebas automatizadas:** Casos en `LoanCard.test.tsx` validan la presencia y truncado de la descripción; pruebas en `InvestmentModal.test.tsx` verifican la reactividad del cálculo de intereses y la visualización correcta de TNA, TEA y TEM.
+- [x] **Pruebas automatizadas:** Casos en `LoanCard.test.tsx` validan la presencia y truncado de la descripción; pruebas en `InvestmentModal.test.tsx` verifican la reactividad del cálculo de intereses y la visualización correcta de TNA, TEA y TEM.
 
 ### Out of scope
 - Deducción de retenciones impositivas de Ganancias o Sellos en el cálculo orientativo (se presenta rendimiento bruto regulatorio).
