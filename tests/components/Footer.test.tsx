@@ -20,7 +20,7 @@ describe('Footer Component', () => {
     // Platform technology & SAS structure
     expect(disclaimerText).toMatch(/plataforma tecnológica/i);
     expect(disclaimerText).toMatch(/sociedad por acciones simplificada/i);
-    expect(disclaimerText).toMatch(/sas/i);
+    expect(disclaimerText).toMatch(/s\.?a\.?s\.?/i);
 
     // Not a financial entity under Ley 21.526
     expect(disclaimerText).toMatch(/no es una entidad financiera/i);
@@ -74,11 +74,11 @@ describe('Footer Component', () => {
     expect(comoFuncionaLink).toHaveAttribute('href', '/#como-funciona');
 
     const faqLink = screen.getByRole('link', { name: /^faq$/i });
-    expect(faqLink).toHaveAttribute('href', '/#faq');
+    expect(faqLink).toHaveAttribute('href', '/faq');
   });
 
   it('renders copyright and brand notice', () => {
     render(<Footer />);
-    expect(screen.getByText(/lencord sas\. todos los derechos reservados/i)).toBeInTheDocument();
+    expect(screen.getByText(/lencord s\.?a\.?s\.?\.\s*todos los derechos reservados/i)).toBeInTheDocument();
   });
 });

@@ -33,7 +33,7 @@ describe('Header Component', () => {
     expect(comoFuncionaLink).toHaveAttribute('href', '/#como-funciona');
 
     const faqLink = screen.getByRole('link', { name: /^faq$/i });
-    expect(faqLink).toHaveAttribute('href', '/#faq');
+    expect(faqLink).toHaveAttribute('href', '/faq');
   });
 
   describe('Unauthenticated Session State', () => {

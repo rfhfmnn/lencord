@@ -324,7 +324,7 @@ export const Header: React.FC<HeaderProps> = ({
           <Link href="/#como-funciona" className={styles.navLink}>
             Cómo funciona
           </Link>
-          <Link href="/#faq" className={styles.navLink}>
+          <Link href="/faq" className={styles.navLink}>
             FAQ
           </Link>
         </nav>
@@ -495,7 +495,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
               Cómo funciona
             </Link>
-            <Link href="/#faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+            <Link href="/faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
               FAQ
             </Link>
           </nav>

@@ -43,7 +43,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                 </Link>
               </li>
               <li>
-                <Link href="/#faq" className={styles.link}>
+                <Link href="/faq" className={styles.link}>
                   FAQ
                 </Link>
               </li>
