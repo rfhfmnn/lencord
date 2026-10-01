@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { NotificationBell } from '@/components/NotificationBell';
+import { defaultMockStateStore } from '@/services/mock/mockState';
 import styles from './header.module.css';
 
 export interface HeaderUser {
@@ -17,6 +18,9 @@ export interface HeaderUser {
   role: 'investor' | 'sme' | 'borrower' | 'admin';
   custodyBalance?: number;
   availableRoles?: ('investor' | 'sme' | 'borrower')[];
+  legalName?: string;
+  pymeCompanyName?: string;
+  investorLegalName?: string;
 }
 
 export interface HeaderProps {
@@ -56,7 +60,20 @@ export const Header: React.FC<HeaderProps> = ({
 
   useEffect(() => {
     if (userProp !== undefined) {
-      setCurrentUser(userProp);
+      if (userProp) {
+        let activeName = userProp.name || userProp.legalName || 'Usuario';
+        if (userProp.role === 'investor' && userProp.investorLegalName) {
+          activeName = userProp.investorLegalName;
+        } else if ((userProp.role === 'borrower' || userProp.role === 'sme') && userProp.pymeCompanyName) {
+          activeName = userProp.pymeCompanyName;
+        }
+        setCurrentUser({
+          ...userProp,
+          name: activeName,
+        });
+      } else {
+        setCurrentUser(null);
+      }
     }
   }, [userProp]);
 
@@ -89,12 +106,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         let role: 'investor' | 'sme' | 'borrower' | 'admin' =
           (authUser.user_metadata?.role as any) || 'borrower';
-        let name: string =
-          authUser.user_metadata?.legal_name ||
-          authUser.user_metadata?.name ||
-          authUser.user_metadata?.full_name ||
-          authUser.email?.split('@')[0] ||
-          'Usuario';
 
         const availableRoles: ('investor' | 'sme' | 'borrower')[] = [];
         if (Array.isArray(authUser.user_metadata?.roles)) {
@@ -104,6 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
           availableRoles.push(authUser.user_metadata.role);
         }
 
+        let profileData: any = null;
         try {
           const { data: profile } = await client
             .from('profiles')
@@ -112,6 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
             .maybeSingle();
 
           if (profile) {
+            profileData = profile;
             if (profile.role) {
               const activeRole = authUser.user_metadata?.active_role || profile.role;
               role = activeRole as any;
@@ -119,20 +132,52 @@ export const Header: React.FC<HeaderProps> = ({
                 availableRoles.push(profile.role as any);
               }
             }
-            if (profile.legal_name) name = profile.legal_name;
           }
         } catch {
           // Keep metadata fallbacks
+        }
+
+        const mockProf = defaultMockStateStore.profiles.find((p) => p.id === authUser.id);
+
+        const pymeCompanyName: string | undefined =
+          authUser.user_metadata?.pyme_company_name ||
+          authUser.user_metadata?.company_name ||
+          profileData?.pyme_company_name ||
+          (mockProf as any)?.pyme_company_name;
+
+        const investorLegalName: string | undefined =
+          authUser.user_metadata?.investor_legal_name ||
+          authUser.user_metadata?.investor_name ||
+          profileData?.investor_legal_name ||
+          (mockProf as any)?.investor_legal_name;
+
+        const fallbackLegalName: string =
+          profileData?.legal_name ||
+          mockProf?.legal_name ||
+          authUser.user_metadata?.legal_name ||
+          authUser.user_metadata?.name ||
+          authUser.user_metadata?.full_name ||
+          authUser.email?.split('@')[0] ||
+          'Usuario';
+
+        let activeName = fallbackLegalName;
+        if (role === 'investor') {
+          activeName = investorLegalName || fallbackLegalName;
+        } else if (role === 'borrower' || role === 'sme') {
+          activeName = pymeCompanyName || fallbackLegalName;
         }
 
         if (isMounted) {
           setCurrentUser({
             id: authUser.id,
             email: authUser.email,
-            name,
+            name: activeName,
             role,
             availableRoles: availableRoles.length > 0 ? availableRoles : [role as any],
             custodyBalance: role === 'investor' ? 1250000 : undefined,
+            legalName: fallbackLegalName,
+            pymeCompanyName,
+            investorLegalName,
           });
           setIsLoading(false);
         }
@@ -220,9 +265,18 @@ export const Header: React.FC<HeaderProps> = ({
     } catch {
       // Ignored
     }
+
+    let nextName = currentUser.name || currentUser.legalName || 'Usuario';
+    if (targetRole === 'investor') {
+      nextName = currentUser.investorLegalName || currentUser.legalName || currentUser.name || 'Inversor';
+    } else if (targetRole === 'borrower') {
+      nextName = currentUser.pymeCompanyName || currentUser.legalName || currentUser.name || 'PyME';
+    }
+
     setCurrentUser({
       ...currentUser,
       role: targetRole,
+      name: nextName,
     });
     if (onRoleSwitch) {
       onRoleSwitch(targetRole);

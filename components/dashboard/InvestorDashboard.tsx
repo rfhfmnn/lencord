@@ -130,7 +130,10 @@ export function InvestorDashboard({
       // 1. Check in mockStateStore first
       const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
       if (mockProfile) {
-        if (!legalName && mockProfile.legal_name) setInvestorName(mockProfile.legal_name);
+        if (!legalName) {
+          const invName = (mockProfile as any).investor_legal_name || (mockProfile as any).investor_name || mockProfile.legal_name;
+          if (invName) setInvestorName(invName);
+        }
         if (!userEmail && mockProfile.email) setInvestorEmail(mockProfile.email);
         if (!cbuCvu && mockProfile.bank_cbu_cvu) setInvestorCbu(mockProfile.bank_cbu_cvu);
         if (
@@ -155,6 +158,8 @@ export function InvestorDashboard({
         if (authData?.user && isMounted) {
           const u = authData.user;
           const authName =
+            u.user_metadata?.investor_legal_name ||
+            u.user_metadata?.investor_name ||
             u.user_metadata?.legal_name ||
             u.user_metadata?.name ||
             u.user_metadata?.full_name;
@@ -180,7 +185,10 @@ export function InvestorDashboard({
           .maybeSingle();
 
         if (profile && isMounted) {
-          if (!legalName && profile.legal_name) setInvestorName(profile.legal_name);
+          if (!legalName) {
+            const profileInvName = (profile as any).investor_legal_name || profile.legal_name;
+            if (profileInvName) setInvestorName(profileInvName);
+          }
           if (!userEmail && profile.email) setInvestorEmail(profile.email);
           if (!cbuCvu && profile.bank_cbu_cvu) setInvestorCbu(profile.bank_cbu_cvu);
           if (

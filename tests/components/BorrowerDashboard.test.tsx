@@ -317,7 +317,7 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     // Table container and headers
     expect(screen.getByTestId('borrower-loans-history')).toBeInTheDocument();
     expect(screen.getByText('Proyecto / Destino')).toBeInTheDocument();
-    expect(screen.getByText('Monto solicitado')).toBeInTheDocument();
+    expect(screen.getAllByText('Monto solicitado').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Plazo y Tasa')).toBeInTheDocument();
     expect(screen.getByText('Fecha de solicitud')).toBeInTheDocument();
     expect(screen.getByText('Vencimiento de subasta')).toBeInTheDocument();

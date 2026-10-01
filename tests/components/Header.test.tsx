@@ -392,5 +392,62 @@ describe('Header Component', () => {
       expect(screen.getByTestId('header-logout-button')).toHaveTextContent('Cerrar sesión');
     });
   });
+
+  describe('Dynamic Identity per Mode (Issue #61)', () => {
+    it('switches between PyME company name and Investor legal name on mode switch', async () => {
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-dual-002',
+            role: 'borrower',
+            availableRoles: ['borrower', 'investor'],
+            pymeCompanyName: 'TechSolutions SAS',
+            investorLegalName: 'Carlos Inversor',
+            legalName: 'Carlos Perez',
+          }}
+        />
+      );
+
+      // Initially in PyME mode, displays company name
+      expect(screen.getByTestId('header-user-name')).toHaveTextContent('TechSolutions SAS');
+      expect(screen.getByTestId('header-role-badge')).toHaveTextContent('PyME');
+
+      // Click to switch to investor mode
+      const switcher = screen.getByTestId('header-role-switcher');
+      await user.click(switcher);
+
+      // Now displays investor legal name immediately
+      await waitFor(() => {
+        expect(screen.getByTestId('header-user-name')).toHaveTextContent('Carlos Inversor');
+        expect(screen.getByTestId('header-role-badge')).toHaveTextContent('Inversor');
+      });
+    });
+
+    it('falls back to legal name if specific role name is not configured', async () => {
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-dual-003',
+            role: 'borrower',
+            availableRoles: ['borrower', 'investor'],
+            legalName: 'María García',
+          }}
+        />
+      );
+
+      expect(screen.getByTestId('header-user-name')).toHaveTextContent('María García');
+
+      const switcher = screen.getByTestId('header-role-switcher');
+      await user.click(switcher);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('header-user-name')).toHaveTextContent('María García');
+        expect(screen.getByTestId('header-role-badge')).toHaveTextContent('Inversor');
+      });
+    });
+  });
 });
+
 

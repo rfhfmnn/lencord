@@ -20,6 +20,8 @@ import styles from './dashboard.module.css';
 export interface BorrowerDashboardProps {
   borrowerId?: string;
   loanId?: string;
+  legalName?: string;
+  companyName?: string;
   initialLoans?: Loan[];
   initialInstallments?: Installment[];
   referenceDate?: Date;
@@ -42,6 +44,8 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, { label: string; className: 
 export function BorrowerDashboard({
   borrowerId = 'prof-sme-001',
   loanId,
+  legalName: legalNameProp,
+  companyName: companyNameProp,
   initialLoans,
   initialInstallments,
   referenceDate = new Date(),
@@ -57,6 +61,7 @@ export function BorrowerDashboard({
   }
 
   const [currentBorrowerId, setCurrentBorrowerId] = useState<string>(borrowerId);
+  const [borrowerName, setBorrowerName] = useState<string>(companyNameProp ?? legalNameProp ?? '');
   const [loans, setLoans] = useState<Loan[]>(initialLoans ?? []);
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(
     loanId ?? (initialLoans && initialLoans.length > 0 ? initialLoans[0].id : null)
@@ -88,8 +93,17 @@ export function BorrowerDashboard({
     let isMounted = true;
     async function checkInvestorRole() {
       const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentBorrowerId);
-      if (mockProfile && (mockProfile.role === 'investor' || (mockProfile as any).has_investor_role)) {
-        if (isMounted) setHasInvestorRole(true);
+      if (mockProfile) {
+        if (mockProfile.role === 'investor' || (mockProfile as any).has_investor_role) {
+          if (isMounted) setHasInvestorRole(true);
+        }
+        if (!companyNameProp && !legalNameProp) {
+          const mockPymeName =
+            (mockProfile as any).pyme_company_name ||
+            (mockProfile as any).company_name ||
+            mockProfile.legal_name;
+          if (mockPymeName && isMounted) setBorrowerName(mockPymeName);
+        }
       }
 
       try {
@@ -102,16 +116,31 @@ export function BorrowerDashboard({
           if (userRoles.includes('investor') || authData.user.user_metadata?.role === 'investor') {
             setHasInvestorRole(true);
           }
+          if (!companyNameProp && !legalNameProp) {
+            const authPymeName =
+              authData.user.user_metadata?.pyme_company_name ||
+              authData.user.user_metadata?.company_name ||
+              authData.user.user_metadata?.legal_name ||
+              authData.user.user_metadata?.name ||
+              authData.user.user_metadata?.full_name;
+            if (authPymeName && isMounted) setBorrowerName(authPymeName);
+          }
         }
 
         const { data: profile } = await client
           .from('profiles')
-          .select('id, role')
+          .select('id, role, legal_name')
           .eq('id', currentBorrowerId)
           .maybeSingle();
 
-        if (profile?.role === 'investor' && isMounted) {
-          setHasInvestorRole(true);
+        if (profile && isMounted) {
+          if (profile.role === 'investor') {
+            setHasInvestorRole(true);
+          }
+          if (!companyNameProp && !legalNameProp) {
+            const profName = (profile as any).pyme_company_name || profile.legal_name;
+            if (profName && isMounted) setBorrowerName(profName);
+          }
         }
       } catch {
         // Ignored
@@ -645,7 +674,13 @@ export function BorrowerDashboard({
         <div>
           <h1 className={styles.title}>Panel PyME</h1>
           <p className={styles.subtitle}>
-            Estado de tu solicitud de crédito, progreso de subasta y cronograma de amortización.
+            {borrowerName ? (
+              <>
+                Bienvenido, <strong data-testid="borrower-company-name">{borrowerName}</strong>. Estado de tu solicitud de crédito, progreso de subasta y cronograma de amortización.
+              </>
+            ) : (
+              'Estado de tu solicitud de crédito, progreso de subasta y cronograma de amortización.'
+            )}
           </p>
         </div>
 
@@ -817,7 +852,7 @@ export function BorrowerDashboard({
               <h3 className={styles.signingTitle}>¡Subasta financiada al 100%!</h3>
               <p className={styles.signingDescription}>
                 Tu proyecto ha alcanzado el fondeo total. Para proceder con el desembolso directo de los fondos
-                en tu CBU/CVU bancario, es necesario firmar el <strong>pagaré digital</strong> correspondiente.
+                en tu CBU/CVU bancario, es necesario firmar el <strong>Pagaré Digital</strong> correspondiente.
               </p>
             </div>
           </div>
@@ -948,9 +983,9 @@ export function BorrowerDashboard({
             <table className={styles.table} role="table">
               <thead>
                 <tr>
-                  <th scope="col">Proyecto/Destino</th>
+                  <th scope="col">Proyecto / Destino</th>
                   <th scope="col">Monto solicitado</th>
-                  <th scope="col">Plazo y tasa</th>
+                  <th scope="col">Plazo y Tasa</th>
                   <th scope="col">Fecha de solicitud</th>
                   <th scope="col">Vencimiento de subasta</th>
                   <th scope="col">Estado</th>
