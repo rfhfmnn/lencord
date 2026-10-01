@@ -4,7 +4,7 @@ Este documento especifica el nuevo conjunto de tareas acordadas a partir del fee
 
 ---
 
-## 1. Header fluido y prevención de saltos de línea
+## [1. Header fluido y prevención de saltos de línea](https://github.com/rfhfmnn/lencord/issues/60)
 
 ### Goal
 Hacer que la barra superior de navegación (`Header`) tenga un ancho fluido (100% de la pantalla con márgenes laterales) y reglas de estilo para que todos los enlaces, balances, identificador de usuario y acciones se mantengan alineados en una sola línea horizontal sin quebrar el texto en pantallas de escritorio.
@@ -27,7 +27,7 @@ Hacer que la barra superior de navegación (`Header`) tenga un ancho fluido (100
 
 ---
 
-## 2. Nombre dinámico según el modo activo (PyME / Inversor) en Header y Paneles
+## [2. Nombre dinámico según el modo activo (PyME / Inversor) en Header y Paneles](https://github.com/rfhfmnn/lencord/issues/61)
 
 ### Goal
 Mostrar dinámicamente el nombre o razón social correspondiente al rol en el que el usuario se encuentra operando (si está en modo PyME, su razón social empresarial; si está en modo Inversor, su nombre/razón social de inversor), tanto en la barra superior (`Header`) como en los encabezados de bienvenida de los paneles internos, recurriendo al nombre legal registrado como fallback en caso de no haberse definido uno específico.
@@ -53,7 +53,7 @@ Mostrar dinámicamente el nombre o razón social correspondiente al rol en el qu
 
 ---
 
-## 3. Reordenamiento de Paneles: Operatoria activa arriba y Mi Perfil abajo en ambos paneles
+## [3. Reordenamiento de Paneles: Operatoria activa arriba y Mi Perfil abajo en ambos paneles](https://github.com/rfhfmnn/lencord/issues/62)
 
 ### Goal
 Reorganizar la jerarquía visual tanto en el Panel del Inversor como en el Panel de la PyME para que las secciones de operativa activa (saldo en custodia, métricas de inversión, listado de inversiones activas, solicitudes de préstamos y monitor de subasta) se ubiquen en la parte superior, mientras que la sección de *"Mi perfil"* y configuración de cuenta quede situada abajo del todo.
@@ -78,7 +78,7 @@ Reorganizar la jerarquía visual tanto en el Panel del Inversor como en el Panel
 
 ---
 
-## 4. Página dedicada de Preguntas Frecuentes (`/faq`) con 3 apartados
+## [4. Página dedicada de Preguntas Frecuentes (`/faq`) con 3 apartados](https://github.com/rfhfmnn/lencord/issues/63)
 
 ### Goal
 Implementar una ruta dedicada `/faq` estructurada con tres apartados interactivos ("General", "Para PyMEs" y "Para inversores"), dejando la arquitectura de componentes y estado armada y lista para recibir contenido futuro, y actualizar los enlaces del Header y Footer para que dirijan a `/faq`.
