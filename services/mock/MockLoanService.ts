@@ -506,11 +506,15 @@ export class MockLoanService implements LoanServiceInterface {
       };
       this.store.custodyTransactions.push(tx);
 
+      const targetLoan = this.store.loans.find((l) => l.id === installment.loan_id);
+      const borrower = targetLoan ? this.store.profiles.find((p) => p.id === targetLoan.borrower_id) : null;
+      const borrowerName = (borrower as any)?.pyme_company_name || borrower?.legal_name || 'la PyME';
+
       this.store.notifications.unshift({
         id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         user_id: inv.investor_id,
-        title: 'Cuota de inversión acreditada',
-        message: `Se acreditaron $${totalShare.toLocaleString('es-AR')} en tu cuenta por la cuota #${installment.installment_number}.`,
+        title: 'Cobro acreditado',
+        message: `Cobro acreditado: Recibiste $${totalShare.toLocaleString('es-AR')} de la cuota ${installment.installment_number} de ${borrowerName}.`,
         type: 'success',
         read: false,
         action_url: '/dashboard/inversor',

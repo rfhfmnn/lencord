@@ -202,7 +202,7 @@ export function MarketplaceCatalog({
   return (
     <div className={`${styles.catalogWrapper} ${className}`} data-testid="marketplace-catalog">
       <div className={styles.catalogHeader}>
-        <h1 className={styles.pageTitle}>Oportunidades de inversión</h1>
+        <h1 className={styles.pageTitle}>Oportunidades de Inversión</h1>
         <p className={styles.pageSubtitle}>
           Financiá proyectos de PyMEs argentinas en subastas colectivas. Cobrá capital e interés mes a mes con la seguridad de pagarés digitales.
         </p>

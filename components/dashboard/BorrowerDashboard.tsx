@@ -79,6 +79,13 @@ export function BorrowerDashboard({
   const [deadlineModalError, setDeadlineModalError] = useState<string | null>(null);
   const [isSavingDeadline, setIsSavingDeadline] = useState<boolean>(false);
 
+  // Bank CBU and Installment Repayment Modal state (Issue #68 and #69)
+  const [borrowerCbu, setBorrowerCbu] = useState<string>('0000003100010000000001');
+  const [repaymentModalInstallment, setRepaymentModalInstallment] = useState<Installment | null>(null);
+  const [isProcessingRepayment, setIsProcessingRepayment] = useState<boolean>(false);
+  const [repaymentCardNumber, setRepaymentCardNumber] = useState<string>('4532 1122 3344 9010');
+  const [repaymentError, setRepaymentError] = useState<string | null>(null);
+
   // Dual-role Investor activation state
   const [hasInvestorRole, setHasInvestorRole] = useState<boolean>(false);
   const [investorLegalName, setInvestorLegalName] = useState<string>('');
@@ -88,6 +95,10 @@ export function BorrowerDashboard({
   const [isActivatingInvestor, setIsActivatingInvestor] = useState<boolean>(false);
   const [investorActivationSuccess, setInvestorActivationSuccess] = useState<string | null>(null);
 
+  const nextPendingInstallment = useMemo(() => {
+    return installments.find((i) => i.status === 'pending');
+  }, [installments]);
+
   // Check investor role for current borrower user
   useEffect(() => {
     let isMounted = true;
@@ -96,6 +107,9 @@ export function BorrowerDashboard({
       if (mockProfile) {
         if (mockProfile.role === 'investor' || (mockProfile as any).has_investor_role) {
           if (isMounted) setHasInvestorRole(true);
+        }
+        if (mockProfile.bank_cbu_cvu && isMounted) {
+          setBorrowerCbu(mockProfile.bank_cbu_cvu);
         }
         if (!companyNameProp && !legalNameProp) {
           const mockPymeName =
@@ -129,13 +143,16 @@ export function BorrowerDashboard({
 
         const { data: profile } = await client
           .from('profiles')
-          .select('id, role, legal_name')
+          .select('id, role, legal_name, bank_cbu_cvu')
           .eq('id', currentBorrowerId)
           .maybeSingle();
 
         if (profile && isMounted) {
           if (profile.role === 'investor') {
             setHasInvestorRole(true);
+          }
+          if (profile.bank_cbu_cvu) {
+            setBorrowerCbu(profile.bank_cbu_cvu);
           }
           if (!companyNameProp && !legalNameProp) {
             const profName = (profile as any).pyme_company_name || profile.legal_name;
@@ -559,6 +576,62 @@ export function BorrowerDashboard({
     );
   };
 
+  const handleConfirmRepayment = async () => {
+    if (!repaymentModalInstallment) return;
+    try {
+      setIsProcessingRepayment(true);
+      setRepaymentError(null);
+      setPayingInstallmentId(repaymentModalInstallment.id);
+
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      if (resolvedServices.loans?.repayInstallment) {
+        await resolvedServices.loans.repayInstallment({
+          installment_id: repaymentModalInstallment.id,
+          payer_id: currentBorrowerId,
+        });
+      } else if (resolvedServices.payments?.collectInstallment) {
+        await resolvedServices.payments.collectInstallment(
+          repaymentModalInstallment.id,
+          '0720123488000012345678',
+          repaymentModalInstallment.principal_amount + repaymentModalInstallment.interest_borrower
+        );
+      }
+
+      const updatedInsts = installments.map((i) =>
+        i.id === repaymentModalInstallment.id
+          ? { ...i, status: 'paid' as const, paid_at: new Date().toISOString() }
+          : i
+      );
+      setInstallments(updatedInsts);
+
+      const allPaid = updatedInsts.every((i) => i.status === 'paid');
+      if (allPaid && currentLoan) {
+        setLoans((prev) =>
+          prev.map((l) => (l.id === currentLoan.id ? { ...l, status: 'repaid' as const } : l))
+        );
+      }
+
+      setPaymentSuccessMsg(`¡Pago de la cuota #${repaymentModalInstallment.installment_number} registrado con éxito!`);
+      setRepaymentModalInstallment(null);
+      setTimeout(() => setPaymentSuccessMsg(null), 5000);
+    } catch (err: any) {
+      console.error('Error executing repayment:', err);
+      setRepaymentError(err?.message || 'Error al procesar el pago de la cuota.');
+    } finally {
+      setIsProcessingRepayment(false);
+      setPayingInstallmentId(null);
+    }
+  };
+
   const handleSimulatePayment = async (inst: Installment) => {
     try {
       setPayingInstallmentId(inst.id);
@@ -870,97 +943,157 @@ export function BorrowerDashboard({
 
       {/* STATE 4: active or repaid */}
       {(currentLoan.status === 'active' || currentLoan.status === 'repaid') && (
-        <section className={styles.section} aria-labelledby="amortization-table-title">
-          <div className={styles.sectionHeader}>
-            <h2 id="amortization-table-title" className={styles.sectionTitle}>
-              Cuadro de amortización (sistema francés)
-            </h2>
-            <p className={styles.sectionDescription}>
-              Detalle de cuotas mensuales, vencimientos, amortización de capital e intereses a abonar.
-            </p>
-          </div>
-
-          {paymentSuccessMsg && (
-            <div className={styles.successAlert} role="status" data-testid="payment-success-alert">
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{paymentSuccessMsg}</span>
-            </div>
-          )}
-
-          <div className={styles.tableCard}>
-            {installments.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-                No se registraron cuotas generadas para este préstamo.
+        <>
+          {/* Celebration & Disbursement Banner (Issue #68) */}
+          <section className={styles.disbursementCard} data-testid="disbursement-banner">
+            <div className={styles.disbursementHeader}>
+              <div className={styles.disbursementIcon} aria-hidden="true">
+                🎉
               </div>
-            ) : (
-              <table className={styles.table} data-testid="amortization-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Cuota #</th>
-                    <th scope="col">Vencimiento</th>
-                    <th scope="col">Amortización (capital)</th>
-                    <th scope="col">Interés</th>
-                    <th scope="col">Total cuota</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {installments.map((inst) => {
-                    const totalCuota = inst.principal_amount + inst.interest_borrower;
-                    const statusClass =
-                      inst.status === 'paid'
-                        ? styles.statusPaid
-                        : inst.status === 'overdue'
-                          ? styles.statusOverdue
-                          : styles.statusPending;
+              <div style={{ flex: 1 }}>
+                <h3 className={styles.disbursementTitle}>¡Felicitaciones! Tu solicitud fue 100% financiada.</h3>
+                <p className={styles.disbursementText}>
+                  Los fondos por <strong>{formatCurrency(currentLoan.amount_requested)}</strong> han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
+                </p>
+                {nextPendingInstallment && (
+                  <p className={styles.disbursementNextDue} data-testid="next-due-date-notice">
+                    Próximo vencimiento: Cuota #{nextPendingInstallment.installment_number} el {nextPendingInstallment.due_date} ({formatCurrency(nextPendingInstallment.principal_amount + nextPendingInstallment.interest_borrower)})
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
 
-                    return (
-                      <tr key={inst.id} data-testid={`amortization-row-${inst.installment_number}`}>
-                        <td>
-                          <span className={styles.primaryText}>Cuota #{inst.installment_number}</span>
-                        </td>
-                        <td>{inst.due_date}</td>
-                        <td>{formatCurrency(inst.principal_amount)}</td>
-                        <td>{formatCurrency(inst.interest_borrower)}</td>
-                        <td>
-                          <span className={styles.primaryText}>{formatCurrency(totalCuota)}</span>
-                        </td>
-                        <td>
-                          <span
-                            className={`${styles.statusBadge} ${statusClass}`}
-                            data-testid={`installment-badge-${inst.installment_number}`}
-                          >
-                            {inst.status}
-                          </span>
-                        </td>
-                        <td>
-                          {inst.status !== 'paid' ? (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              disabled={payingInstallmentId === inst.id}
-                              onClick={() => handleSimulatePayment(inst)}
-                              data-testid={`btn-pay-installment-${inst.installment_number}`}
-                            >
-                              {payingInstallmentId === inst.id ? 'Procesando...' : 'Simular pago'}
-                            </Button>
-                          ) : (
-                            <span style={{ fontSize: '0.8125rem', color: '#047857', fontWeight: 500 }}>
-                              Abonada
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <section className={styles.section} aria-labelledby="amortization-table-title">
+            <div className={styles.sectionHeader}>
+              <h2 id="amortization-table-title" className={styles.sectionTitle}>
+                Cuadro de amortización (sistema francés)
+              </h2>
+              <p className={styles.sectionDescription}>
+                Detalle de cuotas mensuales, vencimientos, amortización de capital e intereses a abonar.
+              </p>
+            </div>
+
+            {paymentSuccessMsg && (
+              <div className={styles.successAlert} role="status" data-testid="payment-success-alert">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{paymentSuccessMsg}</span>
+              </div>
             )}
-          </div>
-        </section>
+
+            <div className={styles.tableCard}>
+              {installments.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                  No se registraron cuotas generadas para este préstamo.
+                </div>
+              ) : (
+                <table className={styles.table} data-testid="amortization-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Cuota #</th>
+                      <th scope="col">Vencimiento</th>
+                      <th scope="col">Amortización (capital)</th>
+                      <th scope="col">Interés</th>
+                      <th scope="col">Total cuota</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {installments.map((inst) => {
+                      const totalCuota = inst.principal_amount + inst.interest_borrower;
+                      const statusClass =
+                        inst.status === 'paid'
+                          ? styles.statusPaid
+                          : inst.status === 'overdue'
+                            ? styles.statusOverdue
+                            : styles.statusPending;
+
+                      const isNextPending = nextPendingInstallment?.id === inst.id;
+
+                      return (
+                        <tr key={inst.id} data-testid={`amortization-row-${inst.installment_number}`}>
+                          <td>
+                            <span className={styles.primaryText}>Cuota #{inst.installment_number}</span>
+                          </td>
+                          <td>{inst.due_date}</td>
+                          <td>{formatCurrency(inst.principal_amount)}</td>
+                          <td>{formatCurrency(inst.interest_borrower)}</td>
+                          <td>
+                            <span className={styles.primaryText}>{formatCurrency(totalCuota)}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                              <span
+                                className={`${styles.statusBadge} ${statusClass}`}
+                                data-testid={`installment-badge-${inst.installment_number}`}
+                              >
+                                {inst.status}
+                              </span>
+                              {inst.status === 'paid' && (
+                                <span
+                                  className={styles.comprobanteBadge}
+                                  data-testid={`comprobante-badge-${inst.installment_number}`}
+                                >
+                                  Comprobante PAG-{inst.id.slice(0, 8).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            {inst.status !== 'paid' ? (
+                              isNextPending ? (
+                                <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={isProcessingRepayment && payingInstallmentId === inst.id}
+                                    onClick={() => {
+                                      setRepaymentModalInstallment(inst);
+                                      setRepaymentError(null);
+                                    }}
+                                    data-testid={`btn-open-repayment-modal-${inst.installment_number}`}
+                                  >
+                                    Pagar cuota
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={payingInstallmentId === inst.id}
+                                    onClick={() => handleSimulatePayment(inst)}
+                                    data-testid={`btn-pay-installment-${inst.installment_number}`}
+                                  >
+                                    Simular pago
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled
+                                  title="Debés abonar las cuotas anteriores primero"
+                                  data-testid={`btn-pay-installment-disabled-${inst.installment_number}`}
+                                >
+                                  Esperando cuota anterior
+                                </Button>
+                              )
+                            ) : (
+                              <span style={{ fontSize: '0.8125rem', color: '#047857', fontWeight: 600 }}>
+                                Abonada
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        </>
       )}
 
       {/* Historical and all loan applications list (Issue #56) */}
@@ -1254,6 +1387,109 @@ export function BorrowerDashboard({
           installments={installments}
           onSuccess={handleContractSigned}
         />
+      )}
+
+      {/* Installment Repayment Modal (Issue #69) */}
+      {repaymentModalInstallment && (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="repayment-modal-title"
+          data-testid="repayment-modal"
+        >
+          <div className={styles.repaymentModalCard}>
+            <header className={styles.modalHeader}>
+              <div>
+                <h3 id="repayment-modal-title" className={styles.modalTitle}>
+                  Abonar Cuota #{repaymentModalInstallment.installment_number}
+                </h3>
+                <p className={styles.modalSubtitle}>
+                  Pago seguro de amortización e intereses mediante pasarela bancaria BaaS.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => setRepaymentModalInstallment(null)}
+                aria-label="Cerrar modal de pago"
+                disabled={isProcessingRepayment}
+                data-testid="btn-close-repayment-modal"
+              >
+                &times;
+              </button>
+            </header>
+
+            <div className={styles.modalBody}>
+              <div className={styles.breakdownBox} data-testid="repayment-breakdown">
+                <div className={styles.breakdownRow}>
+                  <span>Capital a amortizar:</span>
+                  <strong>{formatCurrency(repaymentModalInstallment.principal_amount)}</strong>
+                </div>
+                <div className={styles.breakdownRow}>
+                  <span>Interés compensatorio:</span>
+                  <strong>{formatCurrency(repaymentModalInstallment.interest_borrower)}</strong>
+                </div>
+                <div className={styles.breakdownTotal}>
+                  <span>Total a pagar:</span>
+                  <span style={{ color: '#059669', fontSize: '1.25rem' }}>
+                    {formatCurrency(
+                      repaymentModalInstallment.principal_amount + repaymentModalInstallment.interest_borrower
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Input
+                  label="Número de tarjeta para débito / crédito"
+                  name="repaymentCardNumber"
+                  value={repaymentCardNumber}
+                  onChange={(e) => setRepaymentCardNumber(e.target.value)}
+                  placeholder="•••• •••• •••• 9010"
+                  required
+                  data-testid="input-repayment-card"
+                />
+
+                <button
+                  type="button"
+                  className={styles.quickSimBtn}
+                  onClick={() => setRepaymentCardNumber('4532 1122 3344 9010')}
+                  data-testid="btn-quick-fill-card"
+                >
+                  💳 Simular pago exitoso (Tarjeta válida Sandbox)
+                </button>
+              </div>
+
+              {repaymentError && (
+                <div className={styles.errorMessage} role="alert" style={{ marginTop: '0.75rem' }} data-testid="repayment-error">
+                  {repaymentError}
+                </div>
+              )}
+            </div>
+
+            <footer className={styles.modalFooter} style={{ padding: '1rem 1.5rem', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <Button
+                variant="bordered"
+                size="md"
+                onClick={() => setRepaymentModalInstallment(null)}
+                disabled={isProcessingRepayment}
+                data-testid="btn-cancel-repayment"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleConfirmRepayment}
+                disabled={isProcessingRepayment || !repaymentCardNumber.trim()}
+                data-testid="btn-confirm-repayment"
+              >
+                {isProcessingRepayment ? 'Procesando pago...' : 'Confirmar pago de cuota'}
+              </Button>
+            </footer>
+          </div>
+        </div>
       )}
     </div>
   );

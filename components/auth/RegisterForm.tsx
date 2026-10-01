@@ -114,7 +114,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     // SME Specific Validation
     if (role === 'borrower') {
       if (!companyName.trim()) {
-        newErrors.companyName = 'La razón social o nombre de tu empresa es obligatorio.';
+        newErrors.companyName = 'La razón social o nombre de la empresa es obligatorio.';
       }
 
       if (!cuit.trim()) {
@@ -138,7 +138,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const cleanId = cleanCuit(taxId);
       if (cleanId) {
         if (cleanId.length < 7 || (cleanId.length > 8 && cleanId.length < 11) || cleanId.length > 11) {
-          newErrors.taxId = 'Ingresá un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
+          newErrors.taxId = 'Ingrese un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
         } else if (cleanId.length === 11 && !validateCuit(cleanId)) {
           newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
         }
@@ -292,7 +292,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Creá tu cuenta en Lencord</h1>
+          <h1 className={styles.title}>Crear cuenta en Lencord</h1>
           <p className={styles.subtitle}>
             Financiamiento colectivo, transparente y seguro para el desarrollo de tu negocio.
           </p>

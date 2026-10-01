@@ -96,9 +96,90 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     );
     loan.amount_funded = newFundedAmount;
 
-    // Automatically transition to funded when 100% capacity is reached
-    if (loan.amount_funded === loan.amount_requested) {
+    // Automatically transition to active and trigger disbursement cycle when 100% capacity is reached (Issue #68)
+    const isFullyFunded = loan.amount_funded >= loan.amount_requested;
+    if (isFullyFunded) {
       loan.status = 'funded';
+
+      // 1. Generate monthly French amortization installments if not yet generated
+      const existingInstallments = this.store.installments.filter((i) => i.loan_id === loan.id);
+      if (existingInstallments.length === 0) {
+        const term = loan.term_months || 1;
+        const annualRate = loan.borrower_rate || 45;
+        const monthlyRate = annualRate > 0 ? annualRate / 100 / 12 : 0.04;
+        let installmentAmount = 0;
+        if (term === 1) {
+          installmentAmount = loan.amount_requested * (1 + monthlyRate);
+        } else {
+          const factor = Math.pow(1 + monthlyRate, term);
+          installmentAmount = (loan.amount_requested * (monthlyRate * factor)) / (factor - 1);
+        }
+
+        let remainingPrincipal = loan.amount_requested;
+        const activationDate = new Date();
+        const investorRatio = loan.borrower_rate > 0 ? loan.investor_rate / loan.borrower_rate : 0.9;
+
+        for (let i = 1; i <= term; i++) {
+          const interestTotal = remainingPrincipal * monthlyRate;
+          const principal = installmentAmount - interestTotal;
+          remainingPrincipal = Math.max(0, remainingPrincipal - principal);
+          const dueDate = new Date(activationDate.getTime() + i * 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+
+          const interestInvestors = Number((interestTotal * investorRatio).toFixed(2));
+          const interestLencord = Number((interestTotal - interestInvestors).toFixed(2));
+
+          this.store.installments.push({
+            id: `inst-${Math.random().toString(36).substring(2, 9)}`,
+            loan_id: loan.id,
+            installment_number: i,
+            due_date: dueDate,
+            principal_amount: Number(principal.toFixed(2)),
+            interest_borrower: Number(interestTotal.toFixed(2)),
+            interest_investors: interestInvestors,
+            interest_lencord: interestLencord,
+            uva_value_applied: loan.base_uva_value,
+            status: 'pending',
+            paid_at: null,
+          });
+        }
+      }
+
+      // 2. Resolve borrower info for notifications
+      const borrowerProfile = this.store.profiles.find((p) => p.id === loan.borrower_id);
+      const borrowerName = (borrowerProfile as any)?.pyme_company_name || borrowerProfile?.legal_name || 'la PyME';
+      const borrowerCbu = borrowerProfile?.bank_cbu_cvu || '0000003100010000000001';
+      const cbuLast4 = borrowerCbu.slice(-4);
+
+      // 3. Emit celebration notification to borrower
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: loan.borrower_id,
+        title: '¡Subasta financiada al 100%!',
+        message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Los fondos por $${loan.amount_requested.toLocaleString('es-AR')} han sido transferidos a tu cuenta CBU registrada (terminada en ${cbuLast4}).`,
+        type: 'success',
+        read: false,
+        action_url: '/dashboard/pyme',
+        created_at: new Date().toISOString(),
+      });
+
+      // 4. Emit notification to all participating investors
+      const allLoanInvestments = this.store.investments.filter((inv) => inv.loan_id === loan.id);
+      const uniqueInvestorIds = Array.from(new Set([...allLoanInvestments.map((inv) => inv.investor_id), input.investor_id]));
+
+      for (const invId of uniqueInvestorIds) {
+        this.store.notifications.unshift({
+          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          user_id: invId,
+          title: 'Subasta completada',
+          message: `La subasta de ${borrowerName} se completó exitosamente. Tu inversión ya está activa y devengando rendimientos.`,
+          type: 'success',
+          read: false,
+          action_url: '/dashboard/inversor',
+          created_at: new Date().toISOString(),
+        });
+      }
     }
 
     const investment: Investment = {
@@ -196,7 +277,7 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       investment: JSON.parse(JSON.stringify(investment)),
       loan: JSON.parse(JSON.stringify(loan)),
       amount_funded: loan.amount_funded,
-      is_fully_funded: loan.status === 'funded',
+      is_fully_funded: loan.status === 'funded' || loan.status === 'active',
     };
   }
 
