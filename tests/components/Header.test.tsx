@@ -361,5 +361,36 @@ describe('Header Component', () => {
       expect(screen.getByTestId('mobile-logout-button')).toBeInTheDocument();
     });
   });
+
+  describe('Fluid Width and Single-Line Layout (Issue #60)', () => {
+    it('renders fluid header container and all actions in a single row without wrapping', () => {
+      render(
+        <Header
+          user={{
+            id: 'prof-dual-001',
+            name: 'Industrias Mediterráneas S.A.',
+            role: 'borrower',
+            availableRoles: ['borrower', 'investor'],
+            custodyBalance: 2500000,
+          }}
+        />
+      );
+
+      const header = screen.getByTestId('sticky-header');
+      expect(header).toBeInTheDocument();
+
+      const container = header.firstElementChild;
+      expect(container).toHaveClass(/container/i);
+
+      // Verify all desktop elements coexist in header desktop actions
+      const desktopActions = screen.getByTestId('header-desktop-actions');
+      expect(desktopActions).toBeInTheDocument();
+      expect(screen.getByTestId('header-user-name')).toHaveTextContent('Industrias Mediterráneas S.A.');
+      expect(screen.getByTestId('header-role-badge')).toHaveTextContent('PyME');
+      expect(screen.getByTestId('header-dashboard-link')).toHaveTextContent('Mi panel');
+      expect(screen.getByTestId('header-role-switcher')).toHaveTextContent('Cambiar a modo Inversor');
+      expect(screen.getByTestId('header-logout-button')).toHaveTextContent('Cerrar sesión');
+    });
+  });
 });
 

@@ -347,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className={styles.roleSwitchButton}
                   data-testid="header-role-switcher"
                 >
-                  {isBorrower ? 'Cambiar a modo inversor' : 'Cambiar a modo PyME'}
+                  {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
                 </Button>
               )}
 
