@@ -6,7 +6,10 @@ Sigue rigurosamente el formato estándar de `_docs/task-template.md` y las direc
 
 ---
 
-## 1. Persistencia Automática de Perfiles (`public.profiles`) y Carga Robusta de Documentos PDF en Storage
+
+---
+
+## [1. Persistencia Automática de Perfiles (`public.profiles`) y Carga Robusta de Documentos PDF en Storage](https://github.com/rfhfmnn/lencord/issues/64)
 
 ### Goal
 Garantizar que todo usuario registrado en Supabase Auth cree de forma transparente su registro correspondiente en `public.profiles` mediante el trigger de base de datos con permisos `SECURITY DEFINER` (soportando tanto CUIT empresarial como DNI/inversores o nulo), y que el wizard de solicitud de crédito (`/solicitar`) permita subir los PDFs de constancia AFIP/ARCA, balances y extractos al bucket privado `loan-documents` de Supabase Storage asociándolos al `auth.uid()` real del usuario autenticado, habilitando el avance sin bloqueos al paso 4.
@@ -38,7 +41,7 @@ Garantizar que todo usuario registrado en Supabase Auth cree de forma transparen
 
 ---
 
-## 2. Arquitectura de Datos en Supabase: Ledger Transaccional, Distribución de Cuotas, Firma y RPCs Atómicos
+## [2. Arquitectura de Datos en Supabase: Ledger Transaccional, Distribución de Cuotas, Firma y RPCs Atómicos](https://github.com/rfhfmnn/lencord/issues/65)
 
 ### Goal
 Implementar la infraestructura de datos en Supabase necesaria para soportar un modelo financiero auditable: libro contable de saldo en custodia (`custody_transactions`), distribución de cuotas por inversor (`installment_payouts`), metadatos de auditoría de firma electrónica en `legal_contracts`, y procedimientos almacenados (RPC) transaccionales y atómicos en PostgreSQL para el checkout de inversiones y la liquidación de cuotas.
@@ -83,7 +86,7 @@ Implementar la infraestructura de datos en Supabase necesaria para soportar un m
 
 ---
 
-## 3. Experiencia de Checkout de Inversión con Pasarela de Pagos (Tarjeta Simulado BaaS)
+## [3. Experiencia de Checkout de Inversión con Pasarela de Pagos (Tarjeta Simulado BaaS)](https://github.com/rfhfmnn/lencord/issues/66)
 
 ### Goal
 Proveer una experiencia de usuario de checkout financiero fluido en el modal de inversión del Marketplace, donde el inversor pueda pagar directamente con tarjeta de débito/crédito (simulando una pasarela BaaS) o debitar de su saldo en custodia disponible, con opciones de prueba rápida (tarjeta aprobada / fondos insuficientes).
@@ -115,7 +118,7 @@ Proveer una experiencia de usuario de checkout financiero fluido en el modal de 
 
 ---
 
-## 4. Flujo de Firma Electrónica Auditable para Contratos (Mutuo y Pagaré)
+## [4. Flujo de Firma Electrónica Auditable para Contratos (Mutuo y Pagaré)](https://github.com/rfhfmnn/lencord/issues/67)
 
 ### Goal
 Implementar una pantalla y modal interactivo de firma electrónica para que las PyMEs (al aprobarse su préstamo) y los Inversores (al invertir o formalizar la operación) puedan previsualizar el contrato de mutuo y el pagaré, manifestar su consentimiento y rubricar electrónicamente registrando metadatos legales de auditoría (timestamp UTC, hash criptográfico, IP y user-agent).
@@ -142,7 +145,7 @@ Implementar una pantalla y modal interactivo de firma electrónica para que las 
 
 ---
 
-## 5. Fondeo Completo del Préstamo, Notificación de Desembolso y Activación de Cuotas
+## [5. Fondeo Completo del Préstamo, Notificación de Desembolso y Activación de Cuotas](https://github.com/rfhfmnn/lencord/issues/68)
 
 ### Goal
 Cuando una subasta alcanza el 100% del monto solicitado (`amount_funded = amount_requested`), el sistema debe transicionar automáticamente el estado del crédito a fondeado (`funded`/`active`), generar el cronograma mensual de cuotas y notificar a la PyME con una confirmación simulada de desembolso bancario a su CBU.
@@ -168,7 +171,7 @@ Cuando una subasta alcanza el 100% del monto solicitado (`amount_funded = amount
 
 ---
 
-## 6. Pago de Cuotas por la PyME y Distribución Proporcional Automática a Inversores
+## [6. Pago de Cuotas por la PyME y Distribución Proporcional Automática a Inversores](https://github.com/rfhfmnn/lencord/issues/69)
 
 ### Goal
 Permitir que la PyME abone sus cuotas mensuales desde su panel mediante un checkout simulado (tarjeta/débito en cuenta), y que el sistema procese automáticamente el prorrateo de capital e intereses entre todos los inversores participantes, acreditando el dinero directamente en su saldo en custodia.
@@ -198,7 +201,7 @@ Permitir que la PyME abone sus cuotas mensuales desde su panel mediante un check
 
 ---
 
-## 7. Saldo en Custodia, Historial de Movimientos y Solicitud de Retiro a CBU en Panel del Inversor
+## [7. Saldo en Custodia, Historial de Movimientos y Solicitud de Retiro a CBU en Panel del Inversor](https://github.com/rfhfmnn/lencord/issues/70)
 
 ### Goal
 Dotar al Panel del Inversor de una billetera de custodia completa que refleje el saldo disponible acumulado de cobros, un historial auditable de movimientos (ingresos por cuotas, colocaciones en préstamos, retiros) y un flujo interactivo para solicitar el retiro de fondos hacia su CBU bancario.
@@ -226,7 +229,7 @@ Dotar al Panel del Inversor de una billetera de custodia completa que refleje el
 
 ---
 
-## 8. Notificaciones en Tiempo Real (Supabase Realtime) y Alertas en el Header
+## [8. Notificaciones en Tiempo Real (Supabase Realtime) y Alertas en el Header](https://github.com/rfhfmnn/lencord/issues/71)
 
 ### Goal
 Configurar la sincronización en vivo mediante Supabase Realtime sobre la tabla `notifications` para que los usuarios reciban alertas visuales instantáneas (badge en la campana del Header y alertas flotantes tipo toast) ante cobros, confirmación de inversiones y cambios de estado de préstamos sin necesidad de recargar la página.
@@ -252,7 +255,7 @@ Configurar la sincronización en vivo mediante Supabase Realtime sobre la tabla 
 
 ---
 
-## 9. Términos y Condiciones Definitivos, Política de Privacidad y Consentimiento de Riesgos
+## [9. Términos y Condiciones Definitivos, Política de Privacidad y Consentimiento de Riesgos](https://github.com/rfhfmnn/lencord/issues/72)
 
 ### Goal
 Completar las rutas legales `/terminos` y `/privacidad` con la redacción legal definitiva adaptada a la operatoria de financiamiento colectivo P2P en Argentina, e integrar checkboxes obligatorios de aceptación de términos y consentimiento expreso de riesgos crediticios en el registro y en el primer checkout de inversión.
