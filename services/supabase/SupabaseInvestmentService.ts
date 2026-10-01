@@ -8,12 +8,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   CommitInvestmentInput,
   CommitInvestmentResult,
+  CustodyTransaction,
   EmailServiceInterface,
   Investment,
   InvestmentServiceInterface,
   Loan,
   PaymentGatewayInterface,
   RefundInvestmentsResult,
+  RequestWithdrawalInput,
 } from '@/types';
 import { createSupabaseServerClient, createSupabaseBrowserClient } from './client';
 import { mapSupabaseError } from './errors';
@@ -244,6 +246,82 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
     } catch {
       return 0;
     }
+  }
+
+  public async getCustodyTransactions(investorId: string): Promise<CustodyTransaction[]> {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(investorId)) {
+      return [];
+    }
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from('custody_transactions')
+        .select('*')
+        .eq('profile_id', investorId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw mapSupabaseError(error, `Error al obtener transacciones de custodia`);
+      }
+
+      return (data || []) as CustodyTransaction[];
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al obtener transacciones de custodia`);
+    }
+  }
+
+  public async requestWithdrawal(input: RequestWithdrawalInput): Promise<CustodyTransaction> {
+    if (!input.amount || input.amount <= 0) {
+      throw new Error('El importe a retirar debe ser mayor a cero.');
+    }
+
+    const currentBalance = await this.getCustodyBalance(input.investor_id);
+    if (input.amount > currentBalance) {
+      throw new Error('Saldo insuficiente para realizar el retiro solicitado.');
+    }
+
+    const client = await this.getClient();
+    const { data: profile } = await client
+      .from('profiles')
+      .select('bank_cbu_cvu, bank_alias')
+      .eq('id', input.investor_id)
+      .maybeSingle();
+
+    const destinationCbu = input.bank_cbu_cvu || profile?.bank_cbu_cvu;
+    if (!destinationCbu) {
+      throw new Error('Cuenta bancaria no configurada. Por favor, agregá tu CBU/CVU en tu perfil.');
+    }
+
+    const newBalance = Number((currentBalance - input.amount).toFixed(2));
+
+    const { data, error } = await client
+      .from('custody_transactions')
+      .insert({
+        profile_id: input.investor_id,
+        type: 'withdrawal',
+        amount: input.amount,
+        balance_after: newBalance,
+        status: 'completed',
+        payment_metadata: {
+          bank_cbu_cvu: destinationCbu,
+          bank_alias: input.bank_alias || profile?.bank_alias || null,
+          description: 'Retiro de saldo en custodia a CBU bancario',
+        },
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw mapSupabaseError(error, 'Error al registrar la solicitud de retiro');
+    }
+
+    await client
+      .from('profiles')
+      .update({ custody_balance: newBalance })
+      .eq('id', input.investor_id);
+
+    return data as CustodyTransaction;
   }
 
   public async getInvestmentsByLoan(loanId: string): Promise<Investment[]> {

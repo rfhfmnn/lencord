@@ -115,6 +115,7 @@ export interface Profile {
   is_verified?: boolean;
   notification_preferences?: NotificationPreferences;
   custody_balance?: number | null;
+  bank_alias?: string | null;
 }
 
 /**

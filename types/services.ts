@@ -5,6 +5,7 @@
 
 import type {
   BcraSituation,
+  CustodyTransaction,
   DocumentType,
   Installment,
   InstallmentStatus,
@@ -181,6 +182,13 @@ export interface RepayInstallmentResult {
   payouts_count?: number;
 }
 
+export interface RequestWithdrawalInput {
+  investor_id: string;
+  amount: number;
+  bank_cbu_cvu?: string;
+  bank_alias?: string;
+}
+
 /**
  * Service contract for investor commitments, atomic auctions, and fund reconciliation.
  */
@@ -188,6 +196,8 @@ export interface InvestmentServiceInterface {
   commitInvestment(input: CommitInvestmentInput): Promise<CommitInvestmentResult>;
   checkoutInvestment?(input: CheckoutInvestmentInput): Promise<CheckoutInvestmentResult>;
   getCustodyBalance?(investorId: string): Promise<number>;
+  getCustodyTransactions?(investorId: string): Promise<CustodyTransaction[]>;
+  requestWithdrawal?(input: RequestWithdrawalInput): Promise<CustodyTransaction>;
   getInvestmentsByLoan(loanId: string): Promise<Investment[]>;
   getInvestmentsByInvestor(investorId: string): Promise<Investment[]>;
   getInvestmentById(id: string): Promise<Investment | null>;

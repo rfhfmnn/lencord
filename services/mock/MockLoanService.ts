@@ -513,7 +513,7 @@ export class MockLoanService implements LoanServiceInterface {
       this.store.notifications.unshift({
         id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         user_id: inv.investor_id,
-        title: 'Cobro acreditado',
+        title: 'Cobro acreditado - Cuota',
         message: `Cobro acreditado: Recibiste $${totalShare.toLocaleString('es-AR')} de la cuota ${installment.installment_number} de ${borrowerName}.`,
         type: 'success',
         read: false,

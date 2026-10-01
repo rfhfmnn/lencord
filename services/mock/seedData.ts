@@ -5,6 +5,7 @@
  */
 
 import type {
+  CustodyTransaction,
   Installment,
   Investment,
   LegalContract,
@@ -81,6 +82,7 @@ export const SEED_PROFILES: Profile[] = [
     phone: '+54 11 6543-2100',
     kyc_status: 'approved',
     bank_cbu_cvu: '0070123430000055667788',
+    bank_alias: 'juan.lencord.ars',
     custody_balance: 5_250_000,
     created_at: '2026-01-10T08:00:00.000Z',
   },
@@ -477,5 +479,45 @@ export const SEED_NOTIFICATIONS: Notification[] = [
     read: true,
     action_url: '/dashboard/pyme',
     created_at: '2026-08-28T09:45:00.000Z',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Seed Custody Transactions (BaaS Segregated Account Movement History)
+// ---------------------------------------------------------------------------
+
+export const SEED_CUSTODY_TRANSACTIONS: CustodyTransaction[] = [
+  {
+    id: 'ctx-seed-001',
+    profile_id: 'prof-inv-001',
+    type: 'card_deposit',
+    amount: 5000000,
+    balance_after: 5000000,
+    status: 'completed',
+    reference_id: null,
+    payment_metadata: { method: 'bank_transfer', source: 'CBU', bank_alias: 'juan.lencord.ars' },
+    created_at: '2026-02-01T10:00:00.000Z',
+  },
+  {
+    id: 'ctx-seed-002',
+    profile_id: 'prof-inv-001',
+    type: 'investment_hold',
+    amount: 500000,
+    balance_after: 4500000,
+    status: 'completed',
+    reference_id: 'loan-sme-001',
+    payment_metadata: { loan_id: 'loan-sme-001', description: 'Participación en préstamo Metalúrgica Quilmes' },
+    created_at: '2026-02-15T14:30:00.000Z',
+  },
+  {
+    id: 'ctx-seed-003',
+    profile_id: 'prof-inv-001',
+    type: 'installment_payout',
+    amount: 750000,
+    balance_after: 5250000,
+    status: 'completed',
+    reference_id: 'inst-001',
+    payment_metadata: { loan_id: 'loan-sme-001', installment_number: 1, description: 'Cobro de cuota 1 Metalúrgica Quilmes' },
+    created_at: '2026-03-01T09:15:00.000Z',
   },
 ];

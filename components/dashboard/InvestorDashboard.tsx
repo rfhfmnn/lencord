@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { Installment, Investment, Loan, RiskTier, SmeCreditProfile } from '@/types';
+import type { CustodyTransaction, Installment, Investment, Loan, RiskTier, SmeCreditProfile } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { TierBadge } from '@/components/ui/TierBadge';
@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Input } from '@/components/ui/Input';
 import { cleanCuit, validateCuit, formatCuit } from '@/components/solicitar/cuitValidator';
 import { defaultMockStateStore } from '@/services/mock/mockState';
+import { WithdrawalModal } from './WithdrawalModal';
 import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
@@ -68,6 +69,9 @@ export function InvestorDashboard({
   const [investorName, setInvestorName] = useState<string>(legalName ?? '');
   const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? '');
   const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? '');
+  const [investorAlias, setInvestorAlias] = useState<string>('');
+  const [custodyTransactions, setCustodyTransactions] = useState<CustodyTransaction[]>([]);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState<boolean>(false);
   const [custodyBalanceState, setCustodyBalanceState] = useState<number | null>(
     custodyBalanceProp !== undefined ? custodyBalanceProp : null
   );
@@ -136,6 +140,7 @@ export function InvestorDashboard({
         }
         if (!userEmail && mockProfile.email) setInvestorEmail(mockProfile.email);
         if (!cbuCvu && mockProfile.bank_cbu_cvu) setInvestorCbu(mockProfile.bank_cbu_cvu);
+        if ((mockProfile as any).bank_alias) setInvestorAlias((mockProfile as any).bank_alias);
         if (
           custodyBalanceProp === undefined &&
           mockProfile.custody_balance !== undefined &&
@@ -554,11 +559,32 @@ export function InvestorDashboard({
         );
         const combinedInstallments = allInstallmentsLists.flat();
 
+        // 5. Fetch custody transactions and live balance
+        let txs: CustodyTransaction[] = [];
+        if (resolvedServices.investments.getCustodyTransactions) {
+          try {
+            txs = await resolvedServices.investments.getCustodyTransactions(currentInvestorId);
+          } catch (err) {
+            console.warn('Error fetching custody transactions:', err);
+          }
+        }
+        if (resolvedServices.investments.getCustodyBalance) {
+          try {
+            const bal = await resolvedServices.investments.getCustodyBalance(currentInvestorId);
+            if (isMounted && custodyBalanceProp === undefined) {
+              setCustodyBalanceState(bal);
+            }
+          } catch (err) {
+            console.warn('Error fetching custody balance:', err);
+          }
+        }
+
         if (isMounted) {
           setInvestments(invs);
           setLoansMap(newLoansMap);
           setCreditProfilesMap(newCreditProfiles);
           setInstallments(combinedInstallments);
+          setCustodyTransactions(txs);
           setLoading(false);
         }
       } catch (err) {
@@ -662,13 +688,16 @@ export function InvestorDashboard({
   const effectiveCustodyBalance = useMemo(() => {
     if (custodyBalanceProp !== undefined) return custodyBalanceProp;
     if (custodyBalanceState !== null && custodyBalanceState !== undefined) return custodyBalanceState;
+    if (custodyTransactions.length > 0) {
+      return custodyTransactions[0].balance_after;
+    }
     const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
     if (mockProfile && mockProfile.custody_balance !== undefined && mockProfile.custody_balance !== null) {
       return mockProfile.custody_balance;
     }
     if (currentInvestorId === 'prof-inv-001') return 5_250_000;
     return 0;
-  }, [custodyBalanceProp, custodyBalanceState, currentInvestorId]);
+  }, [custodyBalanceProp, custodyBalanceState, custodyTransactions, currentInvestorId]);
 
   if (loading) {
     return (
@@ -717,14 +746,28 @@ export function InvestorDashboard({
             </svg>
           </div>
           <div>
-            <span className={styles.metricLabel}>Saldo ilustrativo en custodia</span>
-            <div className={styles.custodyBalanceAmount} data-testid="illustrative-custody-balance">
-              {formatCurrency(effectiveCustodyBalance)}
+            <span className={styles.metricLabel}>Saldo disponible en custodia</span>
+            <div className={styles.custodyBalanceAmount} data-testid="available-custody-balance">
+              Saldo disponible en custodia: {formatCurrency(effectiveCustodyBalance)}
             </div>
+            <span className="sr-only" data-testid="illustrative-custody-balance">
+              {formatCurrency(effectiveCustodyBalance)}
+            </span>
             <p className={styles.custodyDisclaimerText} data-testid="custody-disclaimer">
               <strong>Aviso regulatorio:</strong> Los fondos líquidos y transacciones se encuentran bajo custodia de una entidad financiera y/o Proveedor de Servicios de Pago (PSP) autorizado por el Banco Central de la República Argentina (BCRA). Lencord es una plataforma tecnológica y no realiza intermediación financiera, captación no autorizada ni custodia directa de saldos monetarios de terceros.
             </p>
           </div>
+        </div>
+        <div className={styles.custodyDisclaimerRight}>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={() => setIsWithdrawalModalOpen(true)}
+            data-testid="btn-withdraw-funds"
+          >
+            Retirar fondos a mi CBU
+          </Button>
         </div>
       </section>
 
@@ -1002,6 +1045,137 @@ export function InvestorDashboard({
         </>
       )}
 
+      {/* Historial de Movimientos de Cuenta Auditables (Issue #70) */}
+      <section
+        className={styles.section}
+        aria-labelledby="custody-transactions-title"
+        data-testid="custody-transactions-section"
+      >
+        <div className={styles.sectionHeader}>
+          <h2 id="custody-transactions-title" className={styles.sectionTitle}>
+            Movimientos de cuenta
+          </h2>
+          <p className={styles.sectionDescription}>
+            Historial cronológico y auditable de ingresos por cuotas, colocaciones en préstamos y retiros de fondos.
+          </p>
+        </div>
+
+        <div className={styles.tableCard}>
+          {custodyTransactions.length === 0 ? (
+            <div className={styles.noTransactionsEmptyState} data-testid="no-transactions-empty-state">
+              <div className={styles.noTransactionsIcon} aria-hidden="true">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+                No registrás movimientos en tu cuenta
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0, maxWidth: '420px' }}>
+                Aún no has participado en subastas, percibido cobros ni solicitado retiros a tu CBU.
+              </p>
+              <Link href="/marketplace">
+                <Button variant="bordered" size="sm" data-testid="explore-marketplace-from-empty-transactions">
+                  Explorar marketplace
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className={styles.table} data-testid="custody-transactions-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Fecha y hora</th>
+                    <th scope="col">Tipo de movimiento</th>
+                    <th scope="col">Referencia/Préstamo</th>
+                    <th scope="col">Importe</th>
+                    <th scope="col">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {custodyTransactions.map((tx) => {
+                    const isCredit =
+                      tx.type === 'installment_payout' ||
+                      tx.type === 'card_deposit' ||
+                      tx.type === 'refund';
+                    const typeLabel =
+                      tx.type === 'installment_payout'
+                        ? 'Cobro de cuota'
+                        : tx.type === 'investment_hold'
+                        ? 'Inversión'
+                        : tx.type === 'withdrawal'
+                        ? 'Retiro'
+                        : tx.type === 'card_deposit'
+                        ? 'Depósito'
+                        : tx.type === 'refund'
+                        ? 'Reembolso'
+                        : tx.type;
+
+                    const formattedDate = new Date(tx.created_at).toLocaleString('es-AR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+
+                    const referenceDisplay =
+                      tx.payment_metadata?.description ||
+                      (tx.reference_id ? `Ref: ${tx.reference_id}` : (tx.type === 'withdrawal' ? 'Transferencia a CBU' : '-'));
+
+                    const statusClass =
+                      tx.status === 'completed'
+                        ? styles.statusSettled
+                        : tx.status === 'pending'
+                        ? styles.statusPending
+                        : styles.statusCommitted;
+
+                    const statusLabel =
+                      tx.status === 'completed'
+                        ? 'Completado'
+                        : tx.status === 'pending'
+                        ? 'Pendiente'
+                        : tx.status === 'failed'
+                        ? 'Fallido'
+                        : tx.status;
+
+                    return (
+                      <tr key={tx.id} data-testid={`custody-tx-row-${tx.id}`}>
+                        <td>
+                          <span className={styles.secondaryText}>{formattedDate}</span>
+                        </td>
+                        <td>
+                          <span className={styles.primaryText}>{typeLabel}</span>
+                        </td>
+                        <td>
+                          <span className={styles.monoText}>{referenceDisplay}</span>
+                        </td>
+                        <td>
+                          <span
+                            className={isCredit ? styles.amountPositive : styles.amountNegative}
+                            data-testid={`custody-tx-amount-${tx.id}`}
+                          >
+                            {isCredit ? `+ ${formatCurrency(tx.amount)}` : `- ${formatCurrency(tx.amount)}`}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`${styles.statusBadge} ${statusClass}`}
+                            data-testid={`custody-tx-status-${tx.id}`}
+                          >
+                            {statusLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Mi Perfil / Estado de Identidad & Datos de Cuenta */}
       <section
         id="perfil"
@@ -1133,6 +1307,23 @@ export function InvestorDashboard({
 
       {/* Dual-Role PyME Onboarding Card or Active Banner (at bottom of panel) */}
       {renderPymeOnboardingCard()}
+
+      {/* Retiro de Fondos a CBU Modal (Issue #70) */}
+      <WithdrawalModal
+        isOpen={isWithdrawalModalOpen}
+        onClose={() => setIsWithdrawalModalOpen(false)}
+        investorId={currentInvestorId}
+        availableBalance={effectiveCustodyBalance}
+        bankCbuCvu={investorCbu}
+        bankAlias={investorAlias}
+        onSuccess={(tx, amount) => {
+          setCustodyTransactions((prev) => [tx, ...prev]);
+          setCustodyBalanceState((prev) => {
+            const current = prev ?? effectiveCustodyBalance;
+            return Math.max(0, current - amount);
+          });
+        }}
+      />
     </div>
   );
 }

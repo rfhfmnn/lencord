@@ -290,6 +290,69 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     return prof?.custody_balance ?? 0;
   }
 
+  public async getCustodyTransactions(investorId: string): Promise<import('@/types').CustodyTransaction[]> {
+    const txs = this.store.custodyTransactions
+      .filter((t) => t.profile_id === investorId)
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return JSON.parse(JSON.stringify(txs));
+  }
+
+  public async requestWithdrawal(
+    input: import('@/types').RequestWithdrawalInput
+  ): Promise<import('@/types').CustodyTransaction> {
+    if (!input.amount || input.amount <= 0) {
+      throw new Error('El importe a retirar debe ser mayor a cero.');
+    }
+
+    const currentBalance = await this.getCustodyBalance(input.investor_id);
+    if (input.amount > currentBalance) {
+      throw new Error('Saldo insuficiente para realizar el retiro solicitado.');
+    }
+
+    const profile = this.store.profiles.find((p) => p.id === input.investor_id);
+    const destinationCbu = input.bank_cbu_cvu || profile?.bank_cbu_cvu;
+    if (!destinationCbu) {
+      throw new Error('Cuenta bancaria no configurada. Por favor, agregá tu CBU/CVU en tu perfil.');
+    }
+
+    const newBalance = Number((currentBalance - input.amount).toFixed(2));
+    if (profile) {
+      profile.custody_balance = newBalance;
+    }
+
+    const txId = `tx-wth-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const tx: import('@/types').CustodyTransaction = {
+      id: txId,
+      profile_id: input.investor_id,
+      type: 'withdrawal',
+      amount: input.amount,
+      balance_after: newBalance,
+      status: 'completed',
+      reference_id: null,
+      payment_metadata: {
+        bank_cbu_cvu: destinationCbu,
+        bank_alias: input.bank_alias || (profile as any)?.bank_alias || null,
+        description: 'Retiro de saldo en custodia a CBU bancario',
+      },
+      created_at: new Date().toISOString(),
+    };
+
+    this.store.custodyTransactions.push(tx);
+
+    this.store.notifications.unshift({
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      user_id: input.investor_id,
+      title: 'Solicitud de retiro registrada',
+      message: `La transferencia por $${input.amount.toLocaleString('es-AR')} a tu CBU está en proceso.`,
+      type: 'info',
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+
+    return JSON.parse(JSON.stringify(tx));
+  }
+
   public async checkoutInvestment(
     input: import('@/types').CheckoutInvestmentInput
   ): Promise<import('@/types').CheckoutInvestmentResult> {

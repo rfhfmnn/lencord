@@ -17,6 +17,7 @@ import type {
 import {
   SEED_CONTRACTS,
   SEED_CREDIT_PROFILES,
+  SEED_CUSTODY_TRANSACTIONS,
   SEED_INSTALLMENTS,
   SEED_INVESTMENTS,
   SEED_LOANS,
@@ -62,7 +63,7 @@ export class MockStateStore {
     this.installments = JSON.parse(JSON.stringify(SEED_INSTALLMENTS));
     this.contracts = JSON.parse(JSON.stringify(SEED_CONTRACTS));
     this.notifications = JSON.parse(JSON.stringify(SEED_NOTIFICATIONS));
-    this.custodyTransactions = [];
+    this.custodyTransactions = JSON.parse(JSON.stringify(SEED_CUSTODY_TRANSACTIONS));
     this.installmentPayouts = [];
   }
 

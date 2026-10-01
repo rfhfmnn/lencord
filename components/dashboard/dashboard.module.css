@@ -991,6 +991,90 @@
   font-weight: 600;
 }
 
+/* Custody Disclaimer Card & Balance in Investor Panel */
+.custodyDisclaimerCard {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
 
+.custodyDisclaimerLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+  min-width: 280px;
+}
 
+.custodyDisclaimerRight {
+  display: flex;
+  align-items: center;
+}
 
+.custodyIcon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  background-color: #eff6ff;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.custodyBalanceAmount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0a2540;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.custodyDisclaimerText {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 700px;
+}
+
+.amountPositive {
+  color: #065f46;
+  font-weight: 600;
+  background-color: #d1fae5;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+.amountNegative {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.noTransactionsEmptyState {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: #64748b;
+}
+
+.noTransactionsIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
