@@ -42,6 +42,7 @@ export function NotificationBell({
   const [unreadCount, setUnreadCount] = useState<number>(
     initialUnreadCount ?? (initialNotifications ? initialNotifications.filter((n) => !n.read).length : 0)
   );
+  const [activeToast, setActiveToast] = useState<Notification | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync with prop changes
@@ -144,16 +145,23 @@ export function NotificationBell({
         return [newNotif, ...prev];
       });
       setUnreadCount((prev) => prev + 1);
+
+      // Check high priority event for floating toast alert (Issue #71)
+      const isHighPriority =
+        newNotif.type === 'success' ||
+        newNotif.type === 'warning' ||
+        /inversi[oó]n|cobro|cuota|fonde|subasta|aprobado|retiro/i.test(
+          `${newNotif.title} ${newNotif.message}`
+        );
+
+      if (isHighPriority) {
+        setActiveToast(newNotif);
+      }
     };
 
-    if (resolvedServices.notifications?.subscribeToNotifications) {
-      unsubscribe = resolvedServices.notifications.subscribeToNotifications(
-        currentUserId,
-        handleNewNotification
-      );
-    } else if (supabaseClient) {
+    if (supabaseClient) {
       const channel = supabaseClient
-        .channel(`public:notifications:bell:${currentUserId}`)
+        .channel('user-notifications')
         .on(
           'postgres_changes',
           {
@@ -162,8 +170,8 @@ export function NotificationBell({
             table: 'notifications',
             filter: `user_id=eq.${currentUserId}`,
           },
-          (payload) => {
-            if (payload.new) {
+          (payload: any) => {
+            if (payload?.new) {
               handleNewNotification(payload.new as Notification);
             }
           }
@@ -171,14 +179,33 @@ export function NotificationBell({
         .subscribe();
 
       unsubscribe = () => {
-        supabaseClient.removeChannel(channel);
+        if (typeof (channel as any)?.unsubscribe === 'function') {
+          (channel as any).unsubscribe();
+        }
+        if (typeof supabaseClient.removeChannel === 'function') {
+          supabaseClient.removeChannel(channel);
+        }
       };
+    } else if (resolvedServices.notifications?.subscribeToNotifications) {
+      unsubscribe = resolvedServices.notifications.subscribeToNotifications(
+        currentUserId,
+        handleNewNotification
+      );
     }
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }, [currentUserId, servicesFromContext, supabaseClient]);
+
+  // Auto-dismiss floating toast alert after 6 seconds (Issue #71)
+  useEffect(() => {
+    if (!activeToast) return;
+    const timer = setTimeout(() => {
+      setActiveToast(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [activeToast]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -197,7 +224,13 @@ export function NotificationBell({
   }, [isOpen]);
 
   const handleToggle = () => {
-    setIsOpen((prev) => !prev);
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setActiveToast(null);
+      }
+      return next;
+    });
   };
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
@@ -405,6 +438,39 @@ export function NotificationBell({
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Floating Toast Notification Alert (Issue #71) */}
+      {activeToast && (
+        <div
+          className={styles.toastNotification}
+          role="alert"
+          aria-live="assertive"
+          data-testid="notification-toast"
+        >
+          <div className={styles.toastContent}>
+            <div className={styles.toastIcon} aria-hidden="true">
+              {activeToast.type === 'success' ? '✓' : activeToast.type === 'warning' ? '⚠' : 'ℹ'}
+            </div>
+            <div className={styles.toastBody}>
+              <strong className={styles.toastTitle} data-testid="toast-title">
+                {activeToast.title}
+              </strong>
+              <p className={styles.toastMessage} data-testid="toast-message">
+                {activeToast.message}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={styles.toastCloseBtn}
+            onClick={() => setActiveToast(null)}
+            aria-label="Cerrar notificación"
+            data-testid="toast-close-btn"
+          >
+            &times;
+          </button>
         </div>
       )}
     </div>
