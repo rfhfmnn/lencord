@@ -104,3 +104,40 @@ Implementar una ruta dedicada `/faq` estructurada con tres apartados interactivo
 ### Constraints
 - Componentes en `components/faq/` y página en `app/faq/page.tsx`.
 - Estricto TypeScript sin errores de compilación (`npm run build`).
+
+---
+
+## 5. Páginas dedicadas de Términos y Condiciones (`/terminos`) y Políticas de Privacidad (`/privacidad`)
+
+### Goal
+Remover el enlace duplicado de preguntas frecuentes de la columna "Marco Institucional" del Footer (preservándolo en "Navegación" como FAQ), e implementar rutas dedicadas accesibles para `/terminos` y `/privacidad` con vistas formateadas bajo el sistema de diseño, aclarando que ambos apartados legales se encuentran en preparación y estarán disponibles próximamente.
+
+### Acceptance criteria
+- [x] **Depuración de enlaces en el Footer:**
+  - En la columna "Marco Institucional" de [Footer.tsx](file:///c:/Users/SYC/Desktop/lencord/components/layout/Footer.tsx), se remueve el enlace duplicado "Preguntas frecuentes" para evitar redundancia con el enlace "FAQ" de "Navegación".
+  - El enlace "Términos y condiciones" se actualiza de un ancla interna (`/#terminos`) a la ruta dedicada `/terminos`.
+  - El enlace "Políticas de privacidad" se actualiza de un ancla interna (`/#privacidad`) a la ruta dedicada `/privacidad`.
+- [x] **Ruta dedicada `/terminos`:**
+  - Creada en `app/terminos/page.tsx` integrada con `Header` y `Footer`.
+  - Contiene título, subtítulo explicativo, tarjeta institucional y un estado de placeholder semántico (`Apartado en preparación`) indicando que las bases y condiciones legales se encuentran en proceso de redacción y validación regulatoria.
+  - Banner de contacto para dudas legales y soporte (`soporte@lencord.com`).
+- [x] **Ruta dedicada `/privacidad`:**
+  - Creada en `app/privacidad/page.tsx` integrada con `Header` y `Footer`.
+  - Contiene título, subtítulo explicativo, tarjeta institucional y un estado de placeholder semántico (`Apartado en preparación`) indicando que la política de privacidad y protección de datos se encuentra en proceso de redacción y adecuación a la Ley 25.326.
+  - Banner de contacto para dudas sobre protección de datos personales.
+- [x] **Componente reutilizable de vistas legales:**
+  - Se implementa `LegalPlaceholderView` en [components/legal/LegalPlaceholderView.tsx](file:///c:/Users/SYC/Desktop/lencord/components/legal/LegalPlaceholderView.tsx) con estilos modulares en [legal-placeholder.module.css](file:///c:/Users/SYC/Desktop/lencord/components/legal/legal-placeholder.module.css).
+- [x] **Diseño y accesibilidad:**
+  - Sigue las pautas de [design-system.md](file:///c:/Users/SYC/Desktop/lencord/_docs/design-system.md) con tipografía `Plus Jakarta Sans`, colores y contrastes institucionales, y estructura responsive.
+- [x] **Pruebas automatizadas y validación:**
+  - Tests en [tests/components/Footer.test.tsx](file:///c:/Users/SYC/Desktop/lencord/tests/components/Footer.test.tsx) validando las rutas y la ausencia de duplicados.
+  - Tests en [tests/pages/LegalPages.test.tsx](file:///c:/Users/SYC/Desktop/lencord/tests/pages/LegalPages.test.tsx) validando que `/terminos` y `/privacidad` renderizan correctamente sus encabezados, badges, banners y estados en preparación.
+  - Compilación limpia con `npm run build`.
+
+### Out of scope
+- Redacción del clausulado legal definitivo de términos y políticas.
+
+### Constraints
+- Modificar [components/layout/Footer.tsx](file:///c:/Users/SYC/Desktop/lencord/components/layout/Footer.tsx), crear `components/legal/LegalPlaceholderView.tsx`, `app/terminos/page.tsx` y `app/privacidad/page.tsx`.
+- TypeScript estricto.
+

@@ -55,18 +55,13 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <h4 className={styles.colTitle}>Marco Institucional</h4>
             <ul className={styles.linkList}>
               <li>
-                <Link href="/#terminos" className={styles.link}>
+                <Link href="/terminos" className={styles.link}>
                   Términos y condiciones
                 </Link>
               </li>
               <li>
-                <Link href="/#privacidad" className={styles.link}>
+                <Link href="/privacidad" className={styles.link}>
                   Políticas de privacidad
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className={styles.link}>
-                  Preguntas frecuentes
                 </Link>
               </li>
             </ul>

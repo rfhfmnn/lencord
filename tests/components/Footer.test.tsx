@@ -75,6 +75,16 @@ describe('Footer Component', () => {
 
     const faqLink = screen.getByRole('link', { name: /^faq$/i });
     expect(faqLink).toHaveAttribute('href', '/faq');
+
+    // Institutional links
+    const terminosLink = screen.getByRole('link', { name: /^términos y condiciones$/i });
+    expect(terminosLink).toHaveAttribute('href', '/terminos');
+
+    const privacidadLink = screen.getByRole('link', { name: /^políticas de privacidad$/i });
+    expect(privacidadLink).toHaveAttribute('href', '/privacidad');
+
+    // Ensure no duplicate "Preguntas frecuentes" link is rendered in Marco Institucional
+    expect(screen.queryByRole('link', { name: /^preguntas frecuentes$/i })).not.toBeInTheDocument();
   });
 
   it('renders copyright and brand notice', () => {
