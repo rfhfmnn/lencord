@@ -84,7 +84,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role user_role NOT NULL DEFAULT 'investor',
-  tax_id VARCHAR(11) NOT NULL,
+  tax_id VARCHAR(11) NULL,
   legal_name VARCHAR(255) NOT NULL,
   first_name VARCHAR(100) NULL,
   last_name VARCHAR(100) NULL,
@@ -95,8 +95,24 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   is_verified BOOLEAN NOT NULL DEFAULT false,
   notification_preferences JSONB NOT NULL DEFAULT '{"email": true, "sms": true, "whatsapp": true}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  CONSTRAINT check_tax_id_format CHECK (tax_id ~ '^[0-9]{7,11}$')
+  CONSTRAINT check_tax_id_format CHECK (
+    tax_id IS NULL OR tax_id ~ '^[0-9]{7,8}$' OR tax_id ~ '^[0-9]{11}$'
+  )
 );
+
+-- Asegurar compatibilidad si la tabla ya existía previamente con NOT NULL
+DO $$ BEGIN
+  ALTER TABLE public.profiles ALTER COLUMN tax_id DROP NOT NULL;
+EXCEPTION WHEN undefined_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS check_tax_id_format;
+  ALTER TABLE public.profiles ADD CONSTRAINT check_tax_id_format CHECK (
+    tax_id IS NULL OR tax_id ~ '^[0-9]{7,8}$' OR tax_id ~ '^[0-9]{11}$'
+  );
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 
 -- 2.2. Tabla sme_credit_profiles
 CREATE TABLE IF NOT EXISTS public.sme_credit_profiles (
@@ -315,11 +331,8 @@ BEGIN
   -- Extraer rol de metadata ('borrower' o 'investor')
   v_role := COALESCE((new.raw_user_meta_data->>'role')::user_role, 'investor'::user_role);
   
-  -- Extraer tax_id o generar uno válido de 11 dígitos
-  v_tax_id := COALESCE(
-    NULLIF(new.raw_user_meta_data->>'tax_id', ''),
-    LPAD(CAST(FLOOR(RANDOM() * 89999999999 + 10000000000) AS TEXT), 11, '0')
-  );
+  -- Extraer tax_id si existe (puede ser NULL para inversores o el CUIT/DNI ingresado)
+  v_tax_id := NULLIF(new.raw_user_meta_data->>'tax_id', '');
 
   -- Extraer Razón Social o Nombre
   v_legal_name := COALESCE(
@@ -438,7 +451,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION commit_investment_atomic(UUID, UUID, NUMERIC) TO authenticated, service_role;
 
 -- ----------------------------------------------------------------------------
--- 7. Bucket Privado de Storage para Balances Contables
+-- 7. Bucket Privado de Storage para Balances Contables y Políticas RLS
 -- ----------------------------------------------------------------------------
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -453,6 +466,82 @@ ON CONFLICT (id) DO UPDATE SET
   public = false,
   file_size_limit = 10485760,
   allowed_mime_types = ARRAY['application/pdf']::text[];
+
+-- Habilitar Row Level Security en storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- 7.1. Los prestatarios solo pueden ver sus propios documentos
+DROP POLICY IF EXISTS "Borrowers can read own loan documents" ON storage.objects;
+CREATE POLICY "Borrowers can read own loan documents"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'loan-documents'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR name LIKE (auth.uid()::text || '/%')
+    )
+  );
+
+-- 7.2. Los prestatarios solo pueden subir archivos dentro de su propia carpeta (auth.uid())
+DROP POLICY IF EXISTS "Borrowers can upload own loan documents" ON storage.objects;
+CREATE POLICY "Borrowers can upload own loan documents"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'loan-documents'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR name LIKE (auth.uid()::text || '/%')
+    )
+  );
+
+-- 7.3. Los prestatarios pueden actualizar sus propios documentos
+DROP POLICY IF EXISTS "Borrowers can update own loan documents" ON storage.objects;
+CREATE POLICY "Borrowers can update own loan documents"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (
+    bucket_id = 'loan-documents'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR name LIKE (auth.uid()::text || '/%')
+    )
+  )
+  WITH CHECK (
+    bucket_id = 'loan-documents'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR name LIKE (auth.uid()::text || '/%')
+    )
+  );
+
+-- 7.4. Los prestatarios pueden borrar sus propios documentos
+DROP POLICY IF EXISTS "Borrowers can delete own loan documents" ON storage.objects;
+CREATE POLICY "Borrowers can delete own loan documents"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'loan-documents'
+    AND (
+      (storage.foldername(name))[1] = auth.uid()::text
+      OR name LIKE (auth.uid()::text || '/%')
+    )
+  );
+
+-- 7.5. Los Administradores tienen acceso total para auditoría y visualización
+DROP POLICY IF EXISTS "Admins have full access to loan documents" ON storage.objects;
+CREATE POLICY "Admins have full access to loan documents"
+  ON storage.objects FOR ALL
+  TO authenticated
+  USING (
+    bucket_id = 'loan-documents'
+    AND public.is_admin()
+  )
+  WITH CHECK (
+    bucket_id = 'loan-documents'
+    AND public.is_admin()
+  );
 
 -- ----------------------------------------------------------------------------
 -- 8. USUARIO ADMINISTRADOR SEMILLA (Listo para usar de inmediato)
