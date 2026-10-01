@@ -55,15 +55,6 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
             <h4 className={styles.colTitle}>Marco Institucional</h4>
             <ul className={styles.linkList}>
               <li>
-                <span className={styles.link}>Central de Deudores BCRA</span>
-              </li>
-              <li>
-                <span className={styles.link}>Cumplimiento UIF</span>
-              </li>
-              <li>
-                <span className={styles.link}>Garantías y SGRs</span>
-              </li>
-              <li>
                 <Link href="/#terminos" className={styles.link}>
                   Términos y condiciones
                 </Link>
@@ -71,6 +62,11 @@ export const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               <li>
                 <Link href="/#privacidad" className={styles.link}>
                   Políticas de privacidad
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className={styles.link}>
+                  Preguntas frecuentes
                 </Link>
               </li>
             </ul>
