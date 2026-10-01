@@ -172,7 +172,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const client = getClient();
       const cleanEmail = email.trim().toLowerCase();
       const profileRole = role === 'borrower' ? 'borrower' : 'investor';
-      const cleanTaxId = role === 'borrower' ? cleanCuit(cuit) : (cleanCuit(taxId) || null);
+      const cleanTaxId = role === 'borrower' ? (cleanCuit(cuit) || null) : (cleanCuit(taxId) || null);
       const legalName = role === 'borrower' ? companyName.trim() : fullName.trim();
       const repName = role === 'borrower' ? representativeName.trim() : '';
 
@@ -229,13 +229,28 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               // Expected when email confirmation is active: the database trigger handle_new_user()
               // creates the profile via SECURITY DEFINER on auth.users insert.
               console.info('[RegisterForm] Profile upsert handled by server trigger (unconfirmed session)');
+            } else if (
+              errorMsg.includes('profiles_tax_id_key') ||
+              (errorMsg.includes('tax_id') && errorMsg.includes('unique'))
+            ) {
+              setServerError(
+                'El CUIT o DNI ingresado ya se encuentra registrado con otra cuenta. Por favor, verificá el número o iniciá sesión.'
+              );
+              setIsLoading(false);
+              return;
             } else if (errorMsg.includes('tax_id') && errorMsg.includes('not-null')) {
               console.warn(
                 '[RegisterForm] La columna "profiles.tax_id" en Supabase tiene restricción NOT NULL. ' +
                 'Ejecute: ALTER TABLE public.profiles ALTER COLUMN tax_id DROP NOT NULL; en el SQL Editor de Supabase.'
               );
+              setServerError('Error al registrar el perfil. Por favor, intentá nuevamente.');
+              setIsLoading(false);
+              return;
             } else {
               console.error('[RegisterForm] Error creating profile:', profileError.message || profileError);
+              setServerError(profileError.message || 'Ocurrió un error al guardar tu perfil. Por favor, intentá nuevamente.');
+              setIsLoading(false);
+              return;
             }
           }
         } catch (err: any) {

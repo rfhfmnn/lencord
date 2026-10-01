@@ -478,5 +478,49 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       expect.stringContaining('/login?email=existente%40lencord.com')
     );
   });
+
+  it('displays user-friendly error message when CUIT or DNI is already registered in profiles', async () => {
+    mockSignUp.mockResolvedValue({
+      data: {
+        user: { id: 'usr-dup-taxid', email: 'dup@lencord.com' },
+        session: { access_token: 'valid' },
+      },
+      error: null,
+    });
+
+    mockUpsert.mockResolvedValue({
+      error: {
+        message: 'duplicate key value violates unique constraint "profiles_tax_id_key"',
+      },
+    });
+
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
+      target: { value: 'Inversor Duplicado' },
+    });
+    fireEvent.change(screen.getByLabelText(/DNI o CUIT tributario/i), {
+      target: { value: '35123456' },
+    });
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/i), {
+      target: { value: 'dup@lencord.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Contraseña/i), {
+      target: { value: 'PasswordSegura2026' },
+    });
+
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    expect(
+      await screen.findByText(/El CUIT o DNI ingresado ya se encuentra registrado con otra cuenta/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/¡Cuenta creada exitosamente!/i)).not.toBeInTheDocument();
+  });
 });
 
