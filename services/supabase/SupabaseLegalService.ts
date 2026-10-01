@@ -96,12 +96,19 @@ export class SupabaseLegalService implements LegalServiceInterface {
       const client = await this.getClient();
       const now = new Date().toISOString();
 
+      const updatePayload: Record<string, any> = {
+        signature_hash: input.signature_hash,
+        signed_at: now,
+      };
+
+      if (input.signer_id !== undefined) updatePayload.signer_id = input.signer_id;
+      if (input.signer_role !== undefined) updatePayload.signer_role = input.signer_role;
+      if (input.signer_ip !== undefined) updatePayload.signer_ip = input.signer_ip;
+      if (input.signer_user_agent !== undefined) updatePayload.signer_user_agent = input.signer_user_agent;
+
       const { data, error } = await client
         .from('legal_contracts')
-        .update({
-          signature_hash: input.signature_hash,
-          signed_at: now,
-        })
+        .update(updatePayload)
         .eq('id', input.contract_id)
         .select()
         .single();

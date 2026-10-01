@@ -243,6 +243,10 @@ export interface CreateContractInput {
 export interface SignContractInput {
   contract_id: string;
   signature_hash: string;
+  signer_id?: string | null;
+  signer_role?: 'borrower' | 'investor' | string | null;
+  signer_ip?: string | null;
+  signer_user_agent?: string | null;
 }
 
 /**

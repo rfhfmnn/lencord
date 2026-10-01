@@ -68,6 +68,10 @@ export class MockLegalService implements LegalServiceInterface {
 
     contract.signature_hash = input.signature_hash;
     contract.signed_at = new Date().toISOString();
+    if (input.signer_id !== undefined) contract.signer_id = input.signer_id;
+    if (input.signer_role !== undefined) contract.signer_role = input.signer_role;
+    if (input.signer_ip !== undefined) contract.signer_ip = input.signer_ip;
+    if (input.signer_user_agent !== undefined) contract.signer_user_agent = input.signer_user_agent;
 
     return JSON.parse(JSON.stringify(contract));
   }
