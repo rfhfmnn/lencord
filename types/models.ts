@@ -199,8 +199,59 @@ export interface LegalContract {
   loan_id: string; // Foreign Key to loans.id
   document_type: DocumentType;
   document_url: string; // Storage URL of generated PDF document
+  signer_id?: string | null; // Foreign Key to profiles.id
+  signer_role?: string | null;
   signature_hash: string | null; // Cryptographic SHA-256 hash or OTP token
+  signer_ip?: string | null;
+  signer_user_agent?: string | null;
   signed_at: string | null; // ISO 8601 Timestamp or null
+}
+
+/**
+ * Custody transaction types in the BaaS ledger.
+ */
+export type CustodyTransactionType =
+  | 'card_deposit'
+  | 'investment_hold'
+  | 'installment_payout'
+  | 'withdrawal'
+  | 'refund';
+
+/**
+ * Transaction status in the ledger.
+ */
+export type CustodyTransactionStatus = 'completed' | 'pending' | 'failed' | 'cancelled';
+
+/**
+ * Immutable ledger entry for investor/borrower segregated custody accounts.
+ * Table: `custody_transactions`
+ */
+export interface CustodyTransaction {
+  id: string; // UUID
+  profile_id: string; // Foreign Key to profiles.id
+  type: CustodyTransactionType;
+  amount: number; // NUMERIC(14, 2)
+  balance_after: number; // NUMERIC(14, 2)
+  status: CustodyTransactionStatus;
+  reference_id?: string | null; // UUID
+  payment_metadata?: Record<string, any> | null;
+  created_at: string; // ISO 8601 Timestamp
+}
+
+/**
+ * Pro-rata share of an installment distribution credited to an investor.
+ * Table: `installment_payouts`
+ */
+export interface InstallmentPayout {
+  id: string; // UUID
+  installment_id: string; // Foreign Key to installments.id
+  investment_id: string; // Foreign Key to investments.id
+  investor_id: string; // Foreign Key to profiles.id
+  principal_share: number; // NUMERIC(14, 2)
+  interest_share: number; // NUMERIC(14, 2)
+  total_share: number; // NUMERIC(14, 2)
+  status: 'credited' | 'pending' | 'failed';
+  paid_at: string; // ISO 8601 Timestamp
 }
 
 /**

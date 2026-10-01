@@ -171,6 +171,56 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
     }
   }
 
+  public async checkoutInvestment(
+    input: import('@/types').CheckoutInvestmentInput
+  ): Promise<import('@/types').CheckoutInvestmentResult> {
+    if (input.amount <= 0) {
+      throw mapSupabaseError(
+        new Error('El monto a invertir debe ser mayor a cero')
+      );
+    }
+
+    const client = await this.getClient();
+
+    // Check investor tax_id requirement (Issue #53)
+    const { data: profile } = await client
+      .from('profiles')
+      .select('tax_id')
+      .eq('id', input.investor_id)
+      .maybeSingle();
+
+    if (profile && !profile.tax_id) {
+      throw mapSupabaseError(
+        new Error('MISSING_TAX_ID: Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.')
+      );
+    }
+
+    const { data, error } = await client.rpc('process_investment_checkout_rpc', {
+      p_loan_id: input.loan_id,
+      p_investor_id: input.investor_id,
+      p_amount: input.amount,
+      p_payment_method: input.payment_method,
+      p_card_last_four: input.card_last_four || null,
+      p_card_brand: input.card_brand || null,
+    });
+
+    if (error) {
+      throw mapSupabaseError(error);
+    }
+
+    return {
+      success: Boolean(data?.success),
+      investment_id: data?.investment_id,
+      transaction_id: data?.transaction_id,
+      amount_funded: Number(data?.amount_funded),
+      loan_status: data?.loan_status,
+      payment_method: input.payment_method,
+      card_last_four: input.card_last_four,
+      card_brand: input.card_brand,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   public async getInvestmentsByLoan(loanId: string): Promise<Investment[]> {
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_REGEX.test(loanId)) {

@@ -4,7 +4,9 @@
  */
 
 import type {
+  CustodyTransaction,
   Installment,
+  InstallmentPayout,
   Investment,
   LegalContract,
   Loan,
@@ -30,6 +32,8 @@ export interface MockStateSnapshot {
   installments: Installment[];
   contracts: LegalContract[];
   notifications: Notification[];
+  custodyTransactions: CustodyTransaction[];
+  installmentPayouts: InstallmentPayout[];
 }
 
 export class MockStateStore {
@@ -40,6 +44,8 @@ export class MockStateStore {
   public installments: Installment[] = [];
   public contracts: LegalContract[] = [];
   public notifications: Notification[] = [];
+  public custodyTransactions: CustodyTransaction[] = [];
+  public installmentPayouts: InstallmentPayout[] = [];
 
   constructor() {
     this.reset();
@@ -56,6 +62,8 @@ export class MockStateStore {
     this.installments = JSON.parse(JSON.stringify(SEED_INSTALLMENTS));
     this.contracts = JSON.parse(JSON.stringify(SEED_CONTRACTS));
     this.notifications = JSON.parse(JSON.stringify(SEED_NOTIFICATIONS));
+    this.custodyTransactions = [];
+    this.installmentPayouts = [];
   }
 
   /**
@@ -70,6 +78,8 @@ export class MockStateStore {
       installments: JSON.parse(JSON.stringify(this.installments)),
       contracts: JSON.parse(JSON.stringify(this.contracts)),
       notifications: JSON.parse(JSON.stringify(this.notifications)),
+      custodyTransactions: JSON.parse(JSON.stringify(this.custodyTransactions)),
+      installmentPayouts: JSON.parse(JSON.stringify(this.installmentPayouts)),
     };
   }
 }

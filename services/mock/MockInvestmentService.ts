@@ -200,6 +200,57 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     };
   }
 
+  public async checkoutInvestment(
+    input: import('@/types').CheckoutInvestmentInput
+  ): Promise<import('@/types').CheckoutInvestmentResult> {
+    const commitResult = await this.commitInvestment({
+      loan_id: input.loan_id,
+      investor_id: input.investor_id,
+      amount: input.amount,
+    });
+
+    const txId = `ctx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const prevTx = this.store.custodyTransactions
+      .filter((t) => t.profile_id === input.investor_id)
+      .slice(-1)[0];
+    const prevBalance = prevTx ? prevTx.balance_after : 0;
+    const balanceAfter =
+      input.payment_method === 'custody_balance'
+        ? prevBalance - input.amount
+        : prevBalance;
+
+    const tx: import('@/types').CustodyTransaction = {
+      id: txId,
+      profile_id: input.investor_id,
+      type: 'investment_hold',
+      amount: input.amount,
+      balance_after: balanceAfter,
+      status: 'completed',
+      reference_id: input.loan_id,
+      payment_metadata: {
+        payment_method: input.payment_method,
+        card_last_four: input.card_last_four,
+        card_brand: input.card_brand,
+        loan_id: input.loan_id,
+      },
+      created_at: new Date().toISOString(),
+    };
+
+    this.store.custodyTransactions.push(tx);
+
+    return {
+      success: true,
+      investment_id: commitResult.investment.id,
+      transaction_id: txId,
+      amount_funded: commitResult.amount_funded,
+      loan_status: commitResult.loan.status,
+      payment_method: input.payment_method,
+      card_last_four: input.card_last_four,
+      card_brand: input.card_brand,
+      timestamp: tx.created_at,
+    };
+  }
+
   public async getInvestmentsByLoan(loanId: string): Promise<Investment[]> {
     const investments = this.store.investments.filter(
       (inv) => inv.loan_id === loanId

@@ -116,6 +116,7 @@ export interface LoanServiceInterface {
   activateLoan?(loanId: string): Promise<Loan>;
   expireLoan?(loanId: string): Promise<Loan>;
   flagPartialAcceptance?(loanId: string, deadline: string): Promise<Loan>;
+  repayInstallment?(input: RepayInstallmentInput): Promise<RepayInstallmentResult>;
 }
 
 // ---------------------------------------------------------------------------
@@ -140,11 +141,48 @@ export interface RefundInvestmentsResult {
   total_refunded_amount: number;
 }
 
+export type InvestmentPaymentMethod = 'custody_balance' | 'credit_card' | 'debit_card';
+
+export interface CheckoutInvestmentInput {
+  loan_id: string;
+  investor_id: string;
+  amount: number;
+  payment_method: InvestmentPaymentMethod;
+  card_last_four?: string;
+  card_brand?: string;
+}
+
+export interface CheckoutInvestmentResult {
+  success: boolean;
+  investment_id: string;
+  transaction_id: string;
+  amount_funded: number;
+  loan_status: LoanStatus;
+  payment_method: string;
+  card_last_four?: string;
+  card_brand?: string;
+  timestamp: string;
+}
+
+export interface RepayInstallmentInput {
+  installment_id: string;
+  payer_id: string;
+}
+
+export interface RepayInstallmentResult {
+  success: boolean;
+  installment_id: string;
+  status: InstallmentStatus;
+  all_repaid: boolean;
+  payouts_count?: number;
+}
+
 /**
  * Service contract for investor commitments, atomic auctions, and fund reconciliation.
  */
 export interface InvestmentServiceInterface {
   commitInvestment(input: CommitInvestmentInput): Promise<CommitInvestmentResult>;
+  checkoutInvestment?(input: CheckoutInvestmentInput): Promise<CheckoutInvestmentResult>;
   getInvestmentsByLoan(loanId: string): Promise<Investment[]>;
   getInvestmentsByInvestor(investorId: string): Promise<Investment[]>;
   getInvestmentById(id: string): Promise<Investment | null>;

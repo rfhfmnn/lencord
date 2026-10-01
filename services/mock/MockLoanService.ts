@@ -422,6 +422,121 @@ export class MockLoanService implements LoanServiceInterface {
 
     return JSON.parse(JSON.stringify(loan));
   }
+
+  public async repayInstallment(
+    input: import('@/types').RepayInstallmentInput
+  ): Promise<import('@/types').RepayInstallmentResult> {
+    const installment = this.store.installments.find((i) => i.id === input.installment_id);
+    if (!installment) {
+      throw new Error(`Cuota no encontrada: ${input.installment_id}`);
+    }
+
+    if (installment.status === 'paid') {
+      throw new Error('La cuota ya se encuentra pagada');
+    }
+
+    const investments = this.store.investments.filter(
+      (inv) => inv.loan_id === installment.loan_id && (inv.status === 'committed' || inv.status === 'settled')
+    );
+
+    if (investments.length === 0) {
+      throw new Error('No se registran inversiones válidas para distribuir esta cuota');
+    }
+
+    const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
+
+    installment.status = 'paid';
+    installment.paid_at = new Date().toISOString();
+
+    let accumPrincipal = 0;
+    let accumInterest = 0;
+
+    for (let idx = 0; idx < investments.length; idx++) {
+      const inv = investments[idx];
+      const isLast = idx === investments.length - 1;
+
+      let principalShare: number;
+      let interestShare: number;
+
+      if (isLast) {
+        principalShare = Number((installment.principal_amount - accumPrincipal).toFixed(2));
+        interestShare = Number((installment.interest_investors - accumInterest).toFixed(2));
+      } else {
+        principalShare = Number(((installment.principal_amount * inv.amount) / totalInvested).toFixed(2));
+        interestShare = Number(((installment.interest_investors * inv.amount) / totalInvested).toFixed(2));
+        accumPrincipal += principalShare;
+        accumInterest += interestShare;
+      }
+
+      const totalShare = Number((principalShare + interestShare).toFixed(2));
+
+      const payout: import('@/types').InstallmentPayout = {
+        id: `payout-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        installment_id: installment.id,
+        investment_id: inv.id,
+        investor_id: inv.investor_id,
+        principal_share: principalShare,
+        interest_share: interestShare,
+        total_share: totalShare,
+        status: 'credited',
+        paid_at: new Date().toISOString(),
+      };
+      this.store.installmentPayouts.push(payout);
+
+      const prevTx = this.store.custodyTransactions
+        .filter((t) => t.profile_id === inv.investor_id)
+        .slice(-1)[0];
+      const prevBal = prevTx ? prevTx.balance_after : 0;
+
+      const tx: import('@/types').CustodyTransaction = {
+        id: `ctx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        profile_id: inv.investor_id,
+        type: 'installment_payout',
+        amount: totalShare,
+        balance_after: Number((prevBal + totalShare).toFixed(2)),
+        status: 'completed',
+        reference_id: installment.id,
+        payment_metadata: {
+          installment_id: installment.id,
+          installment_number: installment.installment_number,
+          principal_share: principalShare,
+          interest_share: interestShare,
+        },
+        created_at: new Date().toISOString(),
+      };
+      this.store.custodyTransactions.push(tx);
+
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: inv.investor_id,
+        title: 'Cuota de inversión acreditada',
+        message: `Se acreditaron $${totalShare.toLocaleString('es-AR')} en tu cuenta por la cuota #${installment.installment_number}.`,
+        type: 'success',
+        read: false,
+        action_url: '/dashboard/inversor',
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    const allRepaid = !this.store.installments.some(
+      (i) => i.loan_id === installment.loan_id && i.status !== 'paid'
+    );
+
+    if (allRepaid) {
+      const loan = this.store.loans.find((l) => l.id === installment.loan_id);
+      if (loan) {
+        loan.status = 'repaid';
+      }
+    }
+
+    return {
+      success: true,
+      installment_id: installment.id,
+      status: 'paid',
+      all_repaid: allRepaid,
+      payouts_count: investments.length,
+    };
+  }
 }
 
 export const defaultMockLoanService = new MockLoanService();

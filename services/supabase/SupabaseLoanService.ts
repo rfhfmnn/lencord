@@ -482,4 +482,29 @@ export class SupabaseLoanService implements LoanServiceInterface {
       throw mapSupabaseError(err, `Error al activar préstamo ${loanId}`);
     }
   }
+
+  public async repayInstallment(
+    input: import('@/types').RepayInstallmentInput
+  ): Promise<import('@/types').RepayInstallmentResult> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client.rpc('process_installment_repayment_rpc', {
+        p_installment_id: input.installment_id,
+        p_payer_id: input.payer_id,
+      });
+
+      if (error) {
+        throw mapSupabaseError(error, `Error al pagar cuota ${input.installment_id}`);
+      }
+
+      return {
+        success: Boolean(data?.success),
+        installment_id: data?.installment_id || input.installment_id,
+        status: data?.status || 'paid',
+        all_repaid: Boolean(data?.all_repaid),
+      };
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al pagar cuota ${input.installment_id}`);
+    }
+  }
 }
