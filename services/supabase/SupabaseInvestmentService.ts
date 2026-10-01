@@ -221,6 +221,31 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
     };
   }
 
+  public async getCustodyBalance(investorId: string): Promise<number> {
+    try {
+      const client = await this.getClient();
+      const { data } = await client
+        .from('custody_transactions')
+        .select('balance_after')
+        .eq('profile_id', investorId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data && typeof data.balance_after === 'number') {
+        return Number(data.balance_after);
+      }
+      const { data: prof } = await client
+        .from('profiles')
+        .select('custody_balance')
+        .eq('id', investorId)
+        .maybeSingle();
+      return prof?.custody_balance ? Number(prof.custody_balance) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
   public async getInvestmentsByLoan(loanId: string): Promise<Investment[]> {
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!UUID_REGEX.test(loanId)) {

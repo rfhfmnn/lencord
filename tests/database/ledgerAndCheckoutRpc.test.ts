@@ -148,6 +148,7 @@ describe('Data Architecture: Ledger, Installment Payouts, Audit & Atomic RPCs (I
           investor_id: 'prof-inv-001',
           amount: 600000,
           status: 'committed',
+          external_payment_id: null,
           created_at: new Date().toISOString(),
         },
         {
@@ -156,6 +157,7 @@ describe('Data Architecture: Ledger, Installment Payouts, Audit & Atomic RPCs (I
           investor_id: 'prof-inv-002',
           amount: 400000,
           status: 'committed',
+          external_payment_id: null,
           created_at: new Date().toISOString(),
         },
       ];

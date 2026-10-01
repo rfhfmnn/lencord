@@ -7,6 +7,7 @@ import type {
   BcraSituation,
   DocumentType,
   Installment,
+  InstallmentStatus,
   Investment,
   LegalContract,
   Loan,
@@ -162,6 +163,9 @@ export interface CheckoutInvestmentResult {
   card_last_four?: string;
   card_brand?: string;
   timestamp: string;
+  investment?: Investment;
+  loan?: Loan;
+  is_fully_funded?: boolean;
 }
 
 export interface RepayInstallmentInput {
@@ -183,6 +187,7 @@ export interface RepayInstallmentResult {
 export interface InvestmentServiceInterface {
   commitInvestment(input: CommitInvestmentInput): Promise<CommitInvestmentResult>;
   checkoutInvestment?(input: CheckoutInvestmentInput): Promise<CheckoutInvestmentResult>;
+  getCustodyBalance?(investorId: string): Promise<number>;
   getInvestmentsByLoan(loanId: string): Promise<Investment[]>;
   getInvestmentsByInvestor(investorId: string): Promise<Investment[]>;
   getInvestmentById(id: string): Promise<Investment | null>;

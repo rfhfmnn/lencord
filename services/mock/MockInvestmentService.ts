@@ -200,9 +200,30 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     };
   }
 
+  public async getCustodyBalance(investorId: string): Promise<number> {
+    const txs = this.store.custodyTransactions.filter((t) => t.profile_id === investorId);
+    if (txs.length > 0) {
+      return txs[txs.length - 1].balance_after;
+    }
+    const prof = this.store.profiles.find((p) => p.id === investorId);
+    return prof?.custody_balance ?? 0;
+  }
+
   public async checkoutInvestment(
     input: import('@/types').CheckoutInvestmentInput
   ): Promise<import('@/types').CheckoutInvestmentResult> {
+    if (
+      (input.payment_method === 'credit_card' || input.payment_method === 'debit_card') &&
+      input.card_last_four === '0002'
+    ) {
+      throw new Error('Fondos insuficientes: La entidad bancaria emisora rechazó la operación.');
+    }
+
+    const prevBalance = await this.getCustodyBalance(input.investor_id);
+    if (input.payment_method === 'custody_balance' && prevBalance < input.amount) {
+      throw new Error('Saldo en custodia insuficiente para completar la inversión.');
+    }
+
     const commitResult = await this.commitInvestment({
       loan_id: input.loan_id,
       investor_id: input.investor_id,
@@ -210,10 +231,6 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     });
 
     const txId = `ctx-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const prevTx = this.store.custodyTransactions
-      .filter((t) => t.profile_id === input.investor_id)
-      .slice(-1)[0];
-    const prevBalance = prevTx ? prevTx.balance_after : 0;
     const balanceAfter =
       input.payment_method === 'custody_balance'
         ? prevBalance - input.amount
@@ -248,6 +265,9 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       card_last_four: input.card_last_four,
       card_brand: input.card_brand,
       timestamp: tx.created_at,
+      investment: commitResult.investment,
+      loan: commitResult.loan,
+      is_fully_funded: commitResult.is_fully_funded,
     };
   }
 
