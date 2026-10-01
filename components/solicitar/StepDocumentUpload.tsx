@@ -41,7 +41,7 @@ function formatFileSize(bytes: number): string {
 
 export function StepDocumentUpload({
   initialData,
-  borrowerId = 'prof-sme-001',
+  borrowerId = '',
   supabaseClient,
   onBack,
   onContinue,
@@ -85,6 +85,14 @@ export function StepDocumentUpload({
         }
       }
 
+      if (!activeBorrowerId || activeBorrowerId === 'prof-sme-001') {
+        setUploadErrors((prev) => ({
+          ...prev,
+          [key]: 'Tu sesión ha expirado o no ha sido iniciada. Por favor, iniciá sesión nuevamente para subir documentación.',
+        }));
+        return;
+      }
+
       const cleanName = file.name.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileId = `${key}-${cleanName}`;
       const storagePath = `${activeBorrowerId}/${fileId}.pdf`;
@@ -108,8 +116,13 @@ export function StepDocumentUpload({
       }));
     } catch (err: unknown) {
       let msg = err instanceof Error ? err.message : 'Error al subir el archivo.';
-      if (msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('violates')) {
-        msg = 'No se pudo subir el archivo: tu sesión debe estar iniciada para subir documentación.';
+      if (
+        msg.toLowerCase().includes('row-level security') ||
+        msg.toLowerCase().includes('violates') ||
+        msg.toLowerCase().includes('unauthorized') ||
+        msg.toLowerCase().includes('jwt')
+      ) {
+        msg = 'Tu sesión ha expirado o no cuenta con permisos suficientes. Por favor, iniciá sesión nuevamente para subir documentación.';
       }
       setUploadErrors((prev) => ({ ...prev, [key]: msg }));
     } finally {
@@ -214,7 +227,7 @@ export function StepDocumentUpload({
 
     if (!files.afip_constancia) {
       newErrors.afip_constancia =
-        'La constancia de inscripción AFIP/ARCA es obligatoria para continuar.';
+        'La Constancia de inscripción AFIP / ARCA es obligatoria para continuar.';
     }
 
     setErrors(newErrors);

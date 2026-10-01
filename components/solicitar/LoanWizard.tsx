@@ -85,7 +85,7 @@ export function LoanWizard({
   const [step4Data, setStep4Data] = useState<Partial<Step4FormData>>(initialStep4Data ?? {});
 
   const [borrowerId, setBorrowerId] = useState<string>(
-    borrowerIdProp ?? userProfileProp?.id ?? 'prof-sme-001'
+    borrowerIdProp ?? userProfileProp?.id ?? ''
   );
   const [isPrepopulated, setIsPrepopulated] = useState<boolean>(
     Boolean(userProfileProp && userProfileProp.isVerified !== false)
@@ -282,8 +282,29 @@ export function LoanWizard({
           }
         })();
 
+      let effectiveBorrowerId = borrowerId;
+      if (!effectiveBorrowerId) {
+        try {
+          const client = supabaseClient || createSupabaseBrowserClient();
+          const { data: sessionData } = await client.auth.getSession();
+          if (sessionData?.session?.user?.id) {
+            effectiveBorrowerId = sessionData.session.user.id;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!effectiveBorrowerId) {
+        if (servicesFromContext) {
+          effectiveBorrowerId = 'prof-sme-001';
+        } else {
+          throw new Error('Tu sesión ha expirado o no cuenta con permisos suficientes. Por favor, iniciá sesión nuevamente para continuar con tu solicitud.');
+        }
+      }
+
       const loanPayload: SubmitLoanInput = {
-        borrower_id: borrowerId,
+        borrower_id: effectiveBorrowerId,
         amount_requested: step2Data.amount_requested ?? 5000000,
         term_months: step2Data.term_months ?? 6,
         rate_type: step2Data.rate_type ?? 'TNA_FIXED',
@@ -291,12 +312,12 @@ export function LoanWizard({
         balance_sheet_url:
           step3Data.balance_sheet_url ??
           (step3Data.balance_sheet
-            ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.balance_sheet.name}`
+            ? `https://storage.lencord.ar/documents/${effectiveBorrowerId}/${step3Data.balance_sheet.name}`
             : null),
         f931_url:
           step3Data.f931_url ??
           (step3Data.f931
-            ? `https://storage.lencord.ar/documents/${borrowerId}/${step3Data.f931.name}`
+            ? `https://storage.lencord.ar/documents/${effectiveBorrowerId}/${step3Data.f931.name}`
             : null),
       };
 
@@ -338,9 +359,16 @@ export function LoanWizard({
         router.push(`/solicitar/confirmacion?${queryParams.toString()}`);
       }
     } catch (err: unknown) {
-      setSubmitError(
-        err instanceof Error ? err.message : 'Error al enviar la solicitud de préstamo.'
-      );
+      let msg = err instanceof Error ? err.message : 'Error al enviar la solicitud de préstamo.';
+      if (
+        msg.toLowerCase().includes('row-level security') ||
+        msg.toLowerCase().includes('violates') ||
+        msg.toLowerCase().includes('unauthorized') ||
+        msg.toLowerCase().includes('jwt')
+      ) {
+        msg = 'Tu sesión ha expirado o no cuenta con permisos suficientes. Por favor, iniciá sesión nuevamente para continuar con tu solicitud.';
+      }
+      setSubmitError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -369,6 +397,24 @@ export function LoanWizard({
       </div>
 
       <StepProgress currentStep={step} totalSteps={4} />
+
+      {submitError && step !== 4 && (
+        <div
+          role="alert"
+          data-testid="wizard-global-error"
+          style={{
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            background: '#FEF2F2',
+            border: '1px solid #F87171',
+            borderRadius: '8px',
+            color: '#991B1B',
+            fontSize: '0.875rem',
+          }}
+        >
+          {submitError}
+        </div>
+      )}
 
       {step === 1 && (
         <StepCompanyInfo
