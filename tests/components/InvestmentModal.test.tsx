@@ -92,7 +92,7 @@ describe('InvestmentModal Component (Task 10)', () => {
     expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
   });
 
-  it('enables submission button when amount is valid', async () => {
+  it('enables submission button when amount is valid and credit risk is accepted', async () => {
     render(
       <InvestmentModal
         isOpen={true}
@@ -103,6 +103,7 @@ describe('InvestmentModal Component (Task 10)', () => {
 
     const input = screen.getByTestId('investment-amount-input');
     fireEvent.change(input, { target: { value: '500000' } });
+    fireEvent.click(screen.getByTestId('credit-risk-checkbox'));
 
     expect(screen.queryByTestId('input-error')).not.toBeInTheDocument();
     expect(screen.getByTestId('modal-confirm-button')).not.toBeDisabled();
@@ -123,6 +124,7 @@ describe('InvestmentModal Component (Task 10)', () => {
           isOpen={true}
           onClose={onCloseMock}
           loan={loanToUse}
+          defaultCreditRiskAccepted={true}
           onSuccess={onSuccessMock}
         />
       </ServiceProvider>
@@ -182,6 +184,7 @@ describe('InvestmentModal Component (Task 10)', () => {
           isOpen={true}
           onClose={vi.fn()}
           loan={approved}
+          defaultCreditRiskAccepted={true}
         />
       </ServiceProvider>
     );

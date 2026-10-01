@@ -1,0 +1,155 @@
+.wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background-color: #eff6ff;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #0a2540;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 1.0625rem;
+  color: #64748b;
+  margin: 0 auto;
+  max-width: 650px;
+  line-height: 1.6;
+}
+
+.riskBanner {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-left: 4px solid #d97706;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.riskTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.riskText {
+  font-size: 0.875rem;
+  color: #78350f;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.sectionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 3.5rem;
+}
+
+.clauseCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.clauseNumber {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.clauseTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0a2540;
+  margin: 0 0 1rem;
+}
+
+.clauseBody {
+  font-size: 0.9375rem;
+  color: #334155;
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.clauseBody p {
+  margin: 0;
+}
+
+.clauseBody ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.clauseBody li {
+  line-height: 1.5;
+}
+
+.helpBanner {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.helpContent {
+  flex: 1;
+  min-width: 260px;
+}
+
+.helpTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0a2540;
+  margin: 0 0 0.35rem;
+}
+
+.helpText {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}

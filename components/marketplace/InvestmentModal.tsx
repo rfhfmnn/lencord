@@ -110,6 +110,7 @@ export interface InvestmentModalProps {
   onSuccess?: (result: CommitInvestmentResult & Partial<CheckoutInvestmentResult>) => void;
   investorId?: string;
   investorTaxId?: string | null;
+  defaultCreditRiskAccepted?: boolean;
 }
 
 export function InvestmentModal({
@@ -119,6 +120,7 @@ export function InvestmentModal({
   onSuccess,
   investorId = 'prof-inv-001',
   investorTaxId,
+  defaultCreditRiskAccepted = false,
 }: InvestmentModalProps) {
   let router: any = null;
   try {
@@ -154,6 +156,7 @@ export function InvestmentModal({
   const [cardCvv, setCardCvv] = useState<string>('');
   const [cardHolder, setCardHolder] = useState<string>('');
   const [showCvv, setShowCvv] = useState<boolean>(false);
+  const [creditRiskAccepted, setCreditRiskAccepted] = useState<boolean>(defaultCreditRiskAccepted);
   const [cardErrors, setCardErrors] = useState<{
     number?: string;
     expiry?: string;
@@ -347,6 +350,10 @@ export function InvestmentModal({
       setSubmitError('Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil.');
       return;
     }
+    if (!creditRiskAccepted) {
+      setSubmitError('Debés confirmar que aceptás el riesgo crediticio de la operación para continuar.');
+      return;
+    }
     if (!isInputValid) return;
 
     // Validate payment method specifics
@@ -453,6 +460,7 @@ export function InvestmentModal({
     setSubmitError(null);
     setSuccessResult(null);
     setCardErrors({});
+    setCreditRiskAccepted(false);
     onClose();
   };
 
@@ -971,6 +979,34 @@ export function InvestmentModal({
                 </div>
               )}
 
+              {/* Credit Risk Acceptance Checkbox (Issue #72) */}
+              <div className={styles.riskConsentContainer} data-testid="risk-consent-container">
+                <label className={styles.riskConsentLabel}>
+                  <input
+                    type="checkbox"
+                    checked={creditRiskAccepted}
+                    onChange={(e) => {
+                      setCreditRiskAccepted(e.target.checked);
+                      if (submitError) setSubmitError(null);
+                    }}
+                    disabled={isSubmitting}
+                    className={styles.riskConsentCheckbox}
+                    data-testid="credit-risk-checkbox"
+                    required
+                  />
+                  <span className={styles.riskConsentText}>
+                    Entiendo y acepto que esta operación conlleva <strong>riesgo crediticio</strong> y no cuenta con garantía estatal de depósitos (SEDESA/BCRA). He leído los{' '}
+                    <a href="/terminos" target="_blank" rel="noopener noreferrer" className={styles.riskConsentLink}>
+                      Términos y Condiciones
+                    </a>{' '}
+                    y la{' '}
+                    <a href="/privacidad" target="_blank" rel="noopener noreferrer" className={styles.riskConsentLink}>
+                      Advertencia de Riesgos
+                    </a>.
+                  </span>
+                </label>
+              </div>
+
               {submitError && (
                 <div className={styles.errorBanner} role="alert" data-testid="modal-submit-error">
                   <span>⚠️</span>
@@ -998,7 +1034,7 @@ export function InvestmentModal({
               <Button
                 variant="primary"
                 type="submit"
-                disabled={!isInputValid || isSubmitting || !hasTaxId}
+                disabled={!isInputValid || isSubmitting || !hasTaxId || !creditRiskAccepted}
                 isLoading={isSubmitting}
                 aria-busy={isSubmitting}
                 data-testid="modal-confirm-button"

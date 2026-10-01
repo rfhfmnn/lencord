@@ -15,12 +15,14 @@ export type RegisterRole = 'borrower' | 'investor';
 export interface RegisterFormProps {
   supabaseClient?: SupabaseClient;
   defaultRole?: RegisterRole;
+  defaultTermsAccepted?: boolean;
   onSuccess?: (userEmail: string, role: RegisterRole) => void;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   supabaseClient,
   defaultRole = 'borrower',
+  defaultTermsAccepted = false,
   onSuccess,
 }) => {
   let servicesFromContext: ReturnType<typeof useServices> | null = null;
@@ -44,6 +46,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   // Common Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(defaultTermsAccepted);
 
   // UI / Status State
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -143,6 +146,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
         }
       }
+    }
+
+    // Terms & Conditions and Privacy Policy Acceptance
+    if (!termsAccepted) {
+      newErrors.terms =
+        'Debés aceptar los Términos y Condiciones y las Políticas de Privacidad para crear tu cuenta.';
     }
 
     setErrors(newErrors);
@@ -509,12 +518,53 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             />
           </div>
 
+          {/* Terms and Privacy Policy Acceptance Checkbox */}
+          <div className={styles.termsGroup}>
+            <label className={styles.termsLabel}>
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  if (errors.terms) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.terms;
+                      return next;
+                    });
+                  }
+                }}
+                data-testid="terms-checkbox"
+                className={styles.termsCheckbox}
+                required
+              />
+              <span>
+                Acepto los{' '}
+                <Link href="/terminos" target="_blank" className={styles.termsLink}>
+                  Términos y Condiciones
+                </Link>{' '}
+                y las{' '}
+                <Link href="/privacidad" target="_blank" className={styles.termsLink}>
+                  Políticas de Privacidad
+                </Link>{' '}
+                (incluida la Advertencia Expresa de Riesgos).
+              </span>
+            </label>
+            {errors.terms && (
+              <p className={styles.errorText} role="alert" data-testid="terms-error">
+                {errors.terms}
+              </p>
+            )}
+          </div>
+
           <Button
             type="submit"
             variant="primary"
             size="lg"
             fullWidth
             isLoading={isLoading}
+            disabled={!termsAccepted || isLoading}
             className={styles.submitBtn}
             data-testid="submit-register-btn"
           >

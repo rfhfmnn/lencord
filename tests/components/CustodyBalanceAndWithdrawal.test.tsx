@@ -18,7 +18,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
 
   it('renders available custody balance and withdrawal button on InvestorDashboard', async () => {
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <InvestorDashboard investorId="prof-inv-001" />
       </ServiceProvider>
     );
@@ -38,7 +38,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
 
   it('renders auditable movements history table with credits and debits', async () => {
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <InvestorDashboard investorId="prof-inv-001" />
       </ServiceProvider>
     );
@@ -68,7 +68,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
     mockStore.custodyTransactions = [];
 
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <InvestorDashboard investorId="prof-inv-empty" />
       </ServiceProvider>
     );
@@ -84,7 +84,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
 
   it('validates withdrawal modal amount inputs and quick autofill', async () => {
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <InvestorDashboard investorId="prof-inv-001" />
       </ServiceProvider>
     );
@@ -132,7 +132,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
 
   it('shows missing bank account alert and disables withdrawal when investor has no CBU', () => {
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <WithdrawalModal
           isOpen={true}
           onClose={() => {}}
@@ -150,7 +150,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
 
   it('completes withdrawal, shows receipt and reactively updates custody balance and movements', async () => {
     render(
-      <ServiceProvider value={services}>
+      <ServiceProvider services={services}>
         <InvestorDashboard investorId="prof-inv-001" />
       </ServiceProvider>
     );

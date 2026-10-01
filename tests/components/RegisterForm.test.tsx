@@ -63,7 +63,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
   // 3. Form Validation (CUIT Checksum, Weak Password, Invalid Email)
   // ---------------------------------------------------------------------------
   it('displays inline accessible error messages when required fields are missing or empty', async () => {
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="borrower" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="borrower"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.click(screen.getByTestId('submit-register-btn'));
 
@@ -76,7 +82,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
   });
 
   it('validates Argentine CUIT with check-digit algorithm and displays accessible error on invalid CUIT', async () => {
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="borrower" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="borrower"
+        defaultTermsAccepted={true}
+      />
+    );
 
     // Fill valid company and representative
     fireEvent.change(screen.getByLabelText(/Razón social de la empresa/i), {
@@ -106,7 +118,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
   });
 
   it('validates password strength and rejects passwords under 8 characters or lacking letters/numbers', async () => {
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
       target: { value: 'Esteban Quito' },
@@ -156,6 +174,7 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       <RegisterForm
         supabaseClient={mockSupabaseClient}
         defaultRole="borrower"
+        defaultTermsAccepted={true}
         onSuccess={handleSuccess}
       />
     );
@@ -225,7 +244,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       error: null,
     });
 
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
       target: { value: 'Gonzalo Fernández' },
@@ -283,7 +308,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       error: { message: 'User already registered', status: 422 },
     });
 
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
       target: { value: 'Lucía Benítez' },
@@ -319,7 +350,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       error: null,
     });
 
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     // Helper text is displayed
     expect(
@@ -367,7 +404,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
   });
 
   it('validates DNI/CUIT format when entered by investor (Issue #53)', async () => {
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
       target: { value: 'Inversor Formato' },
@@ -408,7 +451,13 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
       error: { message: 'User already registered' },
     });
 
-    render(<RegisterForm supabaseClient={mockSupabaseClient} defaultRole="investor" />);
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="investor"
+        defaultTermsAccepted={true}
+      />
+    );
 
     fireEvent.change(screen.getByLabelText(/Nombre y apellido completo/i), {
       target: { value: 'Inversor Existente' },

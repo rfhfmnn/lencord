@@ -120,6 +120,7 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
             onClose={vi.fn()}
             loan={mockLoan}
             investorId="prof-inv-001"
+            defaultCreditRiskAccepted={true}
           />
         </ServiceProvider>
       );
@@ -217,6 +218,7 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
             isOpen={true}
             onClose={vi.fn()}
             loan={mockLoan}
+            defaultCreditRiskAccepted={true}
           />
         </ServiceProvider>
       );
@@ -260,6 +262,7 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
             isOpen={true}
             onClose={onCloseMock}
             loan={mockLoan}
+            defaultCreditRiskAccepted={true}
             onSuccess={onSuccessMock}
           />
         </ServiceProvider>
@@ -319,6 +322,7 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
             isOpen={true}
             onClose={vi.fn()}
             loan={mockLoan}
+            defaultCreditRiskAccepted={true}
             onSuccess={onSuccessMock}
           />
         </ServiceProvider>

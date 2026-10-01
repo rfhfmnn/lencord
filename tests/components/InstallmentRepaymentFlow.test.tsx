@@ -21,7 +21,7 @@ describe('Installment Repayment Flow and Pro-Rata Distribution (Issue #69)', () 
     platform_spread: 5,
     borrower_rate: 45,
     base_uva_value: null,
-    category: 'WORKING_CAPITAL',
+    category: 'working_capital',
     status: 'active',
     funding_deadline: '2026-11-01T00:00:00.000Z',
     created_at: '2026-10-01T12:00:00.000Z',
@@ -74,6 +74,7 @@ describe('Installment Repayment Flow and Pro-Rata Distribution (Issue #69)', () 
       investor_id: 'usr-investor-001',
       amount: 2000000,
       status: 'committed',
+      external_payment_id: 'ext-seed-69',
       created_at: new Date().toISOString(),
     });
     vi.clearAllMocks();
@@ -161,12 +162,13 @@ describe('Installment Repayment Flow and Pro-Rata Distribution (Issue #69)', () 
         investor_id: 'usr-investor-002',
         amount: 500000, // 25%
         status: 'committed',
+        external_payment_id: 'ext-seed-70',
         created_at: new Date().toISOString(),
       }
     );
 
     // 1. Repay installment 1
-    const repay1 = await services.loans.repayInstallment({
+    const repay1 = await services.loans.repayInstallment!({
       installment_id: 'inst-69-1',
       payer_id: 'prof-sme-001',
     });
@@ -192,12 +194,12 @@ describe('Installment Repayment Flow and Pro-Rata Distribution (Issue #69)', () 
     expect(custodyTxs[0].type).toBe('installment_payout');
 
     // Verify investor notifications
-    const notifs = await services.notifications.getNotifications('usr-investor-001');
+    const notifs = await services.notifications!.getNotifications('usr-investor-001');
     const payoutNotif = notifs.find((n) => n.title.includes('Cobro acreditado'));
     expect(payoutNotif).toBeDefined();
 
     // 2. Repay final installment 2 -> should set all_repaid = true and loan status = 'repaid'
-    const repay2 = await services.loans.repayInstallment({
+    const repay2 = await services.loans.repayInstallment!({
       installment_id: 'inst-69-2',
       payer_id: 'prof-sme-001',
     });

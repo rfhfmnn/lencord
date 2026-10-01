@@ -138,6 +138,9 @@ describe('LoanDetail Component (Task 10)', () => {
     const input = screen.getByTestId('investment-amount-input');
     fireEvent.change(input, { target: { value: '500000' } });
 
+    // Accept credit risk consent
+    fireEvent.click(screen.getByTestId('credit-risk-checkbox'));
+
     fireEvent.click(screen.getByTestId('modal-confirm-button'));
 
     await waitFor(() => {

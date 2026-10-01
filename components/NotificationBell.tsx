@@ -159,7 +159,7 @@ export function NotificationBell({
       }
     };
 
-    if (supabaseClient) {
+    if (supabaseClient && typeof supabaseClient.channel === 'function') {
       const channel = supabaseClient
         .channel('user-notifications')
         .on(

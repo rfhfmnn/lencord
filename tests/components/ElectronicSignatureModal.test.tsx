@@ -18,7 +18,7 @@ describe('ElectronicSignatureModal Component (Issue #67)', () => {
     platform_spread: 8,
     borrower_rate: 50,
     base_uva_value: null,
-    category: 'WORKING_CAPITAL',
+    category: 'working_capital',
     status: 'funded',
     funding_deadline: '2026-11-01T00:00:00.000Z',
     created_at: '2026-10-01T12:00:00.000Z',

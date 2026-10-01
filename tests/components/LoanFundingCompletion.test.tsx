@@ -111,6 +111,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
       risk_tier: 'Tier A',
       investor_rate: 42,
       platform_spread: 8,
+      funding_deadline: '2026-12-31T00:00:00.000Z',
     });
 
     // Commit 100%
@@ -121,7 +122,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
     });
 
     // Activate loan
-    const activated = await services.loans.activateLoan(approved.id);
+    const activated = await services.loans.activateLoan!(approved.id);
     expect(activated.status).toBe('active');
 
     // Retrieve generated installments
@@ -144,7 +145,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
       amount_requested: 500000,
       term_months: 3,
       rate_type: 'TNA_FIXED',
-      category: 'WORKING_CAPITAL',
+      category: 'working_capital',
     });
 
     await services.loans.approveAndPublishLoan({
@@ -152,6 +153,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
       risk_tier: 'Tier A',
       investor_rate: 40,
       platform_spread: 5,
+      funding_deadline: '2026-12-31T00:00:00.000Z',
     });
 
     const commitResult = await services.investments.commitInvestment({
@@ -163,7 +165,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
     expect(commitResult.is_fully_funded).toBe(true);
 
     // Verify investor notification
-    const notifications = await services.notifications.getNotifications('usr-investor-002');
+    const notifications = await services.notifications!.getNotifications('usr-investor-002');
     const completionNotif = notifications.find(
       (n) => n.title.includes('Subasta') || n.message.includes('completó exitosamente')
     );

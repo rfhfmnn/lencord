@@ -277,7 +277,7 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       investment: JSON.parse(JSON.stringify(investment)),
       loan: JSON.parse(JSON.stringify(loan)),
       amount_funded: loan.amount_funded,
-      is_fully_funded: loan.status === 'funded' || loan.status === 'active',
+      is_fully_funded: (loan.status as string) === 'funded' || (loan.status as string) === 'active',
     };
   }
 
@@ -346,6 +346,7 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       title: 'Solicitud de retiro registrada',
       message: `La transferencia por $${input.amount.toLocaleString('es-AR')} a tu CBU está en proceso.`,
       type: 'info',
+      action_url: '/dashboard/inversor',
       read: false,
       created_at: new Date().toISOString(),
     });
