@@ -30,7 +30,7 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     render(<RegistroPage />);
 
     expect(screen.getByTestId('sticky-header')).toBeInTheDocument();
-    expect(screen.getByText('Crear cuenta en Lencord')).toBeInTheDocument();
+    expect(screen.getByText(/Creá tu cuenta en Lencord/i)).toBeInTheDocument();
     expect(screen.getByTestId('role-tab-sme')).toBeInTheDocument();
     expect(screen.getByTestId('role-tab-investor')).toBeInTheDocument();
   });
@@ -429,7 +429,7 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     fireEvent.click(screen.getByTestId('submit-register-btn'));
 
     expect(
-      await screen.findByText(/Ingrese un DNI \(7 u 8 dígitos\) o CUIT \(11 dígitos\) válido/i)
+      await screen.findByText(/Ingres[aá] un DNI \(7 u 8 dígitos\) o CUIT \(11 dígitos\) válido/i)
     ).toBeInTheDocument();
     expect(mockSignUp).not.toHaveBeenCalled();
 

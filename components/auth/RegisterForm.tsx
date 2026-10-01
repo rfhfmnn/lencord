@@ -141,7 +141,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const cleanId = cleanCuit(taxId);
       if (cleanId) {
         if (cleanId.length < 7 || (cleanId.length > 8 && cleanId.length < 11) || cleanId.length > 11) {
-          newErrors.taxId = 'Ingrese un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
+          newErrors.taxId = 'Ingresá un DNI (7 u 8 dígitos) o CUIT (11 dígitos) válido.';
         } else if (cleanId.length === 11 && !validateCuit(cleanId)) {
           newErrors.taxId = 'El CUIT de 11 dígitos no es válido según el algoritmo oficial.';
         }
@@ -224,10 +224,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           });
 
           if (profileError) {
-            if (!data.session && profileError.message?.toLowerCase().includes('row-level security')) {
+            const errorMsg = profileError.message?.toLowerCase() || '';
+            if (!data.session && errorMsg.includes('row-level security')) {
               // Expected when email confirmation is active: the database trigger handle_new_user()
               // creates the profile via SECURITY DEFINER on auth.users insert.
               console.info('[RegisterForm] Profile upsert handled by server trigger (unconfirmed session)');
+            } else if (errorMsg.includes('tax_id') && errorMsg.includes('not-null')) {
+              console.warn(
+                '[RegisterForm] La columna "profiles.tax_id" en Supabase tiene restricción NOT NULL. ' +
+                'Ejecute: ALTER TABLE public.profiles ALTER COLUMN tax_id DROP NOT NULL; en el SQL Editor de Supabase.'
+              );
             } else {
               console.error('[RegisterForm] Error creating profile:', profileError.message || profileError);
             }
@@ -301,7 +307,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Crear cuenta en Lencord</h1>
+          <h1 className={styles.title}>Creá tu cuenta en Lencord</h1>
           <p className={styles.subtitle}>
             Financiamiento colectivo, transparente y seguro para el desarrollo de tu negocio.
           </p>
