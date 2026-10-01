@@ -728,135 +728,6 @@ export function InvestorDashboard({
         </div>
       </section>
 
-      {/* Mi Perfil / Estado de Identidad & Datos de Cuenta */}
-      <section
-        id="perfil"
-        className={styles.section}
-        aria-labelledby="perfil-section-title"
-        data-testid="investor-profile-section"
-      >
-        <div className={styles.sectionHeader}>
-          <h2 id="perfil-section-title" className={styles.sectionTitle}>
-            Mi perfil
-          </h2>
-          <p className={styles.sectionDescription}>
-            Información de la cuenta, cuenta bancaria asociada e identificación tributaria conforme a normativa UIF.
-          </p>
-        </div>
-
-        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-            <div>
-              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
-                Correo electrónico registrado
-              </span>
-              <strong style={{ fontSize: '0.9375rem', color: '#0f172a' }} data-testid="profile-email">
-                {investorEmail || 'No informado'}
-              </strong>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
-                CBU/CVU bancario asociado
-              </span>
-              <strong style={{ fontSize: '0.9375rem', color: '#0f172a', fontFamily: 'monospace' }} data-testid="profile-cbu">
-                {investorCbu || 'No vinculado'}
-              </strong>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#0f172a' }}>
-                Documento de Identidad (DNI/CUIT):
-              </span>
-              <span
-                data-testid="dni-badge"
-                className={`${styles.statusBadge} ${taxId ? styles.statusSettled : styles.statusPending}`}
-              >
-                {taxId ? 'DNI cargado' : 'DNI pendiente'}
-              </span>
-            </div>
-
-            {taxId && !isEditingDni && (
-              <Button
-                variant="bordered"
-                size="sm"
-                onClick={() => {
-                  setDniInput(taxId);
-                  setIsEditingDni(true);
-                  setDniError(null);
-                  setDniSuccess(null);
-                }}
-                data-testid="edit-dni-button"
-              >
-                Modificar DNI
-              </Button>
-            )}
-          </div>
-
-          {taxId && !isEditingDni && (
-            <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#475569' }}>
-              Número registrado: <strong className="font-mono" data-testid="current-tax-id">{taxId}</strong>
-            </div>
-          )}
-
-          {(!taxId || isEditingDni) && (
-            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '400px' }}>
-              <Input
-                label="Ingresá tu DNI o CUIT"
-                id="input-profile-dni"
-                value={dniInput}
-                onChange={(e) => {
-                  setDniInput(e.target.value);
-                  if (dniError) setDniError(null);
-                }}
-                placeholder="Ej: 32456789 o 20-32456789-4"
-                error={dniError ?? undefined}
-                helperText="DNI (7-8 dígitos) o CUIT (11 dígitos)."
-                className="font-mono"
-                data-testid="input-dni"
-              />
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {isEditingDni && (
-                  <Button
-                    type="button"
-                    variant="bordered"
-                    size="sm"
-                    onClick={() => {
-                      setIsEditingDni(false);
-                      setDniError(null);
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  isLoading={isSavingDni}
-                  onClick={handleSaveDni}
-                  data-testid="save-dni-button"
-                >
-                  Guardar DNI
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {dniSuccess && (
-            <div
-              style={{ marginTop: '0.75rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.875rem' }}
-              role="status"
-              data-testid="dni-success-message"
-            >
-              ✓ {dniSuccess}
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* Empty State when no active investments */}
       {activeInvestments.length === 0 ? (
         <section className={styles.emptyStateCard} data-testid="investor-empty-state">
@@ -1130,6 +1001,135 @@ export function InvestorDashboard({
           </section>
         </>
       )}
+
+      {/* Mi Perfil / Estado de Identidad & Datos de Cuenta */}
+      <section
+        id="perfil"
+        className={styles.section}
+        aria-labelledby="perfil-section-title"
+        data-testid="investor-profile-section"
+      >
+        <div className={styles.sectionHeader}>
+          <h2 id="perfil-section-title" className={styles.sectionTitle}>
+            Mi perfil
+          </h2>
+          <p className={styles.sectionDescription}>
+            Información de la cuenta, cuenta bancaria asociada e identificación tributaria conforme a normativa UIF.
+          </p>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+            <div>
+              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                Correo electrónico registrado
+              </span>
+              <strong style={{ fontSize: '0.9375rem', color: '#0f172a' }} data-testid="profile-email">
+                {investorEmail || 'No informado'}
+              </strong>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+                CBU/CVU bancario asociado
+              </span>
+              <strong style={{ fontSize: '0.9375rem', color: '#0f172a', fontFamily: 'monospace' }} data-testid="profile-cbu">
+                {investorCbu || 'No vinculado'}
+              </strong>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#0f172a' }}>
+                Documento de Identidad (DNI/CUIT):
+              </span>
+              <span
+                data-testid="dni-badge"
+                className={`${styles.statusBadge} ${taxId ? styles.statusSettled : styles.statusPending}`}
+              >
+                {taxId ? 'DNI cargado' : 'DNI pendiente'}
+              </span>
+            </div>
+
+            {taxId && !isEditingDni && (
+              <Button
+                variant="bordered"
+                size="sm"
+                onClick={() => {
+                  setDniInput(taxId);
+                  setIsEditingDni(true);
+                  setDniError(null);
+                  setDniSuccess(null);
+                }}
+                data-testid="edit-dni-button"
+              >
+                Modificar DNI
+              </Button>
+            )}
+          </div>
+
+          {taxId && !isEditingDni && (
+            <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#475569' }}>
+              Número registrado: <strong className="font-mono" data-testid="current-tax-id">{taxId}</strong>
+            </div>
+          )}
+
+          {(!taxId || isEditingDni) && (
+            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '400px' }}>
+              <Input
+                label="Ingresá tu DNI o CUIT"
+                id="input-profile-dni"
+                value={dniInput}
+                onChange={(e) => {
+                  setDniInput(e.target.value);
+                  if (dniError) setDniError(null);
+                }}
+                placeholder="Ej: 32456789 o 20-32456789-4"
+                error={dniError ?? undefined}
+                helperText="DNI (7-8 dígitos) o CUIT (11 dígitos)."
+                className="font-mono"
+                data-testid="input-dni"
+              />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {isEditingDni && (
+                  <Button
+                    type="button"
+                    variant="bordered"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingDni(false);
+                      setDniError(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSavingDni}
+                  onClick={handleSaveDni}
+                  data-testid="save-dni-button"
+                >
+                  Guardar DNI
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {dniSuccess && (
+            <div
+              style={{ marginTop: '0.75rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.875rem' }}
+              role="status"
+              data-testid="dni-success-message"
+            >
+              ✓ {dniSuccess}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Dual-Role PyME Onboarding Card or Active Banner (at bottom of panel) */}
       {renderPymeOnboardingCard()}

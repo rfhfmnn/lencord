@@ -427,6 +427,26 @@ describe('InvestorDashboard Component (Task 13)', () => {
       });
       expect(screen.getByTestId('btn-success-go-to-pyme')).toBeInTheDocument();
     });
+
+    it('places operational active investments above the profile section in DOM order (Issue #62)', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={mockInvestments}
+          initialInstallments={mockInstallments}
+          initialTaxId="20301234567"
+        />
+      );
+
+      const activeTable = screen.getByTestId('active-investments-table');
+      const profileSection = document.getElementById('perfil');
+
+      expect(activeTable).toBeInTheDocument();
+      expect(profileSection).toBeInTheDocument();
+
+      // Ensure activeTable precedes profileSection in document order
+      const position = activeTable.compareDocumentPosition(profileSection!);
+      expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
   });
 });
 
