@@ -863,8 +863,9 @@ describe('AdminConsole Component (Task 15)', () => {
           legal_name: 'PyME Sin Datos Bancarios S.A.',
           tax_id: '30712345679',
           email: 'contacto@sindatos.com',
-          phone: null,
-          bank_cbu_cvu: null,
+          kyc_status: 'approved',
+          phone: '' as unknown as string,
+          bank_cbu_cvu: '' as unknown as string,
           created_at: '2026-02-01T14:30:00.000Z',
         },
       };

@@ -140,7 +140,7 @@ export function AdminConsole({
 
           borrowerIds.forEach((bId) => {
             if (!newProfiles[bId]) {
-              const mock = defaultMockStateStore.profiles.find((p) => p.id === bId);
+              const mock = SEED_PROFILES.find((p: Profile) => p.id === bId);
               if (mock) {
                 newProfiles[bId] = mock as any;
               }

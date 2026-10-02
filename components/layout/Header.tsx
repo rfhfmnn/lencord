@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
         let role: 'investor' | 'sme' | 'borrower' | 'admin' =
           (authUser.user_metadata?.role as any) || 'borrower';
 
-        const availableRoles: ('investor' | 'sme' | 'borrower')[] = [];
+        const availableRoles: ('investor' | 'sme' | 'borrower' | 'admin')[] = [];
         if (Array.isArray(authUser.user_metadata?.roles)) {
           availableRoles.push(...authUser.user_metadata.roles);
         }
