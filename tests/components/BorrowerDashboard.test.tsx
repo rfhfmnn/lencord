@@ -409,6 +409,40 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     });
     expect(screen.getByTestId('btn-success-go-to-investor')).toBeInTheDocument();
   });
+
+  describe('Prominent Request Status Card & States (Issue #74)', () => {
+    it('renders prominent hero status card with amount, term, category, and date', () => {
+      render(<BorrowerDashboard initialLoans={[baseLoan]} />);
+
+      const heroCard = screen.getByTestId('pyme-status-hero-card');
+      expect(heroCard).toBeInTheDocument();
+      expect(heroCard).toHaveTextContent('Capital de trabajo');
+      expect(heroCard).toHaveTextContent('$ 10.000.000');
+      expect(heroCard).toHaveTextContent('6 meses');
+      expect(heroCard).toHaveTextContent('in_review');
+    });
+
+    it('renders dedicated rejected card with explanation when loan is rejected', () => {
+      const rejectedLoan: Loan = { ...baseLoan, status: 'rejected' };
+      render(<BorrowerDashboard initialLoans={[rejectedLoan]} />);
+
+      expect(screen.getByTestId('pyme-status-hero-card')).toBeInTheDocument();
+      const rejectedCard = screen.getByTestId('rejected-card');
+      expect(rejectedCard).toBeInTheDocument();
+      expect(rejectedCard).toHaveTextContent('Solicitud no aprobada por la mesa de crédito');
+      expect(rejectedCard).toHaveTextContent('Lamentablemente, tu solicitud no cumple con los criterios');
+      expect(screen.getByRole('link', { name: /solicitar nuevamente/i })).toHaveAttribute('href', '/solicitar');
+    });
+
+    it('renders empty state when borrower has no active loans', () => {
+      render(<BorrowerDashboard initialLoans={[]} />);
+
+      expect(screen.getByTestId('borrower-empty-state')).toBeInTheDocument();
+      expect(screen.getByText('No poseés solicitudes activas')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /solicitar financiación/i })).toHaveAttribute('href', '/solicitar');
+    });
+  });
 });
+
 
 

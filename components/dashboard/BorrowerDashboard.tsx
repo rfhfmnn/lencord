@@ -120,10 +120,17 @@ export function BorrowerDashboard({
         }
       }
 
+      if (initialLoans) {
+        return;
+      }
+
       try {
         const client = createSupabaseBrowserClient();
         const { data: authData } = await client.auth.getUser();
         if (authData?.user && isMounted) {
+          if (!borrowerId || borrowerId === 'prof-sme-001') {
+            setCurrentBorrowerId(authData.user.id);
+          }
           const userRoles = Array.isArray(authData.user.user_metadata?.roles)
             ? authData.user.user_metadata.roles
             : [authData.user.user_metadata?.role].filter(Boolean);
@@ -168,7 +175,7 @@ export function BorrowerDashboard({
     return () => {
       isMounted = false;
     };
-  }, [currentBorrowerId]);
+  }, [currentBorrowerId, borrowerId]);
 
 
   // Keep state synced with props or resolve session user
@@ -201,6 +208,22 @@ export function BorrowerDashboard({
     async function loadBorrowerData() {
       try {
         setLoading(true);
+        let targetBorrowerId = currentBorrowerId;
+
+        // If borrowerId is default mock, resolve actual authenticated user ID
+        if (!borrowerId || borrowerId === 'prof-sme-001') {
+          try {
+            const client = createSupabaseBrowserClient();
+            const { data: authData } = await client.auth.getUser();
+            if (authData?.user?.id) {
+              targetBorrowerId = authData.user.id;
+              if (isMounted) setCurrentBorrowerId(targetBorrowerId);
+            }
+          } catch {
+            // Keep current
+          }
+        }
+
         const resolvedServices =
           servicesFromContext ??
           (() => {
@@ -213,7 +236,7 @@ export function BorrowerDashboard({
 
         // List loans for this borrower
         const borrowerLoans = await resolvedServices.loans.listLoans({
-          borrower_id: currentBorrowerId,
+          borrower_id: targetBorrowerId,
         });
 
         if (isMounted) {
@@ -782,7 +805,7 @@ export function BorrowerDashboard({
       </header>
 
       {/* Main Loan Header & Status Badge */}
-      <div className={styles.borrowerHeroCard}>
+      <div className={styles.borrowerHeroCard} data-testid="pyme-status-hero-card">
         <div className={styles.loanHeaderBar}>
           <div className={styles.loanTitleGroup}>
             <h2 className={styles.loanHeading}>{categoryLabel}</h2>
@@ -830,6 +853,37 @@ export function BorrowerDashboard({
           </div>
         </div>
       </div>
+
+      {/* STATE REJECTED */}
+      {currentLoan.status === 'rejected' && (
+        <section className={styles.inReviewCard} style={{ borderColor: '#fca5a5', backgroundColor: '#fef2f2' }} data-testid="rejected-card">
+          <div className={styles.inReviewHeader}>
+            <div className={styles.inReviewIcon} style={{ backgroundColor: '#fee2e2', color: '#b91c1c' }} aria-hidden="true">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className={styles.inReviewTitle} style={{ color: '#991b1b' }}>Solicitud no aprobada por la mesa de crédito</h3>
+              <p className={styles.inReviewText} style={{ color: '#7f1d1d' }}>
+                Lamentablemente, tu solicitud no cumple con los criterios de scoring crediticio y riesgo exigidos en esta oportunidad. Podés revisar tu documentación y volver a solicitar financiamiento más adelante.
+              </p>
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Link href="/solicitar">
+                  <Button variant="primary" size="sm">
+                    Solicitar nuevamente
+                  </Button>
+                </Link>
+                <Link href="/faq">
+                  <Button variant="bordered" size="sm">
+                    Preguntas frecuentes
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* STATE 1: in_review */}
       {currentLoan.status === 'in_review' && (
