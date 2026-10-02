@@ -215,7 +215,7 @@ describe('Header Component', () => {
       expect(adminLink).toHaveTextContent('Administración');
     });
 
-    it('renders "Solicitudes" navigation link targeting /admin and hides public/informational links (Issue #73)', async () => {
+    it('removes "Solicitudes", renders centered admin block, and leaves only logout in actions (Issue #80)', async () => {
       const user = userEvent.setup();
       render(
         <Header
@@ -227,10 +227,28 @@ describe('Header Component', () => {
         />
       );
 
-      // Dedicated Solicitudes link in desktop nav
-      const desktopSolicitudes = screen.getByTestId('header-solicitudes-link');
-      expect(desktopSolicitudes).toHaveAttribute('href', '/admin');
-      expect(desktopSolicitudes).toHaveTextContent('Solicitudes');
+      // Solicitudes link must NOT be in desktop or anywhere in header
+      expect(screen.queryByTestId('header-solicitudes-link')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^solicitudes$/i })).not.toBeInTheDocument();
+
+      // Centered admin block is present
+      const centerBlock = screen.getByTestId('header-admin-center-block');
+      expect(centerBlock).toBeInTheDocument();
+
+      const adminLink = screen.getByTestId('header-admin-link');
+      expect(adminLink).toHaveAttribute('href', '/admin');
+      expect(adminLink).toHaveTextContent('Administración');
+
+      expect(screen.getByTestId('header-user-name')).toHaveTextContent('Administración Lencord');
+      expect(screen.getByTestId('header-role-badge')).toHaveTextContent('Admin');
+
+      // Desktop actions should ONLY contain logout button
+      const desktopActions = screen.getByTestId('header-desktop-actions');
+      const actionButtons = desktopActions.querySelectorAll('button');
+      expect(actionButtons.length).toBe(1);
+      expect(screen.getByTestId('header-logout-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('header-dashboard-link')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('header-custody-balance')).not.toBeInTheDocument();
 
       // Public and informational links should NOT be in the document for admin
       expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();
@@ -242,9 +260,16 @@ describe('Header Component', () => {
       const toggle = screen.getByTestId('mobile-menu-toggle');
       await user.click(toggle);
 
-      const mobileSolicitudes = screen.getByTestId('mobile-solicitudes-link');
-      expect(mobileSolicitudes).toHaveAttribute('href', '/admin');
-      expect(mobileSolicitudes).toHaveTextContent('Solicitudes');
+      // In mobile drawer, Solicitudes must NOT exist
+      expect(screen.queryByTestId('mobile-solicitudes-link')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^solicitudes$/i })).not.toBeInTheDocument();
+
+      // Mobile drawer shows "Administración" and "Cerrar sesión"
+      const mobileAdminLink = screen.getByTestId('mobile-admin-link');
+      expect(mobileAdminLink).toHaveAttribute('href', '/admin');
+      expect(mobileAdminLink).toHaveTextContent('Administración');
+
+      expect(screen.getByTestId('mobile-logout-button')).toBeInTheDocument();
 
       // Still no public/informational links in mobile drawer
       expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();

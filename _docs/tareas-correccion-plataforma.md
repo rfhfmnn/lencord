@@ -89,18 +89,18 @@ Eliminar completamente el dominio inexistente `storage.lencord.ar`, conectando l
 En la cuenta de Administrador, remover el enlace "Solicitudes" de la barra de navegación y centrar en el Header el bloque compuesto por el botón/enlace "Administración", el nombre del administrador y el badge "Admin", dejando en el extremo derecho exclusivamente el botón "Cerrar sesión".
 
 ### Acceptance criteria
-- [ ] Cuando el usuario autenticado tiene rol de Administrador (`currentUser.role === 'admin'`):
+- [x] Cuando el usuario autenticado tiene rol de Administrador (`currentUser.role === 'admin'`):
   - El enlace `"Solicitudes"` no se muestra en ninguna parte del Header (ni en desktop ni en el menú mobile).
   - En la barra desktop, la sección central alberga de forma centrada el bloque de administración:
     - Enlace/botón navegable `"Administración"` que redirige a `/admin`.
     - Nombre del usuario (`currentUser.name`).
     - Badge visual con la leyenda `"Admin"`.
   - En el extremo derecho (`desktopActions`), solo se muestra el botón `"Cerrar sesión"`.
-- [ ] En viewport móvil (< 768px):
+- [x] En viewport móvil (< 768px):
   - El menú lateral desplegable no muestra la opción `"Solicitudes"`.
   - Muestra la opción `"Administración"` y el botón `"Cerrar sesión"`.
-- [ ] Para usuarios con rol PyME, Inversor o visitantes no autenticados, la distribución del Header se mantiene idéntica a la actual (enlaces a la izquierda, acciones y perfil a la derecha).
-- [ ] En pantallas intermedias (768px a 1024px), los elementos centrados no se superponen con la marca "Lencord" a la izquierda ni con "Cerrar sesión" a la derecha.
+- [x] Para usuarios con rol PyME, Inversor o visitantes no autenticados, la distribución del Header se mantiene idéntica a la actual (enlaces a la izquierda, acciones y perfil a la derecha).
+- [x] En pantallas intermedias (768px a 1024px), los elementos centrados no se superponen con la marca "Lencord" a la izquierda ni con "Cerrar sesión" a la derecha.
 
 ### Out of scope
 - Ninguno: todos los cambios pertenecen a este flujo.

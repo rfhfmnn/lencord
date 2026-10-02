@@ -276,7 +276,6 @@ export const Header: React.FC<HeaderProps> = ({
   const isInvestor = currentUser?.role === 'investor';
   const isAdmin = currentUser?.role === 'admin';
 
-  const showSolicitudes = isAdmin;
   const showPrestar = !isAdmin && (isLoading || !currentUser || isInvestor);
   const showPedir = !isAdmin && (isLoading || !currentUser || isBorrower);
   const showInformational = !isAdmin;
@@ -344,34 +343,55 @@ export const Header: React.FC<HeaderProps> = ({
           <span className={styles.brandName}>Lencord</span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className={styles.desktopNav} aria-label="Navegación principal">
-          {showSolicitudes && (
-            <Link href="/admin" className={styles.navLink} data-testid="header-solicitudes-link">
-              Solicitudes
-            </Link>
-          )}
-          {showPrestar && (
-            <Link href="/marketplace" className={styles.navLink}>
-              Prestar
-            </Link>
-          )}
-          {showPedir && (
-            <Link href="/solicitar" className={styles.navLink}>
-              Pedir financiación
-            </Link>
-          )}
-          {showInformational && (
-            <>
-              <Link href="/#como-funciona" className={styles.navLink}>
-                Cómo funciona
+        {/* Desktop Navigation Links (Non-admin) */}
+        {!isAdmin && (
+          <nav className={styles.desktopNav} aria-label="Navegación principal">
+            {showPrestar && (
+              <Link href="/marketplace" className={styles.navLink}>
+                Prestar
               </Link>
-              <Link href="/faq" className={styles.navLink}>
-                FAQ
+            )}
+            {showPedir && (
+              <Link href="/solicitar" className={styles.navLink}>
+                Pedir financiación
               </Link>
-            </>
-          )}
-        </nav>
+            )}
+            {showInformational && (
+              <>
+                <Link href="/#como-funciona" className={styles.navLink}>
+                  Cómo funciona
+                </Link>
+                <Link href="/faq" className={styles.navLink}>
+                  FAQ
+                </Link>
+              </>
+            )}
+          </nav>
+        )}
+
+        {/* Centered Admin Block (Desktop only, Admin only - Issue #80) */}
+        {isAdmin && currentUser && (
+          <div className={styles.adminCenterBlock} data-testid="header-admin-center-block">
+            <Link
+              href="/admin"
+              className={styles.adminLink}
+              data-testid="header-admin-link"
+            >
+              Administración
+            </Link>
+            <div className={styles.userProfile}>
+              <span className={styles.userName} data-testid="header-user-name" title={currentUser.name}>
+                {currentUser.name}
+              </span>
+              <span
+                className={`${styles.roleBadge} ${styles.roleBadgeAdmin}`}
+                data-testid="header-role-badge"
+              >
+                Admin
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Desktop Session / Auth Action Area */}
         <div className={styles.desktopActions} data-testid="header-desktop-actions">
@@ -383,50 +403,54 @@ export const Header: React.FC<HeaderProps> = ({
               aria-busy="true"
             />
           ) : currentUser ? (
-            <div className={styles.sessionArea} data-testid="header-session-user">
-              {/* Custody Balance (Investors only) */}
-              {isInvestor && (
-                <div
-                  className={styles.custodyBalance}
-                  data-testid="header-custody-balance"
-                  title="Saldo en cuenta de custodia"
+            isAdmin ? (
+              <div className={styles.sessionArea} data-testid="header-session-user">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className={styles.logoutButton}
+                  data-testid="header-logout-button"
                 >
-                  <span className={styles.custodyLabel}>Custodia:</span>
-                  <span className={styles.custodyValue}>
-                    {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                  Cerrar sesión
+                </Button>
+              </div>
+            ) : (
+              <div className={styles.sessionArea} data-testid="header-session-user">
+                {/* Custody Balance (Investors only) */}
+                {isInvestor && (
+                  <div
+                    className={styles.custodyBalance}
+                    data-testid="header-custody-balance"
+                    title="Saldo en cuenta de custodia"
+                  >
+                    <span className={styles.custodyLabel}>Custodia:</span>
+                    <span className={styles.custodyValue}>
+                      {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                    </span>
+                  </div>
+                )}
+
+                {/* In-App Notifications Bell */}
+                <NotificationBell
+                  userId={currentUser.id}
+                  supabaseClient={supabaseClient}
+                />
+
+                {/* User Identity & Role Badge */}
+                <div className={styles.userProfile}>
+                  <span className={styles.userName} data-testid="header-user-name" title={currentUser.name}>
+                    {currentUser.name}
+                  </span>
+                  <span
+                    className={`${styles.roleBadge} ${roleBadgeClass}`}
+                    data-testid="header-role-badge"
+                  >
+                    {roleBadgeText}
                   </span>
                 </div>
-              )}
 
-              {/* In-App Notifications Bell */}
-              <NotificationBell
-                userId={currentUser.id}
-                supabaseClient={supabaseClient}
-              />
-
-              {/* User Identity & Role Badge */}
-              <div className={styles.userProfile}>
-                <span className={styles.userName} data-testid="header-user-name" title={currentUser.name}>
-                  {currentUser.name}
-                </span>
-                <span
-                  className={`${styles.roleBadge} ${roleBadgeClass}`}
-                  data-testid="header-role-badge"
-                >
-                  {roleBadgeText}
-                </span>
-              </div>
-
-              {/* Role-Specific Navigation Link */}
-              {isAdmin ? (
-                <Link
-                  href="/admin"
-                  className={styles.adminLink}
-                  data-testid="header-admin-link"
-                >
-                  Administración
-                </Link>
-              ) : (
+                {/* Role-Specific Navigation Link */}
                 <Link
                   href={dashboardHref}
                   className={styles.dashboardLink}
@@ -434,32 +458,32 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   Mi panel
                 </Link>
-              )}
 
-              {/* Role Switcher (Unified Account) */}
-              {hasDualRoles && (
+                {/* Role Switcher (Unified Account) */}
+                {hasDualRoles && (
+                  <Button
+                    variant="bordered"
+                    size="sm"
+                    onClick={() => handleRoleSwitch(isBorrower ? 'investor' : 'borrower')}
+                    className={styles.roleSwitchButton}
+                    data-testid="header-role-switcher"
+                  >
+                    {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
+                  </Button>
+                )}
+
+                {/* Logout Button */}
                 <Button
-                  variant="bordered"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => handleRoleSwitch(isBorrower ? 'investor' : 'borrower')}
-                  className={styles.roleSwitchButton}
-                  data-testid="header-role-switcher"
+                  onClick={handleLogout}
+                  className={styles.logoutButton}
+                  data-testid="header-logout-button"
                 >
-                  {isBorrower ? 'Cambiar a modo Inversor' : 'Cambiar a modo PyME'}
+                  Cerrar sesión
                 </Button>
-              )}
-
-              {/* Logout Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className={styles.logoutButton}
-                data-testid="header-logout-button"
-              >
-                Cerrar sesión
-              </Button>
-            </div>
+              </div>
+            )
           ) : (
             <div className={styles.unauthActions}>
               <Link
@@ -525,33 +549,30 @@ export const Header: React.FC<HeaderProps> = ({
           role="region"
           aria-label="Menú de navegación móvil"
         >
-          <nav className={styles.mobileNavLinks} aria-label="Enlaces móviles">
-            {showSolicitudes && (
-              <Link href="/admin" className={styles.mobileNavLink} onClick={closeMobileMenu} data-testid="mobile-solicitudes-link">
-                Solicitudes
-              </Link>
-            )}
-            {showPrestar && (
-              <Link href="/marketplace" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                Prestar
-              </Link>
-            )}
-            {showPedir && (
-              <Link href="/solicitar" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                Pedir financiación
-              </Link>
-            )}
-            {showInformational && (
-              <>
-                <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                  Cómo funciona
+          {!isAdmin && (
+            <nav className={styles.mobileNavLinks} aria-label="Enlaces móviles">
+              {showPrestar && (
+                <Link href="/marketplace" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                  Prestar
                 </Link>
-                <Link href="/faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                  FAQ
+              )}
+              {showPedir && (
+                <Link href="/solicitar" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                  Pedir financiación
                 </Link>
-              </>
-            )}
-          </nav>
+              )}
+              {showInformational && (
+                <>
+                  <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                    Cómo funciona
+                  </Link>
+                  <Link href="/faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                    FAQ
+                  </Link>
+                </>
+              )}
+            </nav>
+          )}
 
           <div className={styles.mobileActions} data-testid="mobile-actions-container">
             {isLoading ? (
