@@ -7,7 +7,7 @@ import { LoanWizard } from '@/components/solicitar';
 export const metadata: Metadata = {
   title: 'Solicitar financiamiento',
   description:
-    'Formulario de solicitud de crédito online en Lencord. Financiamiento colectivo con condiciones a tu medida.',
+    'Solicitud de préstamo online en Lencord.',
 };
 
 export default function SolicitarPage() {

@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LegalDocumentView, type LegalDocumentSection } from '@/components/legal';
 
 export const metadata: Metadata = {
-  title: 'Políticas de Privacidad y Advertencia de Riesgos | Lencord',
+  title: 'Políticas de privacidad y advertencia de riesgos',
   description:
     'Políticas de privacidad, tratamiento de datos personales conforme a la Ley 25.326 y advertencia expresa de riesgos de Lencord.',
 };
@@ -60,7 +60,7 @@ const PRIVACY_SECTIONS: LegalDocumentSection[] = [
   },
   {
     id: 'derechos-arco',
-    title: '4. Ejercicio de Derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)',
+    title: '4. Ejercicio de derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)',
     content: (
       <>
         <p>
@@ -89,14 +89,14 @@ const PRIVACY_SECTIONS: LegalDocumentSection[] = [
 ];
 
 const RISK_WARNING = {
-  title: 'Advertencia Expresa de Riesgo Financiero y Crediticio',
+  title: 'Advertencia expresa de riesgo financiero y crediticio',
   description:
     'Lencord informa a todos los inversores participantes que la colocación de capital en préstamos a pequeñas y medianas empresas conlleva riesgos inherentes que deben ser evaluados y aceptados en forma previa e informada:',
   points: [
-    'Sin Garantía Estatal ni SEDESA: Los fondos transferidos a la plataforma no constituyen depósitos en entidades financieras ni cuentan con la cobertura del Fondo de Garantía de los Depósitos (SEDESA, Ley 24.485) ni del Banco Central de la República Argentina (BCRA).',
-    'Asunción de Riesgo Crediticio Total: El inversor asume en forma íntegra el riesgo de mora o insolvencia de la PyME tomadora. Lencord actúa exclusivamente como plataforma tecnológica facilitadora y no garantiza el repago del capital invertido ni de los rendimientos proyectados.',
-    'Iliquidez del Instrumento: Las participaciones en los préstamos no cotizan en mercados secundarios regulados y están sujetas a un cronograma de amortización prefijado por cuotas.',
-    'Decisión Independiente: Todo inversor debe evaluar su situación financiera y perfil de riesgo antes de confirmar cualquier oferta de financiamiento.',
+    'Sin garantía estatal ni SEDESA: los fondos transferidos a la plataforma no constituyen depósitos en entidades financieras ni cuentan con la cobertura del Fondo de Garantía de los Depósitos (SEDESA, Ley 24.485) ni del Banco Central de la República Argentina (BCRA).',
+    'Asunción de riesgo crediticio total: el inversor asume en forma íntegra el riesgo de mora o insolvencia de la PyME tomadora. Lencord actúa exclusivamente como plataforma tecnológica facilitadora y no garantiza el repago del capital invertido ni de los rendimientos proyectados.',
+    'Iliquidez del instrumento: las participaciones en los préstamos no cotizan en mercados secundarios regulados y están sujetas a un cronograma de amortización prefijado por cuotas.',
+    'Decisión independiente: todo inversor debe evaluar su situación financiera y perfil de riesgo antes de confirmar cualquier oferta de financiamiento.',
   ],
 };
 
@@ -106,8 +106,8 @@ export default function PrivacidadPage() {
       <Header />
       <main id="main-content">
         <LegalDocumentView
-          badge="Protección de Datos y Riesgos"
-          title="Políticas de Privacidad y Advertencia de Riesgos"
+          badge="Protección de datos y riesgos"
+          title="Políticas de privacidad y advertencia de riesgos"
           subtitle="Tratamiento seguro de datos personales conforme a la Ley 25.326 y divulgación obligatoria de riesgos financieros."
           lastUpdated="Octubre 2026"
           sections={PRIVACY_SECTIONS}

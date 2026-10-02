@@ -9,7 +9,7 @@ import styles from '@/components/solicitar/solicitar.module.css';
 
 export const metadata: Metadata = {
   title: 'Solicitud confirmada',
-  description: 'Confirmación de solicitud de crédito recibida y en proceso de revisión.',
+  description: 'Confirmación de solicitud de préstamo recibida y en proceso de revisión.',
 };
 
 export default async function ConfirmacionPage({

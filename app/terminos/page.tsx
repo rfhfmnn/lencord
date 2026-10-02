@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { LegalDocumentView } from '@/components/legal';
 
 export const metadata: Metadata = {
-  title: 'Términos y Condiciones | Lencord',
+  title: 'Términos y condiciones',
   description:
     'Términos y condiciones generales de uso de la plataforma Lencord para PyMEs e inversores conforme a la legislación de la República Argentina.',
 };

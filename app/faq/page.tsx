@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { FaqView } from '@/components/faq';
 
 export const metadata: Metadata = {
-  title: 'Preguntas Frecuentes | Lencord',
+  title: 'Preguntas frecuentes',
   description:
     'Resolvé tus dudas sobre financiamiento PyME e inversión colectiva en Lencord.',
 };
