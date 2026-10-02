@@ -61,8 +61,31 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
     it('maps invalid loan status to user-friendly message', () => {
       const err = new Error('RAISE EXCEPTION: El préstamo no se encuentra en estado de fondeo');
       const mapped = mapSupabaseError(err);
-      expect(mapped.message).toBe('El préstamo no se encuentra en estado de fondeo');
+      expect(mapped.message).toBe('Esta solicitud de préstamo ya no se encuentra abierta a subasta.');
       expect(mapped.code).toBe('INVALID_LOAN_STATUS');
+    });
+
+    it('maps insufficient custody balance and self-funding exceptions', () => {
+      const errCustody = new Error('RAISE EXCEPTION: Saldo en custodia insuficiente para realizar la inversión');
+      const mappedCustody = mapSupabaseError(errCustody);
+      expect(mappedCustody.message).toBe('Tu saldo en custodia es insuficiente para realizar esta inversión.');
+      expect(mappedCustody.code).toBe('INSUFFICIENT_CUSTODY_BALANCE');
+
+      const errSelf = new Error('RAISE EXCEPTION: No se permite autofinanciamiento: el solicitante no puede invertir en su propio préstamo');
+      const mappedSelf = mapSupabaseError(errSelf);
+      expect(mappedSelf.message).toBe('No podés invertir en tu propia solicitud de crédito.');
+      expect(mappedSelf.code).toBe('SELF_FUNDING_NOT_ALLOWED');
+    });
+
+    it('maps overfunding and uuid syntax errors gracefully', () => {
+      const errOverfund = new Error('RAISE EXCEPTION: check_amount_funded_limit cupo remanente');
+      const mappedOverfund = mapSupabaseError(errOverfund);
+      expect(mappedOverfund.message).toBe('El monto ingresado excede el cupo remanente de la subasta.');
+
+      const errUuid = new Error('invalid input syntax for type uuid: "prof-inv-001"');
+      const mappedUuid = mapSupabaseError(errUuid);
+      expect(mappedUuid.message).toBe('Identificador de usuario inválido o sesión no iniciada.');
+      expect(mappedUuid.code).toBe('INVALID_UUID_SYNTAX');
     });
 
     it('sanitizes raw PostgreSQL syntax errors without leaking SQL internals', () => {
@@ -71,7 +94,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
         code: '42601',
       };
       const mapped = mapSupabaseError(rawSqlError);
-      expect(mapped.message).toBe('Error en la base de datos');
+      expect(mapped.message).toBe('No se pudo completar la operación en el servidor');
       expect(mapped.message).not.toContain('loans_tbl_internal');
       expect(mapped.code).toBe('42601');
     });

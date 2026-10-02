@@ -11,6 +11,7 @@ import { formatCurrency } from '@/components/home/HeroSimulator';
 import { calculateDaysRemaining, formatRateDisplay, LOAN_CATEGORY_LABELS } from './LoanCard';
 import { InvestmentModal } from './InvestmentModal';
 import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import styles from './loan-detail.module.css';
 
 export const CATEGORY_DESTINATION_DESCRIPTIONS: Record<string, string> = {
@@ -67,6 +68,33 @@ export function LoanDetail({
   } catch {
     servicesFromContext = null;
   }
+
+  const [effectiveInvestorId, setEffectiveInvestorId] = useState<string>(investorId);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function resolveAuthUser() {
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data } = await client.auth.getUser();
+        if (isMounted && data?.user?.id) {
+          if (!investorId || investorId === 'prof-inv-001') {
+            setEffectiveInvestorId(data.user.id);
+          }
+        }
+      } catch {
+        // mock/offline
+      }
+    }
+    if (!investorId || investorId === 'prof-inv-001') {
+      resolveAuthUser();
+    } else {
+      setEffectiveInvestorId(investorId);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [investorId]);
 
   const [loan, setLoan] = useState<Loan | null>(initialLoan ?? null);
   const [creditProfile, setCreditProfile] = useState<SmeCreditProfile | null>(
@@ -390,7 +418,7 @@ export function LoanDetail({
           onClose={() => setIsModalOpen(false)}
           loan={loan}
           onSuccess={handleInvestmentSuccess}
-          investorId={investorId}
+          investorId={effectiveInvestorId}
         />
       )}
 

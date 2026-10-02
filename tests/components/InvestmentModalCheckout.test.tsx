@@ -348,4 +348,100 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
       expect(onSuccessMock.mock.calls[0][0].payment_method).toBe('custody_balance');
     });
   });
+
+  describe('Issue #76: Test Funds Recharge and Business Error Handling', () => {
+    it('renders "Cargar saldo de prueba" button when custody balance is zero and allows topping up test funds', async () => {
+      const zeroBalanceInvestorId = 'prof-zero-custody';
+      const store = (services.loans as any).store;
+      if (store) {
+        store.profiles.push({
+          id: zeroBalanceInvestorId,
+          role: 'investor',
+          legal_name: 'Inversor Sin Fondos',
+          tax_id: '20334455667',
+          custody_balance: 0,
+        });
+      }
+
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId={zeroBalanceInvestorId}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      // Verify "Cargar saldo de prueba" button is rendered
+      const addTestFundsBtn = screen.getByTestId('btn-add-test-funds');
+      expect(addTestFundsBtn).toBeInTheDocument();
+      expect(addTestFundsBtn).toHaveTextContent('Cargar saldo de prueba');
+
+      // Click to recharge $1.000.000 test funds
+      fireEvent.click(addTestFundsBtn);
+
+      // Now custody balance should display $ 1.000.000
+      expect(screen.getByText(/\$ 1\.000\.000 disponible/i)).toBeInTheDocument();
+
+      // Custody radio should now be checked and enabled
+      const custodyRadio = screen.getByTestId('payment-method-custody');
+      expect(custodyRadio).toBeChecked();
+      expect(custodyRadio).not.toBeDisabled();
+    });
+
+    it('shows friendly business exception when custody balance is insufficient at submission', async () => {
+      const customServices = createServices({ useMocks: true });
+      customServices.investments.checkoutInvestment = vi.fn().mockRejectedValue(
+        new Error('Tu saldo en custodia es insuficiente para realizar esta inversión.')
+      );
+
+      render(
+        <ServiceProvider services={customServices}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId="prof-inv-001"
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      fireEvent.change(screen.getByTestId('investment-amount-input'), {
+        target: { value: '500000' },
+      });
+
+      fireEvent.click(screen.getByTestId('modal-confirm-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('modal-submit-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('modal-submit-error')).toHaveTextContent(
+        'Tu saldo en custodia es insuficiente para realizar esta inversión.'
+      );
+    });
+
+    it('shows friendly business exception when attempting to self-fund own loan', async () => {
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId={mockLoan.borrower_id}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      expect(screen.getByTestId('self-funding-warning')).toHaveTextContent(
+        'No podés invertir en tu propia solicitud de crédito.'
+      );
+      expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
+    });
+  });
 });

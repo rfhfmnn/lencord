@@ -130,6 +130,33 @@ export function InvestmentModal({
     router = null;
   }
 
+  const [effectiveInvestorId, setEffectiveInvestorId] = useState<string>(investorId);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function resolveAuthUser() {
+      try {
+        const client = createSupabaseBrowserClient();
+        const { data } = await client.auth.getUser();
+        if (isMounted && data?.user?.id) {
+          if (!investorId || investorId === 'prof-inv-001') {
+            setEffectiveInvestorId(data.user.id);
+          }
+        }
+      } catch {
+        // mock/offline
+      }
+    }
+    if (!investorId || investorId === 'prof-inv-001') {
+      resolveAuthUser();
+    } else {
+      setEffectiveInvestorId(investorId);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [investorId]);
+
   const [amountStr, setAmountStr] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -189,7 +216,7 @@ export function InvestmentModal({
       return;
     }
 
-    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === investorId);
+    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === effectiveInvestorId || p.id === investorId);
     if (mockProfile) {
       setHasTaxId(Boolean(mockProfile.tax_id && mockProfile.tax_id.trim() !== ''));
       if (typeof mockProfile.custody_balance === 'number') {
@@ -205,7 +232,7 @@ export function InvestmentModal({
         const { data } = await client
           .from('profiles')
           .select('tax_id, custody_balance')
-          .eq('id', investorId)
+          .eq('id', effectiveInvestorId)
           .maybeSingle();
 
         if (isMounted && data) {
@@ -222,7 +249,21 @@ export function InvestmentModal({
     return () => {
       isMounted = false;
     };
-  }, [investorId, investorTaxId]);
+  }, [effectiveInvestorId, investorId, investorTaxId]);
+
+  const handleAddTestFunds = () => {
+    const recharge = 1000000;
+    setCustodyBalance((prev) => prev + recharge);
+    setPaymentMethod('custody_balance');
+    setSubmitError(null);
+
+    const mockProfile = defaultMockStateStore.profiles.find(
+      (p) => p.id === effectiveInvestorId || p.id === investorId
+    );
+    if (mockProfile) {
+      mockProfile.custody_balance = (mockProfile.custody_balance || 0) + recharge;
+    }
+  };
 
   const titleId = useId();
 
@@ -230,7 +271,7 @@ export function InvestmentModal({
 
   const remainingCapacity = Math.max(0, loan.amount_requested - loan.amount_funded);
   const isSelfFunding = Boolean(
-    investorId && loan.borrower_id && investorId === loan.borrower_id
+    effectiveInvestorId && loan.borrower_id && effectiveInvestorId === loan.borrower_id
   );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,7 +437,7 @@ export function InvestmentModal({
       if (typeof resolvedServices.investments.checkoutInvestment === 'function') {
         result = await resolvedServices.investments.checkoutInvestment({
           loan_id: loan.id,
-          investor_id: investorId,
+          investor_id: effectiveInvestorId,
           amount: parsedAmount,
           payment_method: paymentMethod,
           card_last_four: paymentMethod === 'credit_card' ? cardLastFour : undefined,
@@ -408,7 +449,7 @@ export function InvestmentModal({
           result.investment = {
             id: result.investment_id,
             loan_id: loan.id,
-            investor_id: investorId,
+            investor_id: effectiveInvestorId,
             amount: parsedAmount,
             status: 'committed',
             external_payment_id: result.transaction_id,
@@ -427,7 +468,7 @@ export function InvestmentModal({
       } else {
         const commitRes = await resolvedServices.investments.commitInvestment({
           loan_id: loan.id,
-          investor_id: investorId,
+          investor_id: effectiveInvestorId,
           amount: parsedAmount,
         });
         result = {
@@ -748,6 +789,23 @@ export function InvestmentModal({
                           ? 'Debito directo e instantáneo de tus fondos disponibles.'
                           : 'Saldo insuficiente. Podés fondear tu cuenta o pagar con tarjeta.'}
                       </span>
+                      {(!isCustodyAvailable || custodyBalance < MIN_INVESTMENT_TICKET) && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <Button
+                            type="button"
+                            variant="bordered"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleAddTestFunds();
+                            }}
+                            data-testid="btn-add-test-funds"
+                          >
+                            Cargar saldo de prueba
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </label>
 

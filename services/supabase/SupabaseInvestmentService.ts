@@ -89,11 +89,23 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
       holdId = holdResult.holdId;
     }
 
+    let targetInvestorId = input.investor_id;
+    if (!targetInvestorId || targetInvestorId === 'prof-inv-001') {
+      try {
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user?.id) {
+          targetInvestorId = authData.user.id;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     try {
       // 2. Invoke atomic PostgreSQL RPC procedure: commit_investment_atomic
       const { data, error } = await client.rpc('commit_investment_atomic', {
         p_loan_id: input.loan_id,
-        p_investor_id: input.investor_id,
+        p_investor_id: targetInvestorId,
         p_amount: input.amount,
       });
 
@@ -184,11 +196,23 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
 
     const client = await this.getClient();
 
+    let targetInvestorId = input.investor_id;
+    if (!targetInvestorId || targetInvestorId === 'prof-inv-001') {
+      try {
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user?.id) {
+          targetInvestorId = authData.user.id;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     // Check investor tax_id requirement (Issue #53)
     const { data: profile } = await client
       .from('profiles')
       .select('tax_id')
-      .eq('id', input.investor_id)
+      .eq('id', targetInvestorId)
       .maybeSingle();
 
     if (profile && !profile.tax_id) {
@@ -199,7 +223,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
 
     const { data, error } = await client.rpc('process_investment_checkout_rpc', {
       p_loan_id: input.loan_id,
-      p_investor_id: input.investor_id,
+      p_investor_id: targetInvestorId,
       p_amount: input.amount,
       p_payment_method: input.payment_method,
       p_card_last_four: input.card_last_four || null,
