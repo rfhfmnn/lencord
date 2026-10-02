@@ -81,6 +81,7 @@ export interface SubmitLoanInput {
   term_months: number;
   rate_type: RateType;
   category: LoanCategory;
+  description?: string | null;
   balance_sheet_url?: string | null;
   f931_url?: string | null;
 }

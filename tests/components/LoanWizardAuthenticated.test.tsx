@@ -193,6 +193,63 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       // Verify receipt rendered
       expect(screen.getByTestId('receipt-status')).toHaveTextContent('En revisión (in_review)');
     });
+
+    it('trims and persists step2Data.description in submitLoanApplication payload (Issue #78)', async () => {
+      const services = createServices({ useMocks: true });
+      const submitSpy = vi.spyOn(services.loans, 'submitLoanApplication');
+      const onSubmittedMock = vi.fn();
+
+      const authenticatedBorrowerId = 'usr-authenticated-borrower-888';
+
+      render(
+        <ServiceProvider services={services}>
+          <LoanWizard
+            initialStep={4}
+            borrowerId={authenticatedBorrowerId}
+            initialStep1Data={{
+              legal_name: 'Metalúrgica Quilmes SRL',
+              tax_id: '30-65432109-8',
+              company_type: 'SRL',
+              email: 'contacto@quilmesmetal.ar',
+            }}
+            initialStep2Data={{
+              category: 'machinery',
+              amount_requested: 12000000,
+              term_months: 12,
+              rate_type: 'TNA_FIXED',
+              description: '   Adquisición de plegadora hidráulica industrial CNC   ',
+            }}
+            initialStep3Data={{
+              balance_sheet_url: 'https://storage.lencord.ar/loan-documents/usr-888/balance.pdf',
+              f931_url: 'https://storage.lencord.ar/loan-documents/usr-888/f931.pdf',
+            }}
+            initialStep4Data={{
+              cbu_cvu: '0720123488000012345678',
+            }}
+            onSubmitted={onSubmittedMock}
+            redirectToConfirmationPage={false}
+          />
+        </ServiceProvider>
+      );
+
+      // Agree to funds declaration and terms
+      fireEvent.click(screen.getByTestId('checkbox-funds-declaration'));
+      fireEvent.click(screen.getByTestId('checkbox-terms-accepted'));
+
+      // Submit
+      fireEvent.click(screen.getByTestId('step4-submit-button'));
+
+      await waitFor(() => {
+        expect(submitSpy).toHaveBeenCalledTimes(1);
+      });
+
+      const payload: SubmitLoanInput = submitSpy.mock.calls[0][0];
+      expect(payload.description).toBe('Adquisición de plegadora hidráulica industrial CNC');
+
+      expect(onSubmittedMock).toHaveBeenCalledTimes(1);
+      const createdLoan: Loan = onSubmittedMock.mock.calls[0][0];
+      expect(createdLoan.description).toBe('Adquisición de plegadora hidráulica industrial CNC');
+    });
   });
 
   describe('Error Handling and Inline Retry Alert without Wiping Steps', () => {

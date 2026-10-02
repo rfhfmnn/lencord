@@ -227,6 +227,30 @@ describe('In-Memory Mock Services and Seed Data (Issue #4)', () => {
       expect(retrieved?.status).toBe('in_review');
     });
 
+    it('persists description when submitted and defaults null when omitted (Issue #78)', async () => {
+      const loanWithDesc = await loanService.submitLoanApplication({
+        borrower_id: 'prof-sme-001',
+        amount_requested: 3000000,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        category: 'machinery',
+        description: 'Compra de equipamiento frigorífico comercial',
+      });
+      expect(loanWithDesc.description).toBe('Compra de equipamiento frigorífico comercial');
+
+      const retrievedWithDesc = await loanService.getLoanById(loanWithDesc.id);
+      expect(retrievedWithDesc?.description).toBe('Compra de equipamiento frigorífico comercial');
+
+      const loanWithoutDesc = await loanService.submitLoanApplication({
+        borrower_id: 'prof-sme-001',
+        amount_requested: 2000000,
+        term_months: 3,
+        rate_type: 'TNA_FIXED',
+        category: 'working_capital',
+      });
+      expect(loanWithoutDesc.description).toBeNull();
+    });
+
     it('approves and publishes a loan to funding state with rates and deadline', async () => {
       const deadline = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
       const approved = await loanService.approveAndPublishLoan({

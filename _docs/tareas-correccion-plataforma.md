@@ -32,15 +32,15 @@ Al hacer clic en "Cerrar sesión" en el Header desde cualquier vista autenticada
 Asegurar que la descripción obligatoria ingresada en el paso 2 del wizard de financiamiento se persista en la base de datos (tabla `loans.description`) y se renderice en el historial del prestatario, y que la columna "Plazo y Tasa" muestre el porcentaje numérico de tasa estimado durante la revisión y el definitivo una vez aprobado.
 
 ### Acceptance criteria
-- [ ] En `types/services.ts`, la interfaz `SubmitLoanInput` incluye `description?: string | null;`.
-- [ ] En `components/solicitar/LoanWizard.tsx`, el campo `step2Data.description.trim()` se asigna en `loanPayload` al invocar `submitLoanApplication`.
-- [ ] En `services/supabase/SupabaseLoanService.ts` y `services/mock/MockLoanService.ts`, el método `submitLoanApplication` incluye `description` en el insert de la tabla `loans`.
-- [ ] En el historial de solicitudes (`BorrowerDashboard.tsx`), la fila del préstamo muestra el texto exacto de la descripción en el elemento `loan-desc-${loan.id}` en lugar de `"Sin descripción detallada"`.
-- [ ] Si la solicitud está en estado de revisión (`in_review`):
+- [x] En `types/services.ts`, la interfaz `SubmitLoanInput` incluye `description?: string | null;`.
+- [x] En `components/solicitar/LoanWizard.tsx`, el campo `step2Data.description.trim()` se asigna en `loanPayload` al invocar `submitLoanApplication`.
+- [x] En `services/supabase/SupabaseLoanService.ts` y `services/mock/MockLoanService.ts`, el método `submitLoanApplication` incluye `description` en el insert de la tabla `loans`.
+- [x] En el historial de solicitudes (`BorrowerDashboard.tsx`), la fila del préstamo muestra el texto exacto de la descripción en el elemento `loan-desc-${loan.id}` en lugar de `"Sin descripción detallada"`.
+- [x] Si la solicitud está en estado de revisión (`in_review`):
   - Para `TNA_FIXED`, la celda de tasa muestra `68.0% TNA (Estimada)` (o el valor simulado solicitado).
   - Para `CER_SPREAD`, la celda de tasa muestra `CER + 12.0% (Estimada)`.
-- [ ] Si la solicitud fue evaluada y aprobada (`approved`, `funding`, `funded`, `active`, `repaying`, `paid`), la celda de tasa muestra el valor definitivo aprobado (ej: `${loan.borrower_rate.toFixed(1)}% TNA` o `CER + ${loan.borrower_rate.toFixed(1)}%`).
-- [ ] Si existe un préstamo histórico previo con `description: null`, la UI muestra `'Sin descripción detallada'` como fallback seguro sin arrojar error.
+- [x] Si la solicitud fue evaluada y aprobada (`approved`, `funding`, `funded`, `active`, `repaying`, `paid`), la celda de tasa muestra el valor definitivo aprobado (ej: `${loan.borrower_rate.toFixed(1)}% TNA` o `CER + ${loan.borrower_rate.toFixed(1)}%`).
+- [x] Si existe un préstamo histórico previo con `description: null`, la UI muestra `'Sin descripción detallada'` como fallback seguro sin arrojar error.
 
 ### Out of scope
 - Ninguno: todos los cambios pertenecen a este flujo.

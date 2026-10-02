@@ -41,6 +41,40 @@ export const LOAN_STATUS_LABELS: Record<LoanStatus, { label: string; className: 
   expired: { label: 'Vencido / Expirado', className: styles.statusRefunded },
 };
 
+/**
+ * Formats the interest rate display for a loan in the borrower history table.
+ * Conforms to Issue #78 specifications.
+ */
+export function formatLoanHistoryRate(loan: Loan): string {
+  const isFixed = loan.rate_type === 'TNA_FIXED';
+  const approvedStatuses: string[] = ['approved', 'funding', 'funded', 'active', 'repaying', 'paid', 'repaid'];
+
+  if (loan.status === 'in_review') {
+    if (isFixed) {
+      const rateVal = loan.borrower_rate > 0 ? loan.borrower_rate.toFixed(1) : '68.0';
+      return `${rateVal}% TNA (Estimada)`;
+    } else {
+      const rateVal = loan.borrower_rate > 0 ? loan.borrower_rate.toFixed(1) : '12.0';
+      return `CER + ${rateVal}% (Estimada)`;
+    }
+  }
+
+  if (approvedStatuses.includes(loan.status) || loan.borrower_rate > 0) {
+    const rateVal = (loan.borrower_rate ?? 0).toFixed(1);
+    if (isFixed) {
+      return `${rateVal}% TNA`;
+    } else {
+      return `CER + ${rateVal}%`;
+    }
+  }
+
+  // Fallback for draft or other statuses
+  if (isFixed) {
+    return '68.0% TNA (Estimada)';
+  }
+  return 'CER + 12.0% (Estimada)';
+}
+
 export function BorrowerDashboard({
   borrowerId = 'prof-sme-001',
   loanId,
@@ -1213,7 +1247,9 @@ export function BorrowerDashboard({
                             style={{ fontSize: '0.8125rem' }}
                             data-testid={`loan-desc-${loan.id}`}
                           >
-                            {loan.description || 'Sin descripción detallada'}
+                            {loan.description && loan.description.trim()
+                              ? loan.description
+                              : 'Sin descripción detallada'}
                           </span>
                         </div>
                       </td>
@@ -1226,8 +1262,12 @@ export function BorrowerDashboard({
                       {/* 3. Plazo y Tasa */}
                       <td data-testid={`loan-terms-${loan.id}`}>
                         <div>{loan.term_months} meses</div>
-                        <div className={styles.secondaryText} style={{ fontSize: '0.75rem' }}>
-                          {loan.rate_type === 'TNA_FIXED' ? 'Tasa Fija (TNA)' : 'CER + spread'}
+                        <div
+                          className={styles.secondaryText}
+                          style={{ fontSize: '0.75rem' }}
+                          data-testid={`loan-rate-${loan.id}`}
+                        >
+                          {formatLoanHistoryRate(loan)}
                         </div>
                       </td>
 

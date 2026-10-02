@@ -309,6 +309,7 @@ export function LoanWizard({
         term_months: step2Data.term_months ?? 6,
         rate_type: step2Data.rate_type ?? 'TNA_FIXED',
         category: step2Data.category ?? 'working_capital',
+        description: step2Data.description ? step2Data.description.trim() : undefined,
         balance_sheet_url:
           step3Data.balance_sheet_url ??
           (step3Data.balance_sheet

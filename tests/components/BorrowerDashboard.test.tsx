@@ -442,6 +442,100 @@ describe('BorrowerDashboard Component (Task 14)', () => {
       expect(screen.getByRole('link', { name: /solicitar financiación/i })).toHaveAttribute('href', '/solicitar');
     });
   });
+
+  describe('Description Persistence and Rate Display in Borrower History (Issue #78)', () => {
+    it('renders exact description text in loan-desc-${loan.id} when description is provided', () => {
+      const loanWithDesc: Loan = {
+        ...baseLoan,
+        id: 'loan-desc-test-01',
+        description: 'Compra de materia prima textil para producción invernal',
+      };
+
+      render(<BorrowerDashboard initialLoans={[loanWithDesc]} />);
+
+      const descEl = screen.getByTestId('loan-desc-loan-desc-test-01');
+      expect(descEl).toBeInTheDocument();
+      expect(descEl).toHaveTextContent('Compra de materia prima textil para producción invernal');
+      expect(descEl).not.toHaveTextContent('Sin descripción detallada');
+    });
+
+    it('displays fallback "Sin descripción detallada" when description is null or empty without throwing', () => {
+      const loanNullDesc: Loan = {
+        ...baseLoan,
+        id: 'loan-null-desc',
+        description: null,
+      };
+
+      render(<BorrowerDashboard initialLoans={[loanNullDesc]} />);
+
+      const descEl = screen.getByTestId('loan-desc-loan-null-desc');
+      expect(descEl).toBeInTheDocument();
+      expect(descEl).toHaveTextContent('Sin descripción detallada');
+    });
+
+    it('displays estimated rate for in_review loan: 68.0% TNA (Estimada) for TNA_FIXED', () => {
+      const inReviewFixed: Loan = {
+        ...baseLoan,
+        id: 'loan-rev-fixed',
+        status: 'in_review',
+        rate_type: 'TNA_FIXED',
+        borrower_rate: 0,
+      };
+
+      render(<BorrowerDashboard initialLoans={[inReviewFixed]} />);
+
+      const termsCell = screen.getByTestId('loan-terms-loan-rev-fixed');
+      expect(termsCell).toBeInTheDocument();
+      expect(termsCell).toHaveTextContent('68.0% TNA (Estimada)');
+    });
+
+    it('displays estimated rate for in_review loan: CER + 12.0% (Estimada) for CER rate type', () => {
+      const inReviewCer: Loan = {
+        ...baseLoan,
+        id: 'loan-rev-cer',
+        status: 'in_review',
+        rate_type: 'CER_VARIABLE',
+        borrower_rate: 0,
+      };
+
+      render(<BorrowerDashboard initialLoans={[inReviewCer]} />);
+
+      const termsCell = screen.getByTestId('loan-terms-loan-rev-cer');
+      expect(termsCell).toBeInTheDocument();
+      expect(termsCell).toHaveTextContent('CER + 12.0% (Estimada)');
+    });
+
+    it('displays definitive approved rate when loan was evaluated and approved', () => {
+      const approvedStatuses: Loan['status'][] = ['funding', 'funded', 'active', 'repaid'];
+
+      approvedStatuses.forEach((status, idx) => {
+        const approvedFixed: Loan = {
+          ...baseLoan,
+          id: `loan-approved-${status}-${idx}`,
+          status,
+          rate_type: 'TNA_FIXED',
+          borrower_rate: 47.5,
+        };
+
+        const { unmount } = render(<BorrowerDashboard initialLoans={[approvedFixed]} />);
+        const termsCell = screen.getByTestId(`loan-terms-loan-approved-${status}-${idx}`);
+        expect(termsCell).toHaveTextContent('47.5% TNA');
+        unmount();
+      });
+
+      const approvedCer: Loan = {
+        ...baseLoan,
+        id: 'loan-approved-cer',
+        status: 'active',
+        rate_type: 'CER_VARIABLE',
+        borrower_rate: 14.5,
+      };
+
+      render(<BorrowerDashboard initialLoans={[approvedCer]} />);
+      const termsCellCer = screen.getByTestId('loan-terms-loan-approved-cer');
+      expect(termsCellCer).toHaveTextContent('CER + 14.5%');
+    });
+  });
 });
 
 

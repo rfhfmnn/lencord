@@ -112,6 +112,7 @@ export class MockLoanService implements LoanServiceInterface {
       base_uva_value: null,
       category: input.category,
       status: 'in_review',
+      description: input.description ?? null,
       funding_deadline: deadline.toISOString(),
       created_at: now.toISOString(),
     };

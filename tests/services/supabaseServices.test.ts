@@ -144,6 +144,50 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
       expect(result.id).toBe('loan-sup-1');
     });
 
+    it('submits a new loan application including description in table insert (Issue #78)', async () => {
+      const mockCreatedLoan: Loan = {
+        id: 'loan-sup-desc',
+        borrower_id: 'user-borrower-1',
+        amount_requested: 5_000_000,
+        amount_funded: 0,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        investor_rate: 0,
+        platform_spread: 0,
+        borrower_rate: 0,
+        base_uva_value: null,
+        category: 'working_capital',
+        status: 'in_review',
+        description: 'Ampliación de galpón de almacenamiento',
+        funding_deadline: '2026-10-30T23:59:59.000Z',
+        created_at: new Date().toISOString(),
+      };
+
+      const { client, builder } = createMockSupabaseClient();
+      builder.single.mockResolvedValueOnce({ data: mockCreatedLoan, error: null });
+
+      const loanService = new SupabaseLoanService(client as unknown as SupabaseClient);
+
+      const result = await loanService.submitLoanApplication({
+        borrower_id: 'user-borrower-1',
+        amount_requested: 5_000_000,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        category: 'working_capital',
+        description: 'Ampliación de galpón de almacenamiento',
+      });
+
+      expect(client.from).toHaveBeenCalledWith('loans');
+      expect(builder.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          borrower_id: 'user-borrower-1',
+          description: 'Ampliación de galpón de almacenamiento',
+          status: 'in_review',
+        })
+      );
+      expect(result.description).toBe('Ampliación de galpón de almacenamiento');
+    });
+
     it('approves and publishes loan, updating rates, status and borrower credit profile', async () => {
       const mockApprovedLoan: Loan = {
         id: 'loan-sup-1',
