@@ -173,18 +173,39 @@ export class SupabaseLoanService implements LoanServiceInterface {
 
       // Update supporting documents in credit profile if present
       if (input.balance_sheet_url || input.f931_url || input.afip_url || input.bank_statements_url) {
-        const updatePayload: Record<string, unknown> = {
-          updated_at: new Date().toISOString(),
-        };
-        if (input.balance_sheet_url) updatePayload.balance_sheet_url = input.balance_sheet_url;
-        if (input.f931_url) updatePayload.f931_url = input.f931_url;
-        if (input.afip_url) updatePayload.afip_url = input.afip_url;
-        if (input.bank_statements_url) updatePayload.bank_statements_url = input.bank_statements_url;
+        try {
+          const updatePayload: Record<string, unknown> = {
+            profile_id: input.borrower_id,
+            updated_at: new Date().toISOString(),
+          };
+          if (input.balance_sheet_url) updatePayload.balance_sheet_url = input.balance_sheet_url;
+          if (input.f931_url) updatePayload.f931_url = input.f931_url;
+          if (input.afip_url) updatePayload.afip_url = input.afip_url;
+          if (input.bank_statements_url) updatePayload.bank_statements_url = input.bank_statements_url;
 
-        await client
-          .from('sme_credit_profiles')
-          .update(updatePayload)
-          .eq('profile_id', input.borrower_id);
+          const { data: existingProfile } = await client
+            .from('sme_credit_profiles')
+            .select('id')
+            .eq('profile_id', input.borrower_id)
+            .maybeSingle();
+
+          if (existingProfile) {
+            await client
+              .from('sme_credit_profiles')
+              .update(updatePayload)
+              .eq('profile_id', input.borrower_id);
+          } else {
+            await client
+              .from('sme_credit_profiles')
+              .insert({
+                ...updatePayload,
+                risk_tier: 'Tier B',
+                scoring_notes: 'Documentación cargada en solicitud de financiamiento.',
+              });
+          }
+        } catch (docErr) {
+          console.warn('[SupabaseLoanService] Warning: Could not update sme_credit_profiles documents:', docErr);
+        }
       }
 
       return data as Loan;

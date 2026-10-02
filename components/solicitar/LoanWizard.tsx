@@ -105,16 +105,19 @@ export function LoanWizard({
         const savedDraft = window.localStorage.getItem('lencord_loan_wizard_draft');
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
-          if (parsed.step1Data) setStep1Data((prev) => ({ ...parsed.step1Data, ...prev }));
-          if (parsed.step2Data) setStep2Data((prev) => ({ ...parsed.step2Data, ...prev }));
-          if (parsed.step4Data) setStep4Data((prev) => ({ ...parsed.step4Data, ...prev }));
-          if (parsed.step) setStep(parsed.step);
+          // Only restore if draft belongs to current user or has no userId
+          if (!borrowerId || !parsed.userId || parsed.userId === borrowerId) {
+            if (parsed.step1Data) setStep1Data((prev) => ({ ...parsed.step1Data, ...prev }));
+            if (parsed.step2Data) setStep2Data((prev) => ({ ...parsed.step2Data, ...prev }));
+            if (parsed.step4Data) setStep4Data((prev) => ({ ...parsed.step4Data, ...prev }));
+            if (parsed.step) setStep(parsed.step);
+          }
         }
       }
     } catch {
       // Ignore localStorage parse errors
     }
-  }, []);
+  }, [borrowerId, initialStep1Data, initialStep2Data, initialStep3Data, initialStep4Data]);
 
   // Save in-progress draft steps to localStorage to survive page refresh
   useEffect(() => {
@@ -123,6 +126,7 @@ export function LoanWizard({
         window.localStorage.setItem(
           'lencord_loan_wizard_draft',
           JSON.stringify({
+            userId: borrowerId || null,
             step,
             step1Data,
             step2Data,
@@ -133,7 +137,7 @@ export function LoanWizard({
     } catch {
       // Ignore localStorage write errors
     }
-  }, [step, step1Data, step2Data, step4Data]);
+  }, [borrowerId, step, step1Data, step2Data, step4Data]);
 
   // Load authenticated borrower profile from props or Supabase session
   useEffect(() => {
@@ -143,15 +147,15 @@ export function LoanWizard({
         setIsPrepopulated(userProfileProp.isVerified !== false);
         setStep1Data((prev) => ({
           ...prev,
-          legal_name: prev.legal_name || userProfileProp.legal_name || '',
-          tax_id: prev.tax_id || (userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : ''),
-          email: prev.email || userProfileProp.email || '',
-          rep_phone: prev.rep_phone || userProfileProp.phone || '',
+          legal_name: userProfileProp.legal_name || prev.legal_name || '',
+          tax_id: userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : (prev.tax_id || ''),
+          email: userProfileProp.email || prev.email || '',
+          rep_phone: userProfileProp.phone || prev.rep_phone || '',
         }));
         if (userProfileProp.bank_cbu_cvu) {
           setStep4Data((prev) => ({
             ...prev,
-            cbu_cvu: prev.cbu_cvu || userProfileProp.bank_cbu_cvu,
+            cbu_cvu: userProfileProp.bank_cbu_cvu || prev.cbu_cvu,
           }));
         }
       }
@@ -206,15 +210,15 @@ export function LoanWizard({
           setIsPrepopulated(hasVerifiedIdentity);
           setStep1Data((prev) => ({
             ...prev,
-            legal_name: prev.legal_name || legalName,
-            tax_id: prev.tax_id || (taxId ? formatCuit(taxId) : ''),
-            email: prev.email || authUser.email || '',
-            rep_phone: prev.rep_phone || phone,
+            legal_name: legalName || prev.legal_name || '',
+            tax_id: taxId ? formatCuit(taxId) : (prev.tax_id || ''),
+            email: authUser.email || prev.email || '',
+            rep_phone: phone || prev.rep_phone || '',
           }));
           if (cbu) {
             setStep4Data((prev) => ({
               ...prev,
-              cbu_cvu: prev.cbu_cvu || cbu,
+              cbu_cvu: cbu || prev.cbu_cvu,
             }));
           }
         }
@@ -299,7 +303,7 @@ export function LoanWizard({
         if (servicesFromContext) {
           effectiveBorrowerId = 'prof-sme-001';
         } else {
-          throw new Error('Tu sesión ha expirado o no cuenta con permisos suficientes. Por favor, iniciá sesión nuevamente para continuar con tu solicitud.');
+          throw new Error('Debés iniciar sesión con tu cuenta de empresa para poder registrar tu solicitud de financiamiento.');
         }
       }
 
