@@ -10,11 +10,11 @@ Documento generado a partir del diagnóstico de causas raíz, definiciones acord
 Al hacer clic en "Cerrar sesión" en el Header desde cualquier vista autenticada (desktop o mobile), la sesión debe revocarse y la aplicación debe navegar inmediatamente a la página principal (`/`).
 
 ### Acceptance criteria
-- [ ] Al hacer clic en "Cerrar sesión" en el Header desktop desde una ruta protegida (`/dashboard/pyme`, `/dashboard/inversor`, `/admin`), la URL del navegador cambia inmediatamente a `/`.
-- [ ] Al hacer clic en "Cerrar sesión" desde el menú desplegable mobile, el menú móvil se cierra y la URL del navegador cambia inmediatamente a `/`.
-- [ ] El estado del Header se actualiza mostrando de inmediato los botones públicos "Iniciar sesión" y "Registrarse", sin requerir recargar la página.
-- [ ] Si la llamada de red a `supabase.auth.signOut()` demora o falla por problemas de conectividad, la navegación a `/` y la limpieza del estado local (`currentUser = null`) ocurren igualmente en el bloque `finally`.
-- [ ] Si el usuario tiene un modal abierto en pantalla al momento de cerrar sesión, no queda ningún overlay huérfano bloqueando la pantalla en la página principal.
+- [x] Al hacer clic en "Cerrar sesión" en el Header desktop desde una ruta protegida (`/dashboard/pyme`, `/dashboard/inversor`, `/admin`), la URL del navegador cambia inmediatamente a `/`.
+- [x] Al hacer clic en "Cerrar sesión" desde el menú desplegable mobile, el menú móvil se cierra y la URL del navegador cambia inmediatamente a `/`.
+- [x] El estado del Header se actualiza mostrando de inmediato los botones públicos "Iniciar sesión" y "Registrarse", sin requerir recargar la página.
+- [x] Si la llamada de red a `supabase.auth.signOut()` demora o falla por problemas de conectividad, la navegación a `/` y la limpieza del estado local (`currentUser = null`) ocurren igualmente en el bloque `finally`.
+- [x] Si el usuario tiene un modal abierto en pantalla al momento de cerrar sesión, no queda ningún overlay huérfano bloqueando la pantalla en la página principal.
 
 ### Out of scope
 - Ninguno: todos los cambios pertenecen directamente a este flujo.

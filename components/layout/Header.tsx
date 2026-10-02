@@ -242,7 +242,33 @@ export const Header: React.FC<HeaderProps> = ({
       // Ignored
     } finally {
       setCurrentUser(null);
-      if (onLogout) onLogout();
+      if (typeof document !== 'undefined') {
+        if (document.body) {
+          document.body.style.overflow = '';
+          document.body.classList.remove('modal-open');
+        }
+        if (document.documentElement) {
+          document.documentElement.style.overflow = '';
+        }
+      }
+      if (onLogout) {
+        try {
+          onLogout();
+        } catch {
+          // Ignored
+        }
+      }
+      try {
+        if (router?.push) {
+          router.push('/');
+        } else if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
+      } catch {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
+      }
     }
   };
 

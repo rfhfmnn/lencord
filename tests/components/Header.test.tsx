@@ -1,10 +1,23 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Header } from '@/components/layout/Header';
 
+const mockPush = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 describe('Header Component', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    document.body.style.overflow = '';
+    document.body.className = '';
+  });
   it('renders sticky header element with proper attributes', () => {
     render(<Header user={null} />);
     const header = screen.getByTestId('sticky-header');
@@ -281,8 +294,8 @@ describe('Header Component', () => {
     });
   });
 
-  describe('Logout Flow & State Resolution', () => {
-    it('terminates Supabase auth session and updates UI to unauthenticated state immediately', async () => {
+  describe('Logout Flow & State Resolution (Issue #77)', () => {
+    it('terminates Supabase auth session, updates UI to unauthenticated state, and redirects to / immediately', async () => {
       const mockSignOut = vi.fn().mockResolvedValue({ error: null });
       const mockClient = {
         auth: {
@@ -315,6 +328,7 @@ describe('Header Component', () => {
 
       expect(mockSignOut).toHaveBeenCalledTimes(1);
       expect(handleLogout).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith('/');
 
       // Immediately transitions to unauthenticated UI state
       await waitFor(() => {
@@ -322,6 +336,145 @@ describe('Header Component', () => {
         expect(screen.getByTestId('header-login-link')).toBeInTheDocument();
         expect(screen.getByTestId('header-register-link')).toBeInTheDocument();
       });
+    });
+
+    it('closes mobile drawer and navigates to / when logging out from mobile menu', async () => {
+      const mockSignOut = vi.fn().mockResolvedValue({ error: null });
+      const mockClient = {
+        auth: {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+          getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+          signOut: mockSignOut,
+          onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        },
+      } as any;
+
+      const user = userEvent.setup();
+      render(
+        <Header
+          supabaseClient={mockClient}
+          user={{
+            id: 'prof-inv-001',
+            name: 'Juan Ignacio Pérez',
+            role: 'investor',
+          }}
+        />
+      );
+
+      // Open mobile drawer
+      const toggle = screen.getByTestId('mobile-menu-toggle');
+      await user.click(toggle);
+
+      const mobileDrawer = screen.getByTestId('mobile-nav-drawer');
+      expect(mobileDrawer).toBeInTheDocument();
+
+      const mobileLogoutBtn = screen.getByTestId('mobile-logout-button');
+      await user.click(mobileLogoutBtn);
+
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith('/');
+
+      // Mobile drawer must be closed
+      expect(screen.queryByTestId('mobile-nav-drawer')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('header-session-user')).not.toBeInTheDocument();
+      expect(screen.getByTestId('header-login-link')).toBeInTheDocument();
+    });
+
+    it('navigates to / and clears state in finally block even if signOut rejects with network error', async () => {
+      const mockSignOut = vi.fn().mockRejectedValue(new Error('Network error: connection timed out'));
+      const mockClient = {
+        auth: {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+          getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+          signOut: mockSignOut,
+          onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        },
+      } as any;
+
+      const handleLogout = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <Header
+          supabaseClient={mockClient}
+          user={{
+            id: 'prof-adm-001',
+            name: 'Admin Lencord',
+            role: 'admin',
+          }}
+          onLogout={handleLogout}
+        />
+      );
+
+      const logoutBtn = screen.getByTestId('header-logout-button');
+      await user.click(logoutBtn);
+
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      expect(handleLogout).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith('/');
+
+      // Local state is cleared despite error
+      await waitFor(() => {
+        expect(screen.queryByTestId('header-session-user')).not.toBeInTheDocument();
+        expect(screen.getByTestId('header-login-link')).toBeInTheDocument();
+      });
+    });
+
+    it('cleans up body scroll lock and modal classes so no orphan overlay remains on home redirect', async () => {
+      document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+
+      const mockSignOut = vi.fn().mockResolvedValue({ error: null });
+      const mockClient = {
+        auth: {
+          getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+          getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+          signOut: mockSignOut,
+          onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        },
+      } as any;
+
+      const user = userEvent.setup();
+      render(
+        <Header
+          supabaseClient={mockClient}
+          user={{
+            id: 'prof-sme-002',
+            name: 'Pyme Con Modal',
+            role: 'borrower',
+          }}
+        />
+      );
+
+      const logoutBtn = screen.getByTestId('header-logout-button');
+      await user.click(logoutBtn);
+
+      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(document.body.style.overflow).toBe('');
+      expect(document.body.classList.contains('modal-open')).toBe(false);
+    });
+
+    it('falls back to window.location.href when router.push throws or is unavailable', async () => {
+      mockPush.mockImplementationOnce(() => {
+        throw new Error('Router push failure');
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Header
+          user={{
+            id: 'prof-sme-003',
+            name: 'Pyme Fallback Location',
+            role: 'borrower',
+          }}
+        />
+      );
+
+      const logoutBtn = screen.getByTestId('header-logout-button');
+      await user.click(logoutBtn);
+
+      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(window.location.href).toContain('/');
     });
   });
 
