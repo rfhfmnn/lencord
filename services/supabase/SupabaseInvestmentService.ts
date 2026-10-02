@@ -234,6 +234,12 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
       throw mapSupabaseError(error);
     }
 
+    if (data && data.success === false) {
+      throw mapSupabaseError(
+        new Error(data.error_message || data.error || data.message || 'Error en la operación')
+      );
+    }
+
     return {
       success: Boolean(data?.success),
       investment_id: data?.investment_id,

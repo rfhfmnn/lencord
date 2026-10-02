@@ -168,6 +168,24 @@ describe('Header Component', () => {
       expect(dashboardLink).toHaveAttribute('href', '/dashboard/inversor');
     });
 
+    it('renders real custody balance ($ 0,00) when investor has 0 or undefined custody balance without hardcoded fallbacks (Issue #81)', () => {
+      render(
+        <Header
+          user={{
+            id: 'prof-inv-zero',
+            name: 'Inversor Inicial',
+            role: 'investor',
+            custodyBalance: 0,
+          }}
+        />
+      );
+
+      const custodyBadge = screen.getByTestId('header-custody-balance');
+      expect(custodyBadge).toBeInTheDocument();
+      expect(custodyBadge).toHaveTextContent('$ 0,00');
+      expect(custodyBadge).not.toHaveTextContent('1.250.000');
+    });
+
     it('renders "Prestar" and hides "Pedir financiación" in desktop and mobile menu (Issue #52)', async () => {
       const user = userEvent.setup();
       render(

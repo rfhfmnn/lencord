@@ -33,6 +33,7 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
 
   // Business rule exceptions raised in PostgreSQL RPC or constraints
   if (
+    rawMessage.includes('Saldo en custodia insuficiente para realizar la inversión') ||
     rawMessage.includes('Saldo en custodia insuficiente') ||
     rawMessage.includes('custodia insuficiente') ||
     rawMessage.includes('INSUFFICIENT_FUNDS')
@@ -45,6 +46,7 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
   }
 
   if (
+    rawMessage.includes('No se permite autofinanciamiento') ||
     rawMessage.includes('autofinanciamiento') ||
     rawMessage.includes('propio préstamo') ||
     rawMessage.includes('propia solicitud')
@@ -61,7 +63,7 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
     rawMessage.includes('El monto excede el cupo disponible')
   ) {
     return new ApplicationError(
-      'El monto excede el cupo disponible de la subasta',
+      'El monto excede el cupo disponible de la subasta.',
       'OVERFUNDING_REJECTED',
       400
     );
@@ -80,12 +82,13 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
   }
 
   if (
+    rawMessage.includes('El préstamo no se encuentra en estado de fondeo') ||
     rawMessage.includes('no se encuentra en estado de fondeo') ||
     rawMessage.includes('INVALID_LOAN_STATUS') ||
     rawMessage.includes('no se encuentra abierta')
   ) {
     return new ApplicationError(
-      'Esta solicitud de préstamo ya no se encuentra abierta a subasta.',
+      'La solicitud no se encuentra en etapa de fondeo abierta.',
       'INVALID_LOAN_STATUS',
       400
     );

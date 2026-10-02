@@ -444,4 +444,100 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
       expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
     });
   });
+
+  describe('Issue #81: Custody Balance and Error Handling', () => {
+    it('disables custody option, shows "Saldo insuficiente ($ 0,00)", and preselects credit card when custody balance is zero', async () => {
+      const zeroInvId = 'prof-inv-zero-81';
+      const store = (services.loans as any).store;
+      if (store) {
+        store.profiles.push({
+          id: zeroInvId,
+          role: 'investor',
+          legal_name: 'Inversor Con Saldo Cero',
+          tax_id: '20334455667',
+          custody_balance: 0,
+        });
+      }
+
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId={zeroInvId}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      // Verify custody radio is disabled
+      const custodyRadio = screen.getByTestId('payment-method-custody');
+      expect(custodyRadio).toBeDisabled();
+
+      // Verify clarification "Saldo insuficiente ($ 0,00)" is shown
+      expect(screen.getByTestId('custody-balance-label')).toHaveTextContent('Saldo insuficiente ($ 0,00)');
+      expect(screen.getAllByText(/Saldo insuficiente \(\$ 0,00\)/i).length).toBeGreaterThanOrEqual(1);
+
+      // Verify credit_card is auto-preselected
+      const cardRadio = screen.getByTestId('payment-method-card');
+      expect(cardRadio).toBeChecked();
+      expect(custodyRadio).not.toBeChecked();
+
+      // Card form is automatically displayed
+      expect(screen.getByTestId('card-form-container')).toBeInTheDocument();
+    });
+
+    it('blocks submission and shows "Saldo en custodia insuficiente para completar la inversión." when parsedAmount exceeds custody balance', async () => {
+      const partialInvId = 'prof-inv-partial-81';
+      const store = (services.loans as any).store;
+      if (store) {
+        store.profiles.push({
+          id: partialInvId,
+          role: 'investor',
+          legal_name: 'Inversor Saldo Parcial',
+          tax_id: '20334455667',
+          custody_balance: 50000, // Has $50.000
+        });
+      }
+
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId={partialInvId}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      // Custody balance radio is enabled and checked since 50.000 >= 10.000
+      const custodyRadio = screen.getByTestId('payment-method-custody');
+      expect(custodyRadio).toBeEnabled();
+      expect(custodyRadio).toBeChecked();
+
+      // Enter $100.000 (exceeds $50.000 custody balance)
+      const input = screen.getByTestId('investment-amount-input');
+      fireEvent.change(input, { target: { value: '100000' } });
+
+      const submitBtn = screen.getByTestId('modal-confirm-button');
+      expect(submitBtn).toBeEnabled();
+
+      // Click submit
+      fireEvent.click(submitBtn);
+
+      // Modal blocks submission and displays error message
+      await waitFor(() => {
+        expect(screen.getByTestId('modal-submit-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('modal-submit-error')).toHaveTextContent(
+        'Saldo en custodia insuficiente para completar la inversión.'
+      );
+      // Did not transition to success
+      expect(screen.queryByTestId('investment-success-view')).not.toBeInTheDocument();
+    });
+  });
 });

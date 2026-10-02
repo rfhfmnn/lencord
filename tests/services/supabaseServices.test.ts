@@ -53,7 +53,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
       const err = new Error('RAISE EXCEPTION: El monto excede el cupo disponible de la subasta');
       const mapped = mapSupabaseError(err);
       expect(mapped).toBeInstanceOf(ApplicationError);
-      expect(mapped.message).toBe('El monto excede el cupo disponible de la subasta');
+      expect(mapped.message).toBe('El monto excede el cupo disponible de la subasta.');
       expect(mapped.code).toBe('OVERFUNDING_REJECTED');
       expect(mapped.statusCode).toBe(400);
     });
@@ -61,7 +61,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
     it('maps invalid loan status to user-friendly message', () => {
       const err = new Error('RAISE EXCEPTION: El préstamo no se encuentra en estado de fondeo');
       const mapped = mapSupabaseError(err);
-      expect(mapped.message).toBe('Esta solicitud de préstamo ya no se encuentra abierta a subasta.');
+      expect(mapped.message).toBe('La solicitud no se encuentra en etapa de fondeo abierta.');
       expect(mapped.code).toBe('INVALID_LOAN_STATUS');
     });
 

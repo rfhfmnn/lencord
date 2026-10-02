@@ -70,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
         setCurrentUser({
           ...userProp,
           name: activeName,
+          custodyBalance: userProp.role === 'investor' ? (userProp.custodyBalance ?? 0) : undefined,
         });
       } else {
         setCurrentUser(null);
@@ -119,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
         try {
           const { data: profile } = await client
             .from('profiles')
-            .select('id, role, legal_name, email')
+            .select('id, role, legal_name, email, custody_balance')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -174,6 +175,33 @@ export const Header: React.FC<HeaderProps> = ({
           activeName = pymeCompanyName || fallbackLegalName;
         }
 
+        let realCustodyBalance: number | undefined = undefined;
+        if (role === 'investor') {
+          if (profileData && typeof profileData.custody_balance === 'number') {
+            realCustodyBalance = Number(profileData.custody_balance);
+          } else if (mockProf && typeof (mockProf as any).custody_balance === 'number') {
+            realCustodyBalance = Number((mockProf as any).custody_balance);
+          } else {
+            try {
+              const { data: lastTx } = await client
+                .from('custody_transactions')
+                .select('balance_after')
+                .eq('profile_id', authUser.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              if (lastTx && typeof lastTx.balance_after === 'number') {
+                realCustodyBalance = Number(lastTx.balance_after);
+              }
+            } catch {
+              // fallback
+            }
+            if (realCustodyBalance === undefined) {
+              realCustodyBalance = 0;
+            }
+          }
+        }
+
         if (isMounted) {
           setCurrentUser({
             id: authUser.id,
@@ -181,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
             name: activeName,
             role,
             availableRoles: availableRoles.length > 0 ? availableRoles : [role as any],
-            custodyBalance: role === 'investor' ? 1250000 : undefined,
+            custodyBalance: role === 'investor' ? (realCustodyBalance ?? 0) : undefined,
             legalName: fallbackLegalName,
             pymeCompanyName,
             investorLegalName,
@@ -426,7 +454,9 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <span className={styles.custodyLabel}>Custodia:</span>
                     <span className={styles.custodyValue}>
-                      {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                      {(currentUser.custodyBalance ?? 0) === 0
+                        ? '$ 0,00'
+                        : formatCurrency(currentUser.custodyBalance!)}
                     </span>
                   </div>
                 )}
@@ -598,7 +628,9 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className={styles.custodyBalance} data-testid="header-mobile-custody-balance">
                       <span className={styles.custodyLabel}>Custodia:</span>
                       <span className={styles.custodyValue}>
-                        {formatCurrency(currentUser.custodyBalance ?? 1250000)}
+                        {(currentUser.custodyBalance ?? 0) === 0
+                          ? '$ 0,00'
+                          : formatCurrency(currentUser.custodyBalance!)}
                       </span>
                     </div>
                   )}

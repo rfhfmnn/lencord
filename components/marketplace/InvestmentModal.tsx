@@ -251,6 +251,13 @@ export function InvestmentModal({
     };
   }, [effectiveInvestorId, investorId, investorTaxId]);
 
+  // Auto-preselect alternative payment method when custody balance is insufficient (Issue #81)
+  useEffect(() => {
+    if (custodyBalance < MIN_INVESTMENT_TICKET && paymentMethod === 'custody_balance') {
+      setPaymentMethod('credit_card');
+    }
+  }, [custodyBalance, paymentMethod]);
+
   const handleAddTestFunds = () => {
     const recharge = 1000000;
     setCustodyBalance((prev) => prev + recharge);
@@ -399,7 +406,7 @@ export function InvestmentModal({
 
     // Validate payment method specifics
     if (paymentMethod === 'custody_balance') {
-      if (custodyBalance > 0 && parsedAmount > custodyBalance) {
+      if (parsedAmount > custodyBalance) {
         setSubmitError('Saldo en custodia insuficiente para completar la inversión.');
         return;
       }
@@ -506,6 +513,8 @@ export function InvestmentModal({
   };
 
   const isCustodyAvailable = custodyBalance >= MIN_INVESTMENT_TICKET;
+  const formattedCustodyBalance =
+    custodyBalance === 0 ? '$ 0,00' : formatCurrency(custodyBalance);
 
   return (
     <div
@@ -778,16 +787,25 @@ export function InvestmentModal({
                     <div className={styles.paymentMethodContent}>
                       <div className={styles.paymentMethodLabelRow}>
                         <span className={styles.paymentMethodLabel}>
-                          Pagar con saldo en custodia
+                          Saldo en cuenta de custodia
                         </span>
-                        <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0369a1' }}>
-                          {formatCurrency(custodyBalance)} disponible
+                        <span
+                          style={{
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            color: isCustodyAvailable ? '#0369a1' : '#64748b',
+                          }}
+                          data-testid="custody-balance-label"
+                        >
+                          {isCustodyAvailable
+                            ? `${formatCurrency(custodyBalance)} disponible`
+                            : `Saldo insuficiente (${formattedCustodyBalance})`}
                         </span>
                       </div>
                       <span className={styles.paymentMethodDesc}>
                         {isCustodyAvailable
                           ? 'Debito directo e instantáneo de tus fondos disponibles.'
-                          : 'Saldo insuficiente. Podés fondear tu cuenta o pagar con tarjeta.'}
+                          : `Saldo insuficiente (${formattedCustodyBalance}). Podés fondear tu cuenta o pagar con tarjeta.`}
                       </span>
                       {(!isCustodyAvailable || custodyBalance < MIN_INVESTMENT_TICKET) && (
                         <div style={{ marginTop: '0.5rem' }}>

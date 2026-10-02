@@ -119,20 +119,20 @@ En la cuenta de Administrador, remover el enlace "Solicitudes" de la barra de na
 Asegurar que el Header consulte y muestre el saldo de custodia real del inversor eliminando valores hardcodeados; que el modal de inversión deshabilite la opción de saldo en custodia cuando este sea $0 o insuficiente, preseleccionando tarjeta/transferencia simulada; y que el servidor y cliente mapeen con precisión los errores de validación de `process_investment_checkout_rpc`.
 
 ### Acceptance criteria
-- [ ] En `components/layout/Header.tsx`, se eliminan por completo los valores fijos hardcodeados de `1250000` tanto en la inicialización de sesión como en los renderizados con fallback.
-- [ ] El Header consulta y muestra el saldo de custodia real del usuario inversor invocando el servicio de inversiones (`getCustodyBalance`) o consultando `profiles.custody_balance`. Si la cuenta no tiene fondos, muestra `$ 0,00` (o su formato monetario equivalente).
-- [ ] En `components/marketplace/InvestmentModal.tsx`:
+- [x] En `components/layout/Header.tsx`, se eliminan por completo los valores fijos hardcodeados de `1250000` tanto en la inicialización de sesión como en los renderizados con fallback.
+- [x] El Header consulta y muestra el saldo de custodia real del usuario inversor invocando el servicio de inversiones (`getCustodyBalance`) o consultando `profiles.custody_balance`. Si la cuenta no tiene fondos, muestra `$ 0,00` (o su formato monetario equivalente).
+- [x] En `components/marketplace/InvestmentModal.tsx`:
   - Si el saldo en custodia del inversor es `$0` o menor al ticket mínimo de inversión (`MIN_INVESTMENT_TICKET` = $10.000):
     - El selector de pago "Saldo en cuenta de custodia" aparece visualmente deshabilitado (`disabled`).
     - Se muestra la aclaración `"Saldo insuficiente ($ 0,00)"`.
     - Se preselecciona de forma automática el medio de pago alternativo (`credit_card` / tarjeta o transferencia simulada).
   - Si el inversor tiene saldo pero ingresa un monto superior (`parsedAmount > custodyBalance`), el modal bloquea el envío y muestra el mensaje `"Saldo en custodia insuficiente para completar la inversión."`.
-- [ ] En `services/supabase/errors.ts`, `mapSupabaseError` reconoce explícitamente los mensajes de excepción del procedimiento `process_investment_checkout_rpc` y los traduce a mensajes claros para el usuario:
+- [x] En `services/supabase/errors.ts`, `mapSupabaseError` reconoce explícitamente los mensajes de excepción del procedimiento `process_investment_checkout_rpc` y los traduce a mensajes claros para el usuario:
   - `"Saldo en custodia insuficiente para realizar la inversión"` -> `"Tu saldo en custodia es insuficiente para realizar esta inversión."`
   - `"El préstamo no se encuentra en estado de fondeo"` -> `"La solicitud no se encuentra en etapa de fondeo abierta."`
   - `"El monto excede el cupo disponible de la subasta"` -> `"El monto excede el cupo disponible de la subasta."`
   - `"No se permite autofinanciamiento"` -> `"No podés invertir en tu propia solicitud de crédito."`
-- [ ] Ante cualquiera de estas condiciones de negocio, la UI nunca muestra el mensaje opaco `"No se pudo completar la operación en el servidor"`.
+- [x] Ante cualquiera de estas condiciones de negocio, la UI nunca muestra el mensaje opaco `"No se pudo completar la operación en el servidor"`.
 
 ### Out of scope
 - Ninguno: todos los cambios pertenecen a este flujo.
