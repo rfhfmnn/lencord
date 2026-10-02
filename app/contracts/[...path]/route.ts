@@ -45,7 +45,7 @@ export async function GET(
   const fileName = path && path.length > 0 ? path[path.length - 1] : 'contrato.pdf';
   const pdfBuffer = createMockContractPdfBuffer(fileName);
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
