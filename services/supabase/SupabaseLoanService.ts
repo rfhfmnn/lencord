@@ -145,7 +145,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
       const now = new Date();
       const deadline = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-      const newLoanData = {
+      const newLoanData: Record<string, unknown> = {
         borrower_id: input.borrower_id,
         amount_requested: input.amount_requested,
         amount_funded: 0,
@@ -157,15 +157,30 @@ export class SupabaseLoanService implements LoanServiceInterface {
         base_uva_value: null,
         category: input.category,
         status: 'in_review',
-        description: input.description ?? null,
         funding_deadline: deadline.toISOString(),
       };
 
-      const { data, error } = await client
+      if (input.description) {
+        newLoanData.description = input.description.trim();
+      }
+
+      let { data, error } = await client
         .from('loans')
         .insert(newLoanData)
         .select()
         .single();
+
+      // Fallback: If table does not yet have 'description' column, retry without description
+      if (error && (error.code === 'PGRST204' || error.message?.includes('description'))) {
+        delete newLoanData.description;
+        const retryResult = await client
+          .from('loans')
+          .insert(newLoanData)
+          .select()
+          .single();
+        data = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (error) {
         throw mapSupabaseError(error, 'Error al registrar la solicitud de préstamo');

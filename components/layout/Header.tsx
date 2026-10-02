@@ -270,6 +270,9 @@ export const Header: React.FC<HeaderProps> = ({
       // Ignored
     } finally {
       setCurrentUser(null);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('lencord_loan_wizard_draft');
+      }
       if (typeof document !== 'undefined') {
         if (document.body) {
           document.body.style.overflow = '';

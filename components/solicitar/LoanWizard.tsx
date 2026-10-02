@@ -105,12 +105,14 @@ export function LoanWizard({
         const savedDraft = window.localStorage.getItem('lencord_loan_wizard_draft');
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
-          // Only restore if draft belongs to current user or has no userId
-          if (!borrowerId || !parsed.userId || parsed.userId === borrowerId) {
+          // Only restore if draft has no userId or matches current borrowerId
+          if (!parsed.userId || !borrowerId || parsed.userId === borrowerId) {
             if (parsed.step1Data) setStep1Data((prev) => ({ ...parsed.step1Data, ...prev }));
             if (parsed.step2Data) setStep2Data((prev) => ({ ...parsed.step2Data, ...prev }));
             if (parsed.step4Data) setStep4Data((prev) => ({ ...parsed.step4Data, ...prev }));
             if (parsed.step) setStep(parsed.step);
+          } else if (borrowerId && parsed.userId !== borrowerId) {
+            window.localStorage.removeItem('lencord_loan_wizard_draft');
           }
         }
       }
@@ -175,6 +177,27 @@ export function LoanWizard({
 
         if (isMounted) {
           setBorrowerId(authUser.id);
+        }
+
+        // If a draft exists in localStorage that does not belong to this user, wipe it
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const rawDraft = window.localStorage.getItem('lencord_loan_wizard_draft');
+            if (rawDraft) {
+              const parsedDraft = JSON.parse(rawDraft);
+              if (!parsedDraft.userId || parsedDraft.userId !== authUser.id) {
+                window.localStorage.removeItem('lencord_loan_wizard_draft');
+                if (isMounted) {
+                  setStep1Data({});
+                  setStep2Data({});
+                  setStep4Data({});
+                  setStep(1);
+                }
+              }
+            }
+          }
+        } catch {
+          // ignore
         }
 
         let legalName =
