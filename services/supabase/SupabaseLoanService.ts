@@ -198,25 +198,37 @@ export class SupabaseLoanService implements LoanServiceInterface {
           if (input.afip_url) updatePayload.afip_url = input.afip_url;
           if (input.bank_statements_url) updatePayload.bank_statements_url = input.bank_statements_url;
 
-          const { data: existingProfile } = await client
+          const { data: existingProfile, error: selectErr } = await client
             .from('sme_credit_profiles')
             .select('id')
             .eq('profile_id', input.borrower_id)
             .maybeSingle();
 
+          if (selectErr) {
+            console.warn('[SupabaseLoanService] Warning querying sme_credit_profiles:', selectErr);
+          }
+
           if (existingProfile) {
-            await client
+            const { error: updateErr } = await client
               .from('sme_credit_profiles')
               .update(updatePayload)
               .eq('profile_id', input.borrower_id);
+
+            if (updateErr) {
+              console.warn('[SupabaseLoanService] Warning: Could not update sme_credit_profiles documents:', updateErr);
+            }
           } else {
-            await client
+            const { error: insertErr } = await client
               .from('sme_credit_profiles')
               .insert({
                 ...updatePayload,
                 risk_tier: 'Tier B',
                 scoring_notes: 'Documentación cargada en solicitud de financiamiento.',
               });
+
+            if (insertErr) {
+              console.warn('[SupabaseLoanService] Warning: Could not insert sme_credit_profiles documents:', insertErr);
+            }
           }
         } catch (docErr) {
           console.warn('[SupabaseLoanService] Warning: Could not update sme_credit_profiles documents:', docErr);
