@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
+import { isUsingMocks } from '@/services/env';
 import { createSupabaseBrowserClient, SupabaseStorageService } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { TierBadge } from '@/components/ui/TierBadge';
@@ -114,6 +115,39 @@ export function AdminConsole({
         // Fetch loans in_review
         const inReviewLoans = await resolvedServices.loans.listLoans({ status: 'in_review' });
 
+        // Build profiles map from real DB and fallbacks
+        const newProfiles: Record<string, Profile> = { ...profilesMap };
+        const borrowerIds = Array.from(new Set(inReviewLoans.map((l) => l.borrower_id)));
+
+        if (borrowerIds.length > 0) {
+          if (!isUsingMocks()) {
+            try {
+              const client = createSupabaseBrowserClient();
+              const { data: dbProfiles } = await client
+                .from('profiles')
+                .select('*')
+                .in('id', borrowerIds);
+
+              if (dbProfiles) {
+                dbProfiles.forEach((p: any) => {
+                  newProfiles[p.id] = p;
+                });
+              }
+            } catch {
+              // Keep fallback
+            }
+          }
+
+          borrowerIds.forEach((bId) => {
+            if (!newProfiles[bId]) {
+              const mock = defaultMockStateStore.profiles.find((p) => p.id === bId);
+              if (mock) {
+                newProfiles[bId] = mock as any;
+              }
+            }
+          });
+        }
+
         // Fetch credit profiles
         const newCreditProfiles: Record<string, SmeCreditProfile> = {};
         await Promise.all(
@@ -132,6 +166,7 @@ export function AdminConsole({
           if (inReviewLoans.length > 0) {
             setSelectedLoanId(inReviewLoans[0].id);
           }
+          setProfilesMap(newProfiles);
           setCreditProfilesMap(newCreditProfiles);
           setLoading(false);
         }
@@ -387,8 +422,10 @@ export function AdminConsole({
       }
       setPlatformSpread(2.5);
 
-      const defaultDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      setFundingDeadline(defaultDeadline.toISOString().slice(0, 16));
+      const deadlineDate = selectedLoan.funding_deadline
+        ? new Date(selectedLoan.funding_deadline)
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      setFundingDeadline(isNaN(deadlineDate.getTime()) ? '' : deadlineDate.toISOString().slice(0, 16));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLoanId]);
@@ -691,13 +728,13 @@ export function AdminConsole({
 
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Teléfono de Contacto</span>
-                    <span className={styles.infoValue}>{selectedProfile?.phone ?? 'N/A'}</span>
+                    <span className={styles.infoValue}>{selectedProfile?.phone || 'No registrado'}</span>
                   </div>
 
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>CBU/CVU de Desembolso</span>
                     <span className={`${styles.infoValue} ${styles.cuitText}`}>
-                      {selectedProfile?.bank_cbu_cvu ?? 'N/A'}
+                      {selectedProfile?.bank_cbu_cvu || 'No registrado'}
                     </span>
                   </div>
                 </div>
@@ -720,7 +757,7 @@ export function AdminConsole({
                   <a
                     href="https://storage.lencord.ar/documents/constancia-afip.pdf"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className={styles.docLink}
                     data-testid="link-doc-afip"
                   >
@@ -730,7 +767,7 @@ export function AdminConsole({
                   <a
                     href="https://storage.lencord.ar/documents/extractos-bancarios.pdf"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className={styles.docLink}
                     data-testid="link-doc-bank"
                   >
@@ -1051,19 +1088,25 @@ export function AdminConsole({
                   </div>
                 </div>
 
-                {/* Auction Deadline */}
+                {/* Auction Deadline (Read-only, chosen by borrower) */}
                 <div className={styles.formGroup}>
                   <label htmlFor="funding-deadline-input" className={styles.formLabel}>
-                    Fecha límite de subasta (Cierre)
+                    Fecha límite de subasta (Fijada por PyME solicitante)
                   </label>
                   <input
                     id="funding-deadline-input"
                     type="datetime-local"
                     value={fundingDeadline}
                     onChange={(e) => setFundingDeadline(e.target.value)}
+                    readOnly
+                    tabIndex={-1}
                     className={styles.formInput}
+                    style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' }}
                     data-testid="input-funding-deadline"
                   />
+                  <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                    Solo lectura. La fecha es propuesta por la PyME. Si no es adecuada, rechazar la solicitud indicando el motivo.
+                  </small>
                 </div>
 
                 {/* Submit & Reject Actions */}

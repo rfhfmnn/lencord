@@ -853,6 +853,66 @@ describe('AdminConsole Component (Task 15)', () => {
       expect(screen.getByTestId('scoring-form')).toBeInTheDocument();
     });
   });
+
+  describe('Issue #75: Mesa de Crédito Profile Mapping, Documents and Readonly Deadline', () => {
+    it('displays "No registrado" fallback instead of "N/A" for missing phone and CBU/CVU', () => {
+      const incompleteProfiles: Record<string, Profile> = {
+        'sme-test-1': {
+          id: 'sme-test-1',
+          role: 'borrower',
+          legal_name: 'PyME Sin Datos Bancarios S.A.',
+          tax_id: '30712345679',
+          email: 'contacto@sindatos.com',
+          phone: null,
+          bank_cbu_cvu: null,
+          created_at: '2026-02-01T14:30:00.000Z',
+        },
+      };
+
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={incompleteProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      expect(screen.queryByText('N/A')).not.toBeInTheDocument();
+      expect(screen.getAllByText('No registrado').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('renders funding deadline input as readOnly reflecting borrower request', () => {
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      const deadlineInput = screen.getByTestId('input-funding-deadline');
+      expect(deadlineInput).toHaveAttribute('readonly');
+      expect(deadlineInput).toHaveValue('2026-11-01T23:59');
+    });
+
+    it('renders standardized secure PDF links for AFIP and Bank statements', () => {
+      render(
+        <AdminConsole
+          initialLoans={mockPendingLoans}
+          initialProfiles={mockProfiles}
+          initialCreditProfiles={mockCreditProfiles}
+        />
+      );
+
+      const afipLink = screen.getByTestId('link-doc-afip');
+      expect(afipLink).toHaveAttribute('target', '_blank');
+      expect(afipLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+      const bankLink = screen.getByTestId('link-doc-bank');
+      expect(bankLink).toHaveAttribute('target', '_blank');
+      expect(bankLink).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+  });
 });
 
 
