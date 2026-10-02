@@ -28,7 +28,7 @@ export class MockLegalService implements LegalServiceInterface {
       id: `contract-pagare-${Math.random().toString(36).substring(2, 9)}`,
       loan_id: loanId,
       document_type: 'pagare',
-      document_url: `https://storage.lencord.ar/contracts/${loanId}/pagare-electronico.pdf`,
+      document_url: `/contracts/${loanId}/pagare-electronico.pdf`,
       signature_hash: null,
       signed_at: null,
     };
@@ -47,7 +47,7 @@ export class MockLegalService implements LegalServiceInterface {
       id: `contract-mutuo-${Math.random().toString(36).substring(2, 9)}`,
       loan_id: loanId,
       document_type: 'mutuo',
-      document_url: `https://storage.lencord.ar/contracts/${loanId}/contrato-mutuo.pdf`,
+      document_url: `/contracts/${loanId}/contrato-mutuo.pdf`,
       signature_hash: null,
       signed_at: null,
     };

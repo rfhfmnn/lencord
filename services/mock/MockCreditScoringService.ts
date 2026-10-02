@@ -150,10 +150,10 @@ export class MockCreditScoringService implements CreditScoringInterface {
         bcra_situation: report.worstSituation,
         risk_tier: riskTier,
         balance_sheet_url: input.hasBalanceSheet
-          ? `https://storage.lencord.ar/documents/${input.profileId}/balance.pdf`
+          ? `/documents/${input.profileId}/balance.pdf`
           : null,
         f931_url: input.hasF931
-          ? `https://storage.lencord.ar/documents/${input.profileId}/f931.pdf`
+          ? `/documents/${input.profileId}/f931.pdf`
           : null,
         scoring_notes: `Evaluación crediticia automática. Situación BCRA: ${report.worstSituation ?? 'Sin deuda'}. Asignado: ${riskTier}.`,
         updated_at: now,
@@ -164,12 +164,12 @@ export class MockCreditScoringService implements CreditScoringInterface {
       profile.risk_tier = riskTier;
       if (input.hasBalanceSheet !== undefined) {
         profile.balance_sheet_url = input.hasBalanceSheet
-          ? `https://storage.lencord.ar/documents/${input.profileId}/balance.pdf`
+          ? `/documents/${input.profileId}/balance.pdf`
           : null;
       }
       if (input.hasF931 !== undefined) {
         profile.f931_url = input.hasF931
-          ? `https://storage.lencord.ar/documents/${input.profileId}/f931.pdf`
+          ? `/documents/${input.profileId}/f931.pdf`
           : null;
       }
       profile.updated_at = now;

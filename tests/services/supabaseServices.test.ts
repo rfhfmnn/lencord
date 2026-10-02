@@ -388,7 +388,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
         id: 'contract-pagare-1',
         loan_id: 'loan-100',
         document_type: 'pagare',
-        document_url: 'https://storage.lencord.ar/contracts/loan-100/pagare-electronico.pdf',
+        document_url: '/contracts/loan-100/pagare-electronico.pdf',
         signature_hash: null,
         signed_at: null,
       };
@@ -414,7 +414,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
         id: 'contract-1',
         loan_id: 'loan-100',
         document_type: 'pagare',
-        document_url: 'https://storage.lencord.ar/contracts/loan-100/pagare-electronico.pdf',
+        document_url: '/contracts/loan-100/pagare-electronico.pdf',
         signature_hash: 'sha256_hash_abc123',
         signed_at: '2026-09-25T14:00:00.000Z',
       };

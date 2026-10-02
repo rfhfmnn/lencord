@@ -37,8 +37,10 @@ describe('AdminConsole Component (Task 15)', () => {
       profile_id: 'sme-test-1',
       bcra_situation: 1,
       risk_tier: 'Tier A',
-      balance_sheet_url: 'https://storage.lencord.ar/documents/balance.pdf',
-      f931_url: 'https://storage.lencord.ar/documents/f931.pdf',
+      afip_url: '/documents/constancia-afip.pdf',
+      bank_statements_url: '/documents/extractos-bancarios.pdf',
+      balance_sheet_url: '/documents/balance.pdf',
+      f931_url: '/documents/f931.pdf',
       scoring_notes: null,
       updated_at: '2026-09-01T10:00:00.000Z',
     },
@@ -126,8 +128,8 @@ describe('AdminConsole Component (Task 15)', () => {
     // Documents
     expect(screen.getByTestId('link-doc-afip')).toHaveAttribute('href', expect.stringContaining('.pdf'));
     expect(screen.getByTestId('link-doc-bank')).toHaveAttribute('href', expect.stringContaining('.pdf'));
-    expect(screen.getByTestId('link-doc-balance')).toHaveAttribute('href', 'https://storage.lencord.ar/documents/balance.pdf');
-    expect(screen.getByTestId('link-doc-f931')).toHaveAttribute('href', 'https://storage.lencord.ar/documents/f931.pdf');
+    expect(screen.getByTestId('link-doc-balance')).toHaveAttribute('href', '/documents/balance.pdf');
+    expect(screen.getByTestId('link-doc-f931')).toHaveAttribute('href', '/documents/f931.pdf');
   });
 
   it('automatically calculates borrower final rate (investor_rate + platform_spread)', () => {
@@ -548,7 +550,9 @@ describe('AdminConsole Component (Task 15)', () => {
           bcra_situation: 1,
           risk_tier: 'Tier B',
           balance_sheet_url: null, // Omitted
-          f931_url: 'https://storage.lencord.ar/documents/f931.pdf',
+          f931_url: '/documents/f931.pdf',
+          afip_url: '/documents/constancia-afip.pdf',
+          bank_statements_url: null, // Omitted
           scoring_notes: null,
           updated_at: '2026-09-01T10:00:00.000Z',
         },
@@ -562,17 +566,26 @@ describe('AdminConsole Component (Task 15)', () => {
         />
       );
 
-      // Omitted balance sheet verification
+      // Omitted balance sheet verification (badge neutral No presentado, disabled, no interactive links)
       const missingBadge = screen.getByTestId('badge-balance-omitted');
-      expect(missingBadge).toHaveTextContent('Documento no presentado');
+      expect(missingBadge).toHaveTextContent('No presentado');
 
       const missingNotice = screen.getByTestId('doc-balance-missing');
-      expect(missingNotice).toHaveTextContent('Documento no presentado');
+      expect(missingNotice).toHaveAttribute('aria-disabled', 'true');
       expect(screen.queryByTestId('link-doc-balance')).not.toBeInTheDocument();
 
-      // Provided F931 verification
+      // Omitted bank statements verification (badge neutral No presentado, disabled)
+      const missingBankBadge = screen.getByTestId('badge-bank-omitted');
+      expect(missingBankBadge).toHaveTextContent('No presentado');
+      const missingBankNotice = screen.getByTestId('doc-bank-missing');
+      expect(missingBankNotice).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.queryByTestId('link-doc-bank')).not.toBeInTheDocument();
+
+      // Provided F931 and AFIP verification
       expect(screen.getByTestId('badge-f931-provided')).toHaveTextContent('Presentado');
       expect(screen.getByTestId('link-doc-f931')).toBeInTheDocument();
+      expect(screen.getByTestId('badge-afip-provided')).toHaveTextContent('Presentado');
+      expect(screen.getByTestId('link-doc-afip')).toBeInTheDocument();
     });
 
     it('renders Preview and Download buttons with secure sandboxed tab and download attributes', () => {
@@ -588,18 +601,12 @@ describe('AdminConsole Component (Task 15)', () => {
       const previewBtnBalance = screen.getByTestId('btn-preview-balance');
       expect(previewBtnBalance).toHaveAttribute('target', '_blank');
       expect(previewBtnBalance).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(previewBtnBalance).toHaveAttribute(
-        'href',
-        'https://storage.lencord.ar/documents/balance.pdf'
-      );
+      expect(previewBtnBalance).toHaveAttribute('href', '/documents/balance.pdf');
 
       // Download button has download attribute and points to file
       const downloadBtnBalance = screen.getByTestId('btn-download-balance');
       expect(downloadBtnBalance).toHaveAttribute('download');
-      expect(downloadBtnBalance).toHaveAttribute(
-        'href',
-        'https://storage.lencord.ar/documents/balance.pdf'
-      );
+      expect(downloadBtnBalance).toHaveAttribute('href', '/documents/balance.pdf');
     });
 
     it('fails gracefully with informative error messages when signed URL token request is expired or unauthorized', async () => {
@@ -912,6 +919,102 @@ describe('AdminConsole Component (Task 15)', () => {
       const bankLink = screen.getByTestId('link-doc-bank');
       expect(bankLink).toHaveAttribute('target', '_blank');
       expect(bankLink).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    describe('Issue #79: Subsanación de URLs de Documentación y Estado de Archivos en Admin', () => {
+      it('renders individual cards for all 4 documents with explicit Presentado or No presentado badges', () => {
+        const testCreditProfiles: Record<string, SmeCreditProfile> = {
+          'sme-test-1': {
+            id: 'cp-79',
+            profile_id: 'sme-test-1',
+            bcra_situation: 1,
+            risk_tier: 'Tier A',
+            afip_url: '/documents/sme-001/constancia-afip.pdf',
+            bank_statements_url: null, // PyME chose not to attach bank statements
+            balance_sheet_url: '/documents/sme-001/balance-2025.pdf',
+            f931_url: null, // PyME has no payroll
+            scoring_notes: null,
+            updated_at: '2026-09-01T10:00:00.000Z',
+          },
+        };
+
+        render(
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={testCreditProfiles}
+          />
+        );
+
+        // 1. Constancia AFIP: Presentado
+        expect(screen.getByTestId('doc-card-afip')).toBeInTheDocument();
+        expect(screen.getByTestId('badge-afip-provided')).toHaveTextContent('Presentado');
+        const afipLink = screen.getByTestId('link-doc-afip');
+        expect(afipLink).toHaveAttribute('target', '_blank');
+        expect(afipLink).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(afipLink.getAttribute('href')).not.toContain('storage.lencord.ar');
+
+        // 2. Extractos bancarios: No presentado (disabled)
+        expect(screen.getByTestId('doc-bank-missing')).toBeInTheDocument();
+        expect(screen.getByTestId('doc-bank-missing')).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByTestId('badge-bank-omitted')).toHaveTextContent('No presentado');
+        expect(screen.queryByTestId('link-doc-bank')).not.toBeInTheDocument();
+
+        // 3. Balance contable: Presentado
+        expect(screen.getByTestId('doc-card-balance')).toBeInTheDocument();
+        expect(screen.getByTestId('badge-balance-provided')).toHaveTextContent('Presentado');
+        const balanceLink = screen.getByTestId('link-doc-balance');
+        expect(balanceLink).toHaveAttribute('target', '_blank');
+        expect(balanceLink).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(balanceLink.getAttribute('href')).not.toContain('storage.lencord.ar');
+
+        // 4. Formulario 931: No presentado (disabled)
+        expect(screen.getByTestId('doc-f931-missing')).toBeInTheDocument();
+        expect(screen.getByTestId('doc-f931-missing')).toHaveAttribute('aria-disabled', 'true');
+        expect(screen.getByTestId('badge-f931-omitted')).toHaveTextContent('No presentado');
+        expect(screen.queryByTestId('link-doc-f931')).not.toBeInTheDocument();
+      });
+
+      it('resolves signed URLs via storageService without any storage.lencord.ar domain', async () => {
+        const mockStorage = {
+          createSignedDocumentUrl: vi.fn().mockImplementation(async (path: string) => ({
+            signedUrl: `https://valid-supabase.co/storage/v1/object/sign/loan-documents/${path}?token=valid_token`,
+            error: null,
+          })),
+        } as any;
+
+        const testCreditProfiles: Record<string, SmeCreditProfile> = {
+          'sme-test-1': {
+            id: 'cp-79-signed',
+            profile_id: 'sme-test-1',
+            bcra_situation: 1,
+            risk_tier: 'Tier A',
+            afip_url: 'sme-test-1/afip.pdf',
+            bank_statements_url: 'sme-test-1/bank.pdf',
+            balance_sheet_url: 'sme-test-1/balance.pdf',
+            f931_url: 'sme-test-1/f931.pdf',
+            scoring_notes: null,
+            updated_at: '2026-09-01T10:00:00.000Z',
+          },
+        };
+
+        render(
+          <AdminConsole
+            initialLoans={mockPendingLoans}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={testCreditProfiles}
+            storageService={mockStorage}
+          />
+        );
+
+        await waitFor(() => {
+          expect(mockStorage.createSignedDocumentUrl).toHaveBeenCalled();
+        });
+
+        const afipLink = screen.getByTestId('link-doc-afip');
+        expect(afipLink.getAttribute('href')).toContain('valid_token');
+        expect(afipLink.getAttribute('href')).not.toContain('storage.lencord.ar');
+      });
     });
   });
 });

@@ -119,8 +119,8 @@ describe('End-to-End System Integration: Complete Borrower to Active Loan Lifecy
       term_months: 6,
       rate_type: 'TNA_FIXED' as const,
       category: 'working_capital' as const,
-      balance_sheet_url: 'https://storage.lencord.ar/loan-documents/balance_2025.pdf',
-      f931_url: 'https://storage.lencord.ar/loan-documents/f931_period_2026.pdf',
+      balance_sheet_url: '/documents/sme-001/balance_2025.pdf',
+      f931_url: '/documents/sme-001/f931_period_2026.pdf',
     };
 
     const submittedLoan = await services.loans.submitLoanApplication(applicationPayload);
@@ -336,8 +336,8 @@ describe('End-to-End System Integration: Complete Borrower to Active Loan Lifecy
         term_months: 12,
         rate_type: 'TNA_FIXED',
         category: 'machinery',
-        balance_sheet_url: 'https://storage.lencord.ar/loan-documents/balance.pdf',
-        f931_url: 'https://storage.lencord.ar/loan-documents/f931.pdf',
+        balance_sheet_url: '/documents/sme-001/balance.pdf',
+        f931_url: '/documents/sme-001/f931.pdf',
       });
 
       expect(loan.id).toBeDefined();
@@ -350,7 +350,7 @@ describe('End-to-End System Integration: Complete Borrower to Active Loan Lifecy
       expect(retrieved?.category).toBe('machinery');
 
       const creditProfile = await services.creditScoring.getCreditProfileByProfileId(borrowerId);
-      expect(creditProfile?.balance_sheet_url).toBe('https://storage.lencord.ar/loan-documents/balance.pdf');
+      expect(creditProfile?.balance_sheet_url).toBe('/documents/sme-001/balance.pdf');
     });
 
     it('executes administrator evaluation, BCRA credit scoring retrieval, and auction publication with risk tier assignment', async () => {

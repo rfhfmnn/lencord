@@ -126,7 +126,7 @@ export function ElectronicSignatureModal({
     return contract.signature_hash.slice(0, 16);
   }, [contract?.signature_hash]);
 
-  const documentUrl = contract?.document_url || `https://storage.lencord.ar/contracts/${loan.id}/contrato-mutuo-pagare.pdf`;
+  const documentUrl = contract?.document_url || `/contracts/${loan.id}/contrato-mutuo-pagare.pdf`;
 
   const handleSign = async () => {
     if (!hasConsented || isSigned) return;

@@ -213,7 +213,7 @@ describe('In-Memory Mock Services and Seed Data (Issue #4)', () => {
         term_months: 6,
         rate_type: 'TNA_FIXED',
         category: 'expansion',
-        balance_sheet_url: 'https://storage.lencord.ar/docs/new-balance.pdf',
+        balance_sheet_url: '/documents/sme-001/new-balance.pdf',
       });
 
       expect(newLoan.id).toBeDefined();

@@ -281,22 +281,48 @@ export function AdminConsole({
       const newSignedUrls: Record<string, string> = {};
       const newErrors: Record<string, string> = {};
 
-      const docsToResolve: Array<{ key: 'balance' | 'f931'; rawUrl: string | null }> = [
+      const afipRaw =
+        selectedCreditProfile.afip_url !== undefined
+          ? selectedCreditProfile.afip_url
+          : (isUsingMocks() && selectedCreditProfile.balance_sheet_url
+            ? '/documents/constancia-afip.pdf'
+            : null);
+
+      const bankRaw =
+        selectedCreditProfile.bank_statements_url !== undefined
+          ? selectedCreditProfile.bank_statements_url
+          : (isUsingMocks() && selectedCreditProfile.balance_sheet_url
+            ? '/documents/extractos-bancarios.pdf'
+            : null);
+
+      const docsToResolve: Array<{ key: 'balance' | 'f931' | 'afip' | 'bank'; rawUrl: string | null }> = [
+        { key: 'afip', rawUrl: afipRaw },
+        { key: 'bank', rawUrl: bankRaw },
         { key: 'balance', rawUrl: selectedCreditProfile.balance_sheet_url },
         { key: 'f931', rawUrl: selectedCreditProfile.f931_url },
       ];
 
+      let effectiveService = storageService;
+      if (!effectiveService && !isUsingMocks()) {
+        try {
+          effectiveService = new SupabaseStorageService(createSupabaseBrowserClient());
+        } catch {
+          // ignore
+        }
+      }
+
       for (const { key, rawUrl } of docsToResolve) {
         if (!rawUrl) continue;
 
-        if (storageService) {
+        if (effectiveService) {
           try {
             const cleanPath = rawUrl
               .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/loan-documents\//, '')
               .replace(/^https?:\/\/[^/]+\/documents\//, '')
+              .replace(/^\/?documents\//, '')
               .replace(/^loan-documents\//, '');
 
-            const res = await storageService.createSignedDocumentUrl(cleanPath, 900);
+            const res = await effectiveService.createSignedDocumentUrl(cleanPath, 900);
             if (res.signedUrl) {
               newSignedUrls[key] = res.signedUrl;
             } else if (res.error) {
@@ -754,138 +780,115 @@ export function AdminConsole({
               <div className={styles.detailSection} data-testid="document-inspection-section">
                 <span className={styles.infoLabel}>Documentación Respaldatoria</span>
                 <div className={styles.documentsGrid}>
-                  <a
-                    href="https://storage.lencord.ar/documents/constancia-afip.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.docLink}
-                    data-testid="link-doc-afip"
-                  >
-                    📄 Constancia AFIP/ARCA
-                  </a>
-
-                  <a
-                    href="https://storage.lencord.ar/documents/extractos-bancarios.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.docLink}
-                    data-testid="link-doc-bank"
-                  >
-                    📄 Extractos bancarios (3m)
-                  </a>
-
-                  {/* Balance contable */}
-                  {selectedCreditProfile?.balance_sheet_url ? (
-                    docErrors['balance'] ? (
-                      <div className={styles.docErrorBox} data-testid="doc-error-balance" role="alert">
-                        {docErrors['balance']}
-                      </div>
-                    ) : (
-                      <div className={styles.docCard} data-testid="doc-card-balance">
+                  {[
+                    {
+                      key: 'afip' as const,
+                      title: 'Constancia AFIP/ARCA',
+                      icon: '📄',
+                      url:
+                        selectedCreditProfile?.afip_url !== undefined
+                          ? selectedCreditProfile.afip_url
+                          : (isUsingMocks() && selectedCreditProfile?.balance_sheet_url
+                            ? '/documents/constancia-afip.pdf'
+                            : null),
+                    },
+                    {
+                      key: 'bank' as const,
+                      title: 'Extractos bancarios (3m)',
+                      icon: '📄',
+                      url:
+                        selectedCreditProfile?.bank_statements_url !== undefined
+                          ? selectedCreditProfile.bank_statements_url
+                          : (isUsingMocks() && selectedCreditProfile?.balance_sheet_url
+                            ? '/documents/extractos-bancarios.pdf'
+                            : null),
+                    },
+                    {
+                      key: 'balance' as const,
+                      title: 'Balance contable',
+                      icon: '📄',
+                      url: selectedCreditProfile?.balance_sheet_url ?? null,
+                    },
+                    {
+                      key: 'f931' as const,
+                      title: 'Formulario 931',
+                      icon: '📄',
+                      url: selectedCreditProfile?.f931_url ?? null,
+                    },
+                  ].map((doc) => {
+                    const resolvedHref = (signedUrls[doc.key] ?? doc.url) || '#';
+                    if (doc.url) {
+                      if (docErrors[doc.key]) {
+                        return (
+                          <div
+                            key={doc.key}
+                            className={styles.docErrorBox}
+                            data-testid={`doc-error-${doc.key}`}
+                            role="alert"
+                          >
+                            {docErrors[doc.key]}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={doc.key} className={styles.docCard} data-testid={`doc-card-${doc.key}`}>
+                          <div className={styles.docCardHeader}>
+                            <span className={styles.docTitle}>{doc.icon} {doc.title}</span>
+                            <span className={styles.badgeSuccess} data-testid={`badge-${doc.key}-provided`}>
+                              Presentado
+                            </span>
+                          </div>
+                          <div className={styles.docActions}>
+                            <a
+                              href={resolvedHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.docLink}
+                              data-testid={`link-doc-${doc.key}`}
+                              title="Vista previa en pestaña segura"
+                            >
+                              {doc.icon} {doc.title}
+                            </a>
+                            <a
+                              href={resolvedHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.docPreviewBtn}
+                              data-testid={`btn-preview-${doc.key}`}
+                            >
+                              👁 Vista previa
+                            </a>
+                            <a
+                              href={resolvedHref}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.docDownloadBtn}
+                              data-testid={`btn-download-${doc.key}`}
+                            >
+                              ⬇ Descargar
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={doc.key}
+                        className={styles.docDisabled}
+                        data-testid={`doc-${doc.key}-missing`}
+                        aria-disabled="true"
+                      >
                         <div className={styles.docCardHeader}>
-                          <span className={styles.docTitle}>📄 Balance contable</span>
-                          <span className={styles.badgeSuccess} data-testid="badge-balance-provided">
-                            Presentado
+                          <span className={styles.docTitle}>{doc.icon} {doc.title}</span>
+                          <span className={styles.badgeNeutral} data-testid={`badge-${doc.key}-omitted`}>
+                            No presentado
                           </span>
                         </div>
-                        <div className={styles.docActions}>
-                          <a
-                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docLink}
-                            data-testid="link-doc-balance"
-                            title="Vista previa en pestaña segura"
-                          >
-                            📄 Balance contable
-                          </a>
-                          <a
-                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docPreviewBtn}
-                            data-testid="btn-preview-balance"
-                          >
-                            👁 Vista previa
-                          </a>
-                          <a
-                            href={signedUrls['balance'] ?? selectedCreditProfile.balance_sheet_url}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docDownloadBtn}
-                            data-testid="btn-download-balance"
-                          >
-                            ⬇ Descargar
-                          </a>
-                        </div>
+                        <span>{doc.icon} {doc.title}: No presentado</span>
                       </div>
-                    )
-                  ) : (
-                    <div className={styles.docDisabled} data-testid="doc-balance-missing">
-                      <span className={styles.badgeWarning} data-testid="badge-balance-omitted">
-                        Documento no presentado
-                      </span>
-                      <span>📄 Balance: No presentado</span>
-                    </div>
-                  )}
-
-                  {/* Formulario 931 */}
-                  {selectedCreditProfile?.f931_url ? (
-                    docErrors['f931'] ? (
-                      <div className={styles.docErrorBox} data-testid="doc-error-f931" role="alert">
-                        {docErrors['f931']}
-                      </div>
-                    ) : (
-                      <div className={styles.docCard} data-testid="doc-card-f931">
-                        <div className={styles.docCardHeader}>
-                          <span className={styles.docTitle}>📄 Formulario 931</span>
-                          <span className={styles.badgeSuccess} data-testid="badge-f931-provided">
-                            Presentado
-                          </span>
-                        </div>
-                        <div className={styles.docActions}>
-                          <a
-                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docLink}
-                            data-testid="link-doc-f931"
-                            title="Vista previa en pestaña segura"
-                          >
-                            📄 Formulario 931
-                          </a>
-                          <a
-                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docPreviewBtn}
-                            data-testid="btn-preview-f931"
-                          >
-                            👁 Vista previa
-                          </a>
-                          <a
-                            href={signedUrls['f931'] ?? selectedCreditProfile.f931_url}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.docDownloadBtn}
-                            data-testid="btn-download-f931"
-                          >
-                            ⬇ Descargar
-                          </a>
-                        </div>
-                      </div>
-                    )
-                  ) : (
-                    <div className={styles.docDisabled} data-testid="doc-f931-missing">
-                      <span className={styles.badgeWarning} data-testid="badge-f931-omitted">
-                        Documento no presentado
-                      </span>
-                      <span>📄 Formulario 931: No presentado</span>
-                    </div>
-                  )}
-
+                    );
+                  })}
                 </div>
               </div>
 

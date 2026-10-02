@@ -310,15 +310,25 @@ export function LoanWizard({
         rate_type: step2Data.rate_type ?? 'TNA_FIXED',
         category: step2Data.category ?? 'working_capital',
         description: step2Data.description ? step2Data.description.trim() : undefined,
+        afip_url:
+          step3Data.afip_constancia_url ??
+          (step3Data.afip_constancia
+            ? `${effectiveBorrowerId}/afip_constancia-${step3Data.afip_constancia.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`
+            : null),
+        bank_statements_url:
+          step3Data.bank_statements_url ??
+          (step3Data.bank_statements
+            ? `${effectiveBorrowerId}/bank_statements-${step3Data.bank_statements.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`
+            : null),
         balance_sheet_url:
           step3Data.balance_sheet_url ??
           (step3Data.balance_sheet
-            ? `https://storage.lencord.ar/documents/${effectiveBorrowerId}/${step3Data.balance_sheet.name}`
+            ? `${effectiveBorrowerId}/balance_sheet-${step3Data.balance_sheet.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`
             : null),
         f931_url:
           step3Data.f931_url ??
           (step3Data.f931
-            ? `https://storage.lencord.ar/documents/${effectiveBorrowerId}/${step3Data.f931.name}`
+            ? `${effectiveBorrowerId}/f931-${step3Data.f931.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`
             : null),
       };
 

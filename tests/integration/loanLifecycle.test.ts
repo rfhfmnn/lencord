@@ -49,8 +49,8 @@ describe('End-to-End User Journey Integration: Loan Lifecycle (Issue #23)', () =
       term_months: 6,
       rate_type: 'TNA_FIXED' as const,
       category: 'working_capital' as const,
-      balance_sheet_url: 'https://storage.lencord.ar/documents/balance_2025.pdf',
-      f931_url: 'https://storage.lencord.ar/documents/f931_aug_2026.pdf',
+      balance_sheet_url: '/documents/sme-001/balance_2025.pdf',
+      f931_url: '/documents/sme-001/f931_aug_2026.pdf',
     };
 
     const submittedLoan = await services.loans.submitLoanApplication(applicationInput);

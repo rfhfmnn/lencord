@@ -172,12 +172,14 @@ export class SupabaseLoanService implements LoanServiceInterface {
       }
 
       // Update supporting documents in credit profile if present
-      if (input.balance_sheet_url || input.f931_url) {
+      if (input.balance_sheet_url || input.f931_url || input.afip_url || input.bank_statements_url) {
         const updatePayload: Record<string, unknown> = {
           updated_at: new Date().toISOString(),
         };
         if (input.balance_sheet_url) updatePayload.balance_sheet_url = input.balance_sheet_url;
         if (input.f931_url) updatePayload.f931_url = input.f931_url;
+        if (input.afip_url) updatePayload.afip_url = input.afip_url;
+        if (input.bank_statements_url) updatePayload.bank_statements_url = input.bank_statements_url;
 
         await client
           .from('sme_credit_profiles')

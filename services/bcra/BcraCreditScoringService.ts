@@ -238,10 +238,10 @@ export class BcraCreditScoringService implements CreditScoringInterface {
             bcra_situation: report.worstSituation,
             risk_tier: riskTier,
             balance_sheet_url: input.hasBalanceSheet
-              ? `https://storage.lencord.ar/documents/${input.profileId}/balance.pdf`
+              ? `/documents/${input.profileId}/balance.pdf`
               : null,
             f931_url: input.hasF931
-              ? `https://storage.lencord.ar/documents/${input.profileId}/f931.pdf`
+              ? `/documents/${input.profileId}/f931.pdf`
               : null,
             scoring_notes: scoringNotes,
             updated_at: now,
@@ -261,10 +261,10 @@ export class BcraCreditScoringService implements CreditScoringInterface {
         bcra_situation: report.worstSituation,
         risk_tier: riskTier,
         balance_sheet_url: input.hasBalanceSheet
-          ? `https://storage.lencord.ar/documents/${input.profileId}/balance.pdf`
+          ? `/documents/${input.profileId}/balance.pdf`
           : null,
         f931_url: input.hasF931
-          ? `https://storage.lencord.ar/documents/${input.profileId}/f931.pdf`
+          ? `/documents/${input.profileId}/f931.pdf`
           : null,
         scoring_notes: scoringNotes,
         updated_at: now,

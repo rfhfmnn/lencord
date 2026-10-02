@@ -129,6 +129,8 @@ export interface SmeCreditProfile {
   risk_tier: RiskTier;
   balance_sheet_url: string | null; // Storage URL for financial statement
   f931_url: string | null; // Storage URL for payroll tax form
+  afip_url?: string | null; // Storage URL for AFIP/ARCA registration certificate
+  bank_statements_url?: string | null; // Storage URL for 3-month bank statements
   scoring_notes: string | null; // Internal audit / assessment notes
   updated_at: string; // ISO 8601 Timestamp
 }

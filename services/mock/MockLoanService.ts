@@ -118,16 +118,22 @@ export class MockLoanService implements LoanServiceInterface {
     };
 
     // Update document URLs in SME credit profile if present
-    if (input.balance_sheet_url || input.f931_url) {
+    if (input.balance_sheet_url || input.f931_url || input.afip_url || input.bank_statements_url) {
       let creditProfile = this.store.creditProfiles.find(
         (cp) => cp.profile_id === input.borrower_id
       );
       if (creditProfile) {
-        if (input.balance_sheet_url) {
+        if (input.balance_sheet_url !== undefined) {
           creditProfile.balance_sheet_url = input.balance_sheet_url;
         }
-        if (input.f931_url) {
+        if (input.f931_url !== undefined) {
           creditProfile.f931_url = input.f931_url;
+        }
+        if (input.afip_url !== undefined) {
+          creditProfile.afip_url = input.afip_url;
+        }
+        if (input.bank_statements_url !== undefined) {
+          creditProfile.bank_statements_url = input.bank_statements_url;
         }
         creditProfile.updated_at = now.toISOString();
       } else {
@@ -138,6 +144,8 @@ export class MockLoanService implements LoanServiceInterface {
           risk_tier: 'Tier B',
           balance_sheet_url: input.balance_sheet_url ?? null,
           f931_url: input.f931_url ?? null,
+          afip_url: input.afip_url ?? null,
+          bank_statements_url: input.bank_statements_url ?? null,
           scoring_notes: 'Documentación cargada en solicitud de préstamo',
           updated_at: now.toISOString(),
         };

@@ -132,7 +132,7 @@ describe('ElectronicSignatureModal Component (Issue #67)', () => {
       id: 'contract-signed-001',
       loan_id: mockLoan.id,
       document_type: 'mutuo',
-      document_url: 'https://storage.lencord.ar/contracts/signed.pdf',
+      document_url: '/contracts/signed.pdf',
       signer_id: 'user-pyme-123',
       signer_role: 'borrower',
       signature_hash: 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0',

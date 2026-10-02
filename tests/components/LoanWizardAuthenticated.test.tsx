@@ -153,8 +153,8 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
               rate_type: 'TNA_FIXED',
             }}
             initialStep3Data={{
-              balance_sheet_url: 'https://storage.lencord.ar/loan-documents/usr-777/balance.pdf',
-              f931_url: 'https://storage.lencord.ar/loan-documents/usr-777/f931.pdf',
+              balance_sheet_url: '/documents/usr-777/balance.pdf',
+              f931_url: '/documents/usr-777/f931.pdf',
             }}
             initialStep4Data={{
               cbu_cvu: '0720123488000012345678',
@@ -182,8 +182,8 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       expect(payload.term_months).toBe(9);
       expect(payload.rate_type).toBe('TNA_FIXED');
       expect(payload.category).toBe('working_capital');
-      expect(payload.balance_sheet_url).toBe('https://storage.lencord.ar/loan-documents/usr-777/balance.pdf');
-      expect(payload.f931_url).toBe('https://storage.lencord.ar/loan-documents/usr-777/f931.pdf');
+      expect(payload.balance_sheet_url).toBe('/documents/usr-777/balance.pdf');
+      expect(payload.f931_url).toBe('/documents/usr-777/f931.pdf');
 
       expect(onSubmittedMock).toHaveBeenCalledTimes(1);
       const createdLoan: Loan = onSubmittedMock.mock.calls[0][0];
@@ -220,8 +220,8 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
               description: '   Adquisición de plegadora hidráulica industrial CNC   ',
             }}
             initialStep3Data={{
-              balance_sheet_url: 'https://storage.lencord.ar/loan-documents/usr-888/balance.pdf',
-              f931_url: 'https://storage.lencord.ar/loan-documents/usr-888/f931.pdf',
+              balance_sheet_url: '/documents/usr-888/balance.pdf',
+              f931_url: '/documents/usr-888/f931.pdf',
             }}
             initialStep4Data={{
               cbu_cvu: '0720123488000012345678',

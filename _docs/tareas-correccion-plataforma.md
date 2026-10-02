@@ -62,13 +62,13 @@ Asegurar que la descripción obligatoria ingresada en el paso 2 del wizard de fi
 Eliminar completamente el dominio inexistente `storage.lencord.ar`, conectando los enlaces de documentación a rutas válidas de Supabase Storage (`loan-documents`), y reflejar en la consola de administración el estado real de cada archivo ("Presentado" con acceso de visualización en nueva pestaña, o "No presentado" deshabilitado).
 
 ### Acceptance criteria
-- [ ] No existe ninguna ocurrencia del host ficticio `storage.lencord.ar` en el código fuente de la aplicación (`LoanWizard.tsx`, `AdminConsole.tsx`, etc.).
-- [ ] En la sección "Documentación Respaldatoria" de `AdminConsole.tsx`:
+- [x] No existe ninguna ocurrencia del host ficticio `storage.lencord.ar` en el código fuente de la aplicación (`LoanWizard.tsx`, `AdminConsole.tsx`, etc.).
+- [x] En la sección "Documentación Respaldatoria" de `AdminConsole.tsx`:
   - Cada documento (Constancia AFIP/ARCA, Extractos bancarios, Balance contable, Formulario F.931) se presenta en una tarjeta individual con su estado explícito.
   - Si el archivo fue subido por el prestatario, la tarjeta muestra el badge verde `"Presentado"` y un enlace o botón accesible que abre el archivo en una nueva pestaña (`target="_blank"`, `rel="noopener noreferrer"`).
   - Si el archivo no fue subido (por ejemplo, extractos bancarios cuando la PyME optó por no adjuntarlos), la tarjeta muestra el badge neutral `"No presentado"` y el elemento queda deshabilitado (`aria-disabled="true"`), sin enlaces rotos ni acciones interactivas.
-- [ ] Para los archivos almacenados en Supabase Storage, la URL de apertura se resuelve a través de `client.storage.from('loan-documents')` mediante URL firmada o pública válida.
-- [ ] En modo simulado/mock, si se inspecciona una solicitud generada por seed data, el clic sobre un documento presentado no arroja errores de DNS (`DNS_PROBE_FINISHED_NXDOMAIN`) ni ventanas de error de red.
+- [x] Para los archivos almacenados en Supabase Storage, la URL de apertura se resuelve a través de `client.storage.from('loan-documents')` mediante URL firmada o pública válida.
+- [x] En modo simulado/mock, si se inspecciona una solicitud generada por seed data, el clic sobre un documento presentado no arroja errores de DNS (`DNS_PROBE_FINISHED_NXDOMAIN`) ni ventanas de error de red.
 
 ### Out of scope
 - Ninguno: todos los cambios pertenecen a este flujo.

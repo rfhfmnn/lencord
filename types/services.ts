@@ -84,6 +84,8 @@ export interface SubmitLoanInput {
   description?: string | null;
   balance_sheet_url?: string | null;
   f931_url?: string | null;
+  afip_url?: string | null;
+  bank_statements_url?: string | null;
 }
 
 export interface ApproveLoanInput {
