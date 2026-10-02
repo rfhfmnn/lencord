@@ -14,11 +14,14 @@ import type {
   SmeCreditProfile,
 } from '@/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createSupabaseBrowserClient, createSupabaseServerClient } from '@/services/supabase/client';
+import type { SupabaseClientProvider } from '@/services/supabase';
 
 export interface BcraServiceOptions {
   baseUrl?: string;
   timeoutMs?: number;
   supabaseClient?: SupabaseClient;
+  clientProvider?: SupabaseClientProvider;
   customFetch?: typeof fetch;
 }
 
@@ -26,6 +29,7 @@ export class BcraCreditScoringService implements CreditScoringInterface {
   private baseUrl: string;
   private timeoutMs: number;
   private supabaseClient?: SupabaseClient;
+  private clientProvider?: SupabaseClientProvider;
   private fetchFn: typeof fetch;
   private localProfiles: Map<string, SmeCreditProfile> = new Map();
 
@@ -34,7 +38,40 @@ export class BcraCreditScoringService implements CreditScoringInterface {
       options?.baseUrl || 'https://api.bcra.gob.ar/centraldedeudores/v1.0/Deudas';
     this.timeoutMs = options?.timeoutMs ?? 5000;
     this.supabaseClient = options?.supabaseClient;
+    this.clientProvider = options?.clientProvider;
     this.fetchFn = options?.customFetch ?? globalThis.fetch.bind(globalThis);
+  }
+
+  private async getClient(): Promise<SupabaseClient | undefined> {
+    if (this.supabaseClient) {
+      return this.supabaseClient;
+    }
+    if (this.clientProvider) {
+      if (typeof this.clientProvider === 'function') {
+        try {
+          return await this.clientProvider();
+        } catch {
+          return undefined;
+        }
+      }
+      return this.clientProvider;
+    }
+    if (
+      typeof process !== 'undefined' &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+      process.env.NEXT_PUBLIC_USE_MOCKS !== 'true'
+    ) {
+      try {
+        if (typeof window !== 'undefined') {
+          return createSupabaseBrowserClient();
+        }
+        return createSupabaseServerClient();
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -209,15 +246,16 @@ export class BcraCreditScoringService implements CreditScoringInterface {
       report.worstSituation ?? 'Sin deuda registrada'
     }. Total deuda: $${report.totalDebt.toLocaleString('es-AR')}. Asignado: ${riskTier}.`;
 
-    if (this.supabaseClient) {
-      const { data: existing } = await this.supabaseClient
+    const client = await this.getClient();
+    if (client) {
+      const { data: existing } = await client
         .from('sme_credit_profiles')
         .select('*')
         .eq('profile_id', input.profileId)
         .maybeSingle();
 
       if (existing) {
-        const { data: updated } = await this.supabaseClient
+        const { data: updated } = await client
           .from('sme_credit_profiles')
           .update({
             bcra_situation: report.worstSituation,
@@ -231,7 +269,7 @@ export class BcraCreditScoringService implements CreditScoringInterface {
 
         return updated as SmeCreditProfile;
       } else {
-        const { data: created } = await this.supabaseClient
+        const { data: created } = await client
           .from('sme_credit_profiles')
           .insert({
             profile_id: input.profileId,
@@ -283,8 +321,9 @@ export class BcraCreditScoringService implements CreditScoringInterface {
   public async getCreditProfileByProfileId(
     profileId: string
   ): Promise<SmeCreditProfile | null> {
-    if (this.supabaseClient) {
-      const { data } = await this.supabaseClient
+    const client = await this.getClient();
+    if (client) {
+      const { data } = await client
         .from('sme_credit_profiles')
         .select('*')
         .eq('profile_id', profileId)

@@ -132,7 +132,7 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
       new SupabaseInvestmentService(clientProvider, paymentGateway, emailService),
     creditScoring:
       liveServiceRegistry.creditScoring ??
-      new BcraCreditScoringService(),
+      new BcraCreditScoringService({ clientProvider }),
     legal:
       liveServiceRegistry.legal ??
       new SupabaseLegalService(clientProvider),

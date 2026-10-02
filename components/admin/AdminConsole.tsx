@@ -153,7 +153,16 @@ export function AdminConsole({
         await Promise.all(
           inReviewLoans.map(async (l) => {
             try {
-              const cp = await resolvedServices.creditScoring.getCreditProfileByProfileId(l.borrower_id);
+              let cp = await resolvedServices.creditScoring.getCreditProfileByProfileId(l.borrower_id);
+              if (!cp && !isUsingMocks()) {
+                const client = createSupabaseBrowserClient();
+                const { data } = await client
+                  .from('sme_credit_profiles')
+                  .select('*')
+                  .eq('profile_id', l.borrower_id)
+                  .maybeSingle();
+                if (data) cp = data as SmeCreditProfile;
+              }
               if (cp) newCreditProfiles[l.borrower_id] = cp;
             } catch {
               // ignore
