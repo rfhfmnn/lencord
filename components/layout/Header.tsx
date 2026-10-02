@@ -126,10 +126,17 @@ export const Header: React.FC<HeaderProps> = ({
           if (profile) {
             profileData = profile;
             if (profile.role) {
-              const activeRole = authUser.user_metadata?.active_role || profile.role;
-              role = activeRole as any;
-              if (!availableRoles.includes(profile.role as any)) {
-                availableRoles.push(profile.role as any);
+              if (profile.role === 'admin' || authUser.user_metadata?.role === 'admin') {
+                role = 'admin';
+                if (!availableRoles.includes('admin')) {
+                  availableRoles.push('admin');
+                }
+              } else {
+                const activeRole = authUser.user_metadata?.active_role || profile.role;
+                role = activeRole as any;
+                if (!availableRoles.includes(profile.role as any)) {
+                  availableRoles.push(profile.role as any);
+                }
               }
             }
           }
@@ -243,10 +250,12 @@ export const Header: React.FC<HeaderProps> = ({
   const isInvestor = currentUser?.role === 'investor';
   const isAdmin = currentUser?.role === 'admin';
 
-  const showPrestar = isLoading || !currentUser || isAdmin || isInvestor;
-  const showPedir = isLoading || !currentUser || isAdmin || isBorrower;
+  const showSolicitudes = isAdmin;
+  const showPrestar = !isAdmin && (isLoading || !currentUser || isInvestor);
+  const showPedir = !isAdmin && (isLoading || !currentUser || isBorrower);
+  const showInformational = !isAdmin;
 
-  const hasDualRoles = Boolean(
+  const hasDualRoles = !isAdmin && Boolean(
     currentUser?.availableRoles &&
     currentUser.availableRoles.includes('investor') &&
     (currentUser.availableRoles.includes('borrower') || currentUser.availableRoles.includes('sme'))
@@ -289,12 +298,12 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const roleBadgeText = isBorrower ? 'PyME' : isInvestor ? 'Inversor' : 'Admin';
-  const roleBadgeClass = isBorrower
-    ? styles.roleBadgePyme
-    : isInvestor
-      ? styles.roleBadgeInvestor
-      : styles.roleBadgeAdmin;
+  const roleBadgeText = isAdmin ? 'Admin' : isBorrower ? 'PyME' : isInvestor ? 'Inversor' : 'Admin';
+  const roleBadgeClass = isAdmin
+    ? styles.roleBadgeAdmin
+    : isBorrower
+      ? styles.roleBadgePyme
+      : styles.roleBadgeInvestor;
 
   const dashboardHref = isBorrower
     ? '/dashboard/pyme'
@@ -311,6 +320,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Navigation Links */}
         <nav className={styles.desktopNav} aria-label="Navegación principal">
+          {showSolicitudes && (
+            <Link href="/admin" className={styles.navLink} data-testid="header-solicitudes-link">
+              Solicitudes
+            </Link>
+          )}
           {showPrestar && (
             <Link href="/marketplace" className={styles.navLink}>
               Prestar
@@ -321,12 +335,16 @@ export const Header: React.FC<HeaderProps> = ({
               Pedir financiación
             </Link>
           )}
-          <Link href="/#como-funciona" className={styles.navLink}>
-            Cómo funciona
-          </Link>
-          <Link href="/faq" className={styles.navLink}>
-            FAQ
-          </Link>
+          {showInformational && (
+            <>
+              <Link href="/#como-funciona" className={styles.navLink}>
+                Cómo funciona
+              </Link>
+              <Link href="/faq" className={styles.navLink}>
+                FAQ
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Desktop Session / Auth Action Area */}
@@ -482,6 +500,11 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Menú de navegación móvil"
         >
           <nav className={styles.mobileNavLinks} aria-label="Enlaces móviles">
+            {showSolicitudes && (
+              <Link href="/admin" className={styles.mobileNavLink} onClick={closeMobileMenu} data-testid="mobile-solicitudes-link">
+                Solicitudes
+              </Link>
+            )}
             {showPrestar && (
               <Link href="/marketplace" className={styles.mobileNavLink} onClick={closeMobileMenu}>
                 Prestar
@@ -492,12 +515,16 @@ export const Header: React.FC<HeaderProps> = ({
                 Pedir financiación
               </Link>
             )}
-            <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-              Cómo funciona
-            </Link>
-            <Link href="/faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-              FAQ
-            </Link>
+            {showInformational && (
+              <>
+                <Link href="/#como-funciona" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                  Cómo funciona
+                </Link>
+                <Link href="/faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
+                  FAQ
+                </Link>
+              </>
+            )}
           </nav>
 
           <div className={styles.mobileActions} data-testid="mobile-actions-container">

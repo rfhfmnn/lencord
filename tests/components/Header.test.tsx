@@ -202,7 +202,7 @@ describe('Header Component', () => {
       expect(adminLink).toHaveTextContent('Administración');
     });
 
-    it('renders both "Prestar" and "Pedir financiación" for admin in desktop and mobile (Issue #52)', async () => {
+    it('renders "Solicitudes" navigation link targeting /admin and hides public/informational links (Issue #73)', async () => {
       const user = userEvent.setup();
       render(
         <Header
@@ -214,14 +214,45 @@ describe('Header Component', () => {
         />
       );
 
-      expect(screen.getByRole('link', { name: /^prestar$/i })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: /^pedir financiación$/i })).toBeInTheDocument();
+      // Dedicated Solicitudes link in desktop nav
+      const desktopSolicitudes = screen.getByTestId('header-solicitudes-link');
+      expect(desktopSolicitudes).toHaveAttribute('href', '/admin');
+      expect(desktopSolicitudes).toHaveTextContent('Solicitudes');
 
+      // Public and informational links should NOT be in the document for admin
+      expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^pedir financiación$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^cómo funciona$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^faq$/i })).not.toBeInTheDocument();
+
+      // Open mobile drawer
       const toggle = screen.getByTestId('mobile-menu-toggle');
       await user.click(toggle);
 
-      expect(screen.getAllByRole('link', { name: /^prestar$/i }).length).toBe(2);
-      expect(screen.getAllByRole('link', { name: /^pedir financiación$/i }).length).toBe(2);
+      const mobileSolicitudes = screen.getByTestId('mobile-solicitudes-link');
+      expect(mobileSolicitudes).toHaveAttribute('href', '/admin');
+      expect(mobileSolicitudes).toHaveTextContent('Solicitudes');
+
+      // Still no public/informational links in mobile drawer
+      expect(screen.queryByRole('link', { name: /^prestar$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^pedir financiación$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^cómo funciona$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^faq$/i })).not.toBeInTheDocument();
+    });
+
+    it('does not render role switcher for admin even if availableRoles contains other roles', () => {
+      render(
+        <Header
+          user={{
+            id: 'prof-adm-001',
+            name: 'Administrador Lencord',
+            role: 'admin',
+            availableRoles: ['borrower', 'investor'] as any,
+          }}
+        />
+      );
+
+      expect(screen.queryByTestId('header-role-switcher')).not.toBeInTheDocument();
     });
   });
 

@@ -237,12 +237,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       // Establish active session role in user metadata
       try {
         if (client.auth.updateUser) {
-          await client.auth.updateUser({
-            data: {
-              active_role: selectedRole,
-              role: selectedRole,
-            },
-          });
+          if (isAdminUser) {
+            await client.auth.updateUser({
+              data: {
+                active_role: 'admin',
+                role: 'admin',
+              },
+            });
+          } else {
+            await client.auth.updateUser({
+              data: {
+                active_role: selectedRole,
+                role: selectedRole,
+              },
+            });
+          }
         }
       } catch {
         // Best effort
