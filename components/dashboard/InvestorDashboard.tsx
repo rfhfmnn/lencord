@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input';
 import { cleanCuit, validateCuit, formatCuit } from '@/components/solicitar/cuitValidator';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 import { WithdrawalModal } from './WithdrawalModal';
+import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import styles from './dashboard.module.css';
 
 export interface InvestorDashboardProps {
@@ -82,6 +83,15 @@ export function InvestorDashboard({
   const [dniSuccess, setDniSuccess] = useState<string | null>(null);
   const [isSavingDni, setIsSavingDni] = useState<boolean>(false);
   const [investments, setInvestments] = useState<Investment[]>(initialInvestments ?? []);
+  const [selectedLoanForPagare, setSelectedLoanForPagare] = useState<Loan | null>(null);
+  const [selectedInvestmentForPagare, setSelectedInvestmentForPagare] = useState<Investment | null>(null);
+  const [isPagareModalOpen, setIsPagareModalOpen] = useState<boolean>(false);
+
+  const handleOpenPagare = (loan: Loan, investment: Investment) => {
+    setSelectedLoanForPagare(loan);
+    setSelectedInvestmentForPagare(investment);
+    setIsPagareModalOpen(true);
+  };
   const [loansMap, setLoansMap] = useState<Record<string, Loan>>(() => {
     if (!initialLoans) return {};
     return initialLoans.reduce<Record<string, Loan>>((acc, l) => {
@@ -922,7 +932,7 @@ export function InvestorDashboard({
               </p>
             </div>
 
-            <div className={styles.tableCard}>
+            <div className={styles.tableCard} data-testid="investments-table">
               <table className={styles.table} data-testid="active-investments-table">
                 <thead>
                   <tr>
@@ -932,6 +942,7 @@ export function InvestorDashboard({
                     <th scope="col">Riesgo</th>
                     <th scope="col">Plazo</th>
                     <th scope="col">Estado</th>
+                    <th scope="col">Pagaré digital</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -943,6 +954,8 @@ export function InvestorDashboard({
                       ? formatRateDisplay(loan.rate_type, loan.investor_rate)
                       : 'N/A';
                     const isSettled = investment.status === 'settled';
+                    const isSigned = loan && (loan.status === 'active' || loan.status === 'repaid');
+                    const loanId = loan ? loan.id : investment.loan_id;
 
                     return (
                       <tr key={investment.id} data-testid={`investment-row-${investment.id}`}>
@@ -968,6 +981,27 @@ export function InvestorDashboard({
                           >
                             {isSettled ? 'settled' : 'committed'}
                           </span>
+                        </td>
+                        <td>
+                          {isSigned ? (
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              onClick={() => loan && handleOpenPagare(loan, investment)}
+                              data-testid={`btn-view-promissory-note-${loanId}`}
+                            >
+                              Ver pagaré firmado
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="bordered"
+                              size="sm"
+                              disabled
+                              data-testid={`btn-view-promissory-note-${loanId}`}
+                            >
+                              Pendiente de firma
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1324,6 +1358,27 @@ export function InvestorDashboard({
           });
         }}
       />
+
+      {/* Modal de visualización de pagaré firmado con Anexo I (Issue #83) */}
+      {isPagareModalOpen && selectedLoanForPagare && (
+        <PromissoryNoteModal
+          isOpen={isPagareModalOpen}
+          onClose={() => {
+            setIsPagareModalOpen(false);
+            setSelectedLoanForPagare(null);
+            setSelectedInvestmentForPagare(null);
+          }}
+          loan={selectedLoanForPagare}
+          readOnly={true}
+          currentUserRole="investor"
+          currentInvestor={{
+            id: currentInvestorId,
+            legal_name: investorName || 'Inversor Registrado',
+            tax_id: taxId || 'DNI/CUIT no informado',
+            amount: selectedInvestmentForPagare?.amount || 0,
+          }}
+        />
+      )}
     </div>
   );
 }

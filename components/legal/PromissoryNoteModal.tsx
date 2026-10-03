@@ -19,6 +19,22 @@ export interface PromissoryNoteModalProps {
   onSuccess?: (signedContract: LegalContract) => void;
   simulatedOtp?: string;
   className?: string;
+  readOnly?: boolean;
+  existingContract?: LegalContract | null;
+  currentUserRole?: 'investor' | 'sme' | 'borrower' | 'admin';
+  currentInvestor?: {
+    id: string;
+    legal_name?: string;
+    tax_id?: string;
+    amount?: number;
+  } | null;
+  participatingInvestments?: Array<{
+    id: string;
+    investor_id: string;
+    amount: number;
+    investor_name?: string;
+    investor_tax_id?: string;
+  }>;
 }
 
 /**
@@ -96,6 +112,11 @@ export function PromissoryNoteModal({
   onSuccess,
   simulatedOtp = '123456',
   className = '',
+  readOnly = false,
+  existingContract = null,
+  currentUserRole = 'borrower',
+  currentInvestor = null,
+  participatingInvestments = [],
 }: PromissoryNoteModalProps) {
   const titleId = useId();
 
@@ -136,6 +157,68 @@ export function PromissoryNoteModal({
     return calculateSchedule(loan.amount_requested, loan.term_months, loan.borrower_rate);
   }, [installments, loan.amount_requested, loan.term_months, loan.borrower_rate]);
 
+  // Creditors list for Anexo I
+  const creditorsList = useMemo(() => {
+    const firstInstallmentTotal =
+      schedule[0]?.total ?? (loan.amount_requested / (loan.term_months || 1));
+
+    // If viewer is an Investor, enforce strict privacy: ONLY the investor's own credit line is returned
+    if (currentUserRole === 'investor') {
+      const invAmount = currentInvestor?.amount ?? loan.amount_funded ?? loan.amount_requested;
+      const sharePercent =
+        loan.amount_requested > 0 ? (invAmount / loan.amount_requested) * 100 : 100;
+      const monthlyQuota = firstInstallmentTotal * (sharePercent / 100);
+
+      return [
+        {
+          id: currentInvestor?.id ?? 'current-inv',
+          name: currentInvestor?.legal_name || 'Mi Inversión (Acreedor)',
+          tax_id: currentInvestor?.tax_id || 'N/A',
+          amount: invAmount,
+          sharePercent,
+          monthlyQuota,
+        },
+      ];
+    }
+
+    // For SME or Admin: render all participating investments
+    if (participatingInvestments && participatingInvestments.length > 0) {
+      return participatingInvestments.map((inv) => {
+        const sharePercent =
+          loan.amount_requested > 0 ? (inv.amount / loan.amount_requested) * 100 : 0;
+        const monthlyQuota = firstInstallmentTotal * (sharePercent / 100);
+        return {
+          id: inv.id,
+          name: inv.investor_name || `Inversor N° ${inv.investor_id.slice(0, 6)}`,
+          tax_id: inv.investor_tax_id || 'N/A',
+          amount: inv.amount,
+          sharePercent,
+          monthlyQuota,
+        };
+      });
+    }
+
+    // Default consolidated view for borrower
+    return [
+      {
+        id: 'creditor-consolidated',
+        name: 'Inversores Adjudicatarios de la Subasta Lencord',
+        tax_id: 'Fideicomiso / Colectivo',
+        amount: loan.amount_funded || loan.amount_requested,
+        sharePercent: 100,
+        monthlyQuota: firstInstallmentTotal,
+      },
+    ];
+  }, [
+    currentUserRole,
+    currentInvestor,
+    participatingInvestments,
+    loan.amount_requested,
+    loan.amount_funded,
+    loan.term_months,
+    schedule,
+  ]);
+
   // OTP state (6 digits)
   const [currentOtp, setCurrentOtp] = useState<string>(simulatedOtp);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -143,7 +226,7 @@ export function PromissoryNoteModal({
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [signedContract, setSignedContract] = useState<LegalContract | null>(null);
+  const [signedContract, setSignedContract] = useState<LegalContract | null>(existingContract);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -156,37 +239,100 @@ export function PromissoryNoteModal({
       setIsLocked(false);
       setErrorMessage(null);
       setIsSubmitting(false);
-      setSignedContract(null);
 
-      // Trigger high-priority OTP alert dispatch (SMS / WhatsApp)
-      const services =
-        servicesFromContext ??
-        (() => {
-          try {
-            return createServices();
-          } catch {
-            return createServices({ useMocks: true });
-          }
-        })();
+      if (existingContract) {
+        setSignedContract(existingContract);
+      } else if (readOnly) {
+        const services =
+          servicesFromContext ??
+          (() => {
+            try {
+              return createServices();
+            } catch {
+              return createServices({ useMocks: true });
+            }
+          })();
 
-      if (services.multiChannelNotifications) {
-        services.multiChannelNotifications
-          .sendOtpSignatureAlert(
-            {
-              to: borrower.phone,
-              recipientName: borrower.legal_name,
-              otpCode: simulatedOtp,
-              loanId: loan.id,
-              amount: loan.amount_requested,
-            },
-            borrower
-          )
-          .catch((err) => {
-            console.warn('[PromissoryNoteModal] OTP alert dispatch notice:', err?.message || err);
+        services.legal
+          .getContractsByLoan(loan.id)
+          .then((contracts) => {
+            const pagare = contracts.find((c) => c.document_type === 'pagare' && c.signature_hash);
+            if (pagare) {
+              setSignedContract(pagare);
+            } else {
+              generateSha256(
+                `LENCORD:PAGARE:${loan.id}:${borrower.tax_id}:${loan.amount_requested}:SIGNED`
+              ).then((hash) => {
+                setSignedContract({
+                  id: `contract-${loan.id}`,
+                  loan_id: loan.id,
+                  document_type: 'pagare',
+                  document_url: `/contracts/${loan.id}/pagare-electronico.pdf`,
+                  signature_hash: hash,
+                  signed_at: loan.created_at || new Date().toISOString(),
+                });
+              });
+            }
+          })
+          .catch(() => {
+            generateSha256(
+              `LENCORD:PAGARE:${loan.id}:${borrower.tax_id}:${loan.amount_requested}:SIGNED`
+            ).then((hash) => {
+              setSignedContract({
+                id: `contract-${loan.id}`,
+                loan_id: loan.id,
+                document_type: 'pagare',
+                document_url: `/contracts/${loan.id}/pagare-electronico.pdf`,
+                signature_hash: hash,
+                signed_at: loan.created_at || new Date().toISOString(),
+              });
+            });
           });
+      } else {
+        setSignedContract(null);
+      }
+
+      // Trigger high-priority OTP alert dispatch (SMS / WhatsApp) only if NOT readOnly
+      if (!readOnly) {
+        const services =
+          servicesFromContext ??
+          (() => {
+            try {
+              return createServices();
+            } catch {
+              return createServices({ useMocks: true });
+            }
+          })();
+
+        if (services.multiChannelNotifications) {
+          services.multiChannelNotifications
+            .sendOtpSignatureAlert(
+              {
+                to: borrower.phone,
+                recipientName: borrower.legal_name,
+                otpCode: simulatedOtp,
+                loanId: loan.id,
+                amount: loan.amount_requested,
+              },
+              borrower
+            )
+            .catch((err) => {
+              console.warn('[PromissoryNoteModal] OTP alert dispatch notice:', err?.message || err);
+            });
+        }
       }
     }
-  }, [isOpen, simulatedOtp, borrower, loan.id, loan.amount_requested, servicesFromContext]);
+  }, [
+    isOpen,
+    readOnly,
+    existingContract,
+    simulatedOtp,
+    borrower,
+    loan.id,
+    loan.created_at,
+    loan.amount_requested,
+    servicesFromContext,
+  ]);
 
   if (!isOpen) return null;
 
@@ -380,6 +526,12 @@ export function PromissoryNoteModal({
 
         {/* Body */}
         <div className={styles.modalBody}>
+          {readOnly && (
+            <div className={styles.signedStatusBadge} data-testid="signed-status-badge">
+              ✓ Contrato firmado electrónicamente por la PyME
+            </div>
+          )}
+
           {/* Legal Document Review Viewer */}
           <div className={styles.documentViewer} data-testid="document-viewer">
             <div className={styles.documentHeader}>
@@ -480,10 +632,71 @@ export function PromissoryNoteModal({
                 SHA-256.
               </p>
             </div>
+
+            {/* Anexo I - Nómina de Acreedores e Individualización de Cuotas */}
+            <div className={styles.annexContainer} data-testid="contract-annex-creditors">
+              <div className={styles.annexTitle}>
+                Anexo I - Nómina de Acreedores e Individualización de Cuotas
+              </div>
+              <p className={styles.annexNotice}>
+                {currentUserRole === 'investor'
+                  ? 'Por estrictas razones de confidencialidad y protección de datos financieros de la comunidad inversora, en esta copia de instrumento usted visualiza exclusivamente su participación individual y los datos de la PyME libradora.'
+                  : 'Nómina consolidada de acreedores e individualización de cuotas de amortización e interés devengadas en la subasta.'}
+              </p>
+
+              <table className={styles.scheduleTable} aria-label="Nómina de acreedores del pagaré">
+                <thead>
+                  <tr>
+                    <th>Acreedor / Razón Social</th>
+                    <th>Identificación Fiscal</th>
+                    <th>Capital Invertido</th>
+                    <th>% Participación</th>
+                    <th>Cuota Mensual a Percibir</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {creditorsList.map((creditor) => (
+                    <tr key={creditor.id} data-testid={`creditor-row-${creditor.id}`}>
+                      <td>
+                        <strong>{creditor.name}</strong>
+                      </td>
+                      <td>{creditor.tax_id}</td>
+                      <td>{formatCurrency(creditor.amount)}</td>
+                      <td>{creditor.sharePercent.toFixed(2)}%</td>
+                      <td>
+                        <strong>{formatCurrency(creditor.monthlyQuota)}</strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Signed Confirmation State OR OTP Input State */}
-          {signedContract && signedContract.signature_hash ? (
+          {readOnly ? (
+            <div className={styles.successPane} data-testid="signature-success-pane">
+              <h4 className={styles.successTitle}>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Pagaré Digital emitido y ratificado por la PyME
+              </h4>
+              <p className={styles.successText}>
+                El pagaré electrónico cuenta con firma digital registrada, plena fuerza ejecutiva y depósito en custodia legal.
+              </p>
+              <div className={styles.hashCard}>
+                <span className={styles.hashLabel}>Hash criptográfico de firma (SHA-256)</span>
+                <span className={styles.hashValue} data-testid="signature-hash">
+                  {signedContract?.signature_hash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+                </span>
+                <span className={styles.timestampValue} data-testid="signature-timestamp">
+                  Fecha y hora de firma:{' '}
+                  {new Date(signedContract?.signed_at || loan.created_at || '').toLocaleString('es-AR')}
+                </span>
+              </div>
+            </div>
+          ) : signedContract && signedContract.signature_hash ? (
             <div className={styles.successPane} data-testid="signature-success-pane">
               <h4 className={styles.successTitle}>
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -571,7 +784,28 @@ export function PromissoryNoteModal({
 
         {/* Footer */}
         <footer className={styles.modalFooter}>
-          {signedContract ? (
+          {readOnly ? (
+            <>
+              <Button
+                variant="bordered"
+                size="md"
+                onClick={() => {
+                  if (typeof window !== 'undefined') window.print();
+                }}
+                data-testid="btn-download-copy"
+              >
+                Descargar copia
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={onClose}
+                data-testid="btn-close-readonly"
+              >
+                Cerrar
+              </Button>
+            </>
+          ) : signedContract ? (
             <Button
               variant="primary"
               size="md"

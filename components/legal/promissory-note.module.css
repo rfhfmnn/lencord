@@ -366,3 +366,40 @@
   gap: 0.75rem;
   background-color: #f8fafc;
 }
+
+.signedStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 9999px;
+  background-color: #dcfce7;
+  color: #166534;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid #86efac;
+  margin-bottom: 1rem;
+}
+
+.annexContainer {
+  margin-top: 1.5rem;
+  border-top: 2px dashed #cbd5e1;
+  padding-top: 1rem;
+}
+
+.annexTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.375rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.annexNotice {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+

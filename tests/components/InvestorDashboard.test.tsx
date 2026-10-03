@@ -447,6 +447,125 @@ describe('InvestorDashboard Component (Task 13)', () => {
       const position = activeTable.compareDocumentPosition(profileSection!);
       expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
+
+    it('renders promissory note column and button states in active investments table (Issue #83)', () => {
+      const activeLoan: Loan = {
+        ...mockLoans[0],
+        id: 'loan-active-1',
+        status: 'active',
+      };
+      const fundingLoan: Loan = {
+        ...mockLoans[1],
+        id: 'loan-funding-1',
+        status: 'funding',
+      };
+      const testInvestments: Investment[] = [
+        {
+          id: 'inv-active-1',
+          loan_id: 'loan-active-1',
+          investor_id: 'prof-inv-001',
+          amount: 5_000_000,
+          status: 'settled',
+          external_payment_id: 'ext-active-1',
+          created_at: '2026-09-05T10:00:00.000Z',
+        },
+        {
+          id: 'inv-funding-1',
+          loan_id: 'loan-funding-1',
+          investor_id: 'prof-inv-001',
+          amount: 3_000_000,
+          status: 'committed',
+          external_payment_id: 'ext-funding-1',
+          created_at: '2026-09-06T11:00:00.000Z',
+        },
+      ];
+
+      render(
+        <InvestorDashboard
+          initialInvestments={testInvestments}
+          initialLoans={[activeLoan, fundingLoan]}
+          initialCreditProfiles={mockCreditProfiles}
+          initialInstallments={mockInstallments}
+        />
+      );
+
+      // Verify table column header
+      expect(screen.getByRole('columnheader', { name: /Pagaré digital/i })).toBeInTheDocument();
+
+      // For active loan: button is enabled and labeled "Ver pagaré firmado"
+      const activeBtn = screen.getByTestId('btn-view-promissory-note-loan-active-1');
+      expect(activeBtn).toBeInTheDocument();
+      expect(activeBtn).not.toBeDisabled();
+      expect(activeBtn).toHaveTextContent(/Ver pagaré firmado/i);
+
+      // For funding loan: button is disabled and labeled "Pendiente de firma"
+      const fundingBtn = screen.getByTestId('btn-view-promissory-note-loan-funding-1');
+      expect(fundingBtn).toBeInTheDocument();
+      expect(fundingBtn).toBeDisabled();
+      expect(fundingBtn).toHaveTextContent(/Pendiente de firma/i);
+    });
+
+    it('opens signed PromissoryNoteModal in readOnly mode with Anexo I and strict co-investor privacy (Issue #83)', async () => {
+      const activeLoan: Loan = {
+        ...mockLoans[0],
+        id: 'loan-active-signed',
+        borrower_id: 'sme-1',
+        status: 'active',
+      };
+      const testInvestment: Investment = {
+        id: 'inv-signed-1',
+        loan_id: 'loan-active-signed',
+        investor_id: 'prof-inv-001',
+        amount: 2_500_000,
+        status: 'settled',
+        external_payment_id: 'ext-signed-1',
+        created_at: '2026-09-05T10:00:00.000Z',
+      };
+
+      render(
+        <InvestorDashboard
+          legalName="Juan Inversor Argentino"
+          initialTaxId="20-33444555-9"
+          initialInvestments={[testInvestment]}
+          initialLoans={[activeLoan]}
+          initialCreditProfiles={mockCreditProfiles}
+          initialInstallments={mockInstallments}
+        />
+      );
+
+      const viewBtn = screen.getByTestId('btn-view-promissory-note-loan-active-signed');
+      fireEvent.click(viewBtn);
+
+      // Modal should open in readOnly mode
+      expect(await screen.findByTestId('promissory-note-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('signed-status-badge')).toHaveTextContent(/Contrato firmado electrónicamente por la PyME/i);
+
+      // Verify SHA-256 hash or signature pane is visible
+      expect(screen.getByTestId('signature-hash')).toBeInTheDocument();
+
+      // Verify OTP section is NOT rendered in readOnly mode
+      expect(screen.queryByTestId('otp-input')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('btn-confirm-sign')).not.toBeInTheDocument();
+
+      // Verify Anexo I: Creditors Annex is rendered
+      expect(screen.getByTestId('contract-annex-creditors')).toBeInTheDocument();
+
+      // Strict privacy check: only the viewing investor appears in Anexo I
+      expect(screen.getByTestId('creditor-row-prof-inv-001')).toBeInTheDocument();
+      expect(screen.getByTestId('creditor-row-prof-inv-001')).toHaveTextContent('Juan Inversor Argentino');
+      expect(screen.getByTestId('creditor-row-prof-inv-001')).toHaveTextContent('20-33444555-9');
+      expect(screen.getByTestId('creditor-row-prof-inv-001')).toHaveTextContent('$ 2.500.000');
+
+      // Verify download copy and close buttons
+      expect(screen.getByTestId('btn-download-copy')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-close-readonly')).toBeInTheDocument();
+
+      // Clicking close dismisses the modal
+      fireEvent.click(screen.getByTestId('btn-close-readonly'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('promissory-note-modal')).not.toBeInTheDocument();
+      });
+    });
   });
 });
 
