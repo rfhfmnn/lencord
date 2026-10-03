@@ -424,5 +424,8 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
 
     const inv1Notifs4 = await services.notifications!.getNotifications(mockInvestor1.id);
     expect(inv1Notifs4.some((n) => n.title === 'Acreditación de cuota recibida')).toBe(true);
+
+    const pymeNotifs4 = await services.notifications!.getNotifications(mockBorrower.id);
+    expect(pymeNotifs4.some((n) => n.title === 'Pago procesado con éxito')).toBe(true);
   });
 });

@@ -574,6 +574,36 @@ export class MockLoanService implements LoanServiceInterface {
       }
     }
 
+    // Event 4 (PyME): Notificar a la PyME prestataria sobre el registro exitoso del pago de su cuota
+    const targetLoan = this.store.loans.find((l) => l.id === installment.loan_id);
+    const borrowerId = targetLoan?.borrower_id || input.payer_id;
+    if (borrowerId) {
+      const formattedTotal = (installment.principal_amount + installment.interest_borrower).toLocaleString('es-AR');
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: borrowerId,
+        title: 'Pago procesado con éxito',
+        message: `Se procesó correctamente el pago de la cuota #${installment.installment_number} por $${formattedTotal}.`,
+        type: 'success',
+        read: false,
+        action_url: '/dashboard/pyme',
+        created_at: new Date().toISOString(),
+      });
+
+      if (allRepaid) {
+        this.store.notifications.unshift({
+          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          user_id: borrowerId,
+          title: '¡Préstamo cancelado en su totalidad!',
+          message: 'Has completado el pago de todas las cuotas de tu financiamiento. ¡Felicitaciones por mantener un historial crediticio ejemplar!',
+          type: 'success',
+          read: false,
+          action_url: '/dashboard/pyme',
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
     return {
       success: true,
       installment_id: installment.id,

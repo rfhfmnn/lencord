@@ -365,6 +365,12 @@ CREATE POLICY "Users can view their own notifications"
   ON public.notifications FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+CREATE POLICY "Users can update own notifications"
+  ON public.notifications FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
 -- Políticas de custody_transactions
 DROP POLICY IF EXISTS "Investors can view own custody transactions" ON public.custody_transactions;
 CREATE POLICY "Investors can view own custody transactions"
@@ -648,6 +654,79 @@ BEGIN
     now()
   );
 
+  -- Notificación para la PyME (prestataria) informando el nuevo aporte
+  INSERT INTO public.notifications (
+    user_id,
+    title,
+    message,
+    type,
+    action_url,
+    created_at
+  ) VALUES (
+    v_loan.borrower_id,
+    'Nuevo aporte de inversión recibido',
+    'Se ha registrado una inversión por $' || to_char(p_amount, 'FM999,999,990.00') || ' (' || to_char(round((v_new_funded / v_loan.amount_requested) * 100, 1), 'FM990.0') || '% financiado).',
+    'info',
+    '/dashboard/pyme',
+    now()
+  );
+
+  -- Notificación para el Inversor que realizó el aporte
+  INSERT INTO public.notifications (
+    user_id,
+    title,
+    message,
+    type,
+    action_url,
+    created_at
+  ) VALUES (
+    p_investor_id,
+    'Inversión confirmada',
+    'Has comprometido $' || to_char(p_amount, 'FM999,999,990.00') || ' en la subasta del préstamo.',
+    'success',
+    '/dashboard/inversor',
+    now()
+  );
+
+  -- Si la subasta alcanzó el 100%, notificar a PyME e inversores participantes
+  IF v_new_status = 'funded' THEN
+    -- PyME: Pagaré listo para firma
+    INSERT INTO public.notifications (
+      user_id,
+      title,
+      message,
+      type,
+      action_url,
+      created_at
+    ) VALUES (
+      v_loan.borrower_id,
+      '¡Subasta 100% financiada! Pagaré listo para firma',
+      '¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.',
+      'success',
+      '/dashboard/pyme',
+      now()
+    );
+
+    -- Inversores participantes (deduplicados)
+    INSERT INTO public.notifications (
+      user_id,
+      title,
+      message,
+      type,
+      action_url,
+      created_at
+    )
+    SELECT DISTINCT
+      investor_id,
+      'Subasta finalizada con éxito',
+      'La subasta en la que participaste se completó al 100%. La PyME ha sido notificada para firmar el pagaré digital.',
+      'success',
+      '/dashboard/inversor',
+      now()
+    FROM public.investments
+    WHERE loan_id = p_loan_id AND status IN ('committed', 'settled');
+  END IF;
+
   RETURN jsonb_build_object(
     'success', true,
     'amount_funded', v_new_funded,
@@ -667,6 +746,7 @@ CREATE OR REPLACE FUNCTION public.process_installment_repayment_rpc(
 ) RETURNS JSONB AS $$
 DECLARE
   v_installment public.installments%ROWTYPE;
+  v_loan public.loans%ROWTYPE;
   v_total_invested NUMERIC(14, 2);
   v_inv RECORD;
   v_accumulated_principal NUMERIC(14, 2) := 0.00;
@@ -680,7 +760,10 @@ DECLARE
   v_current_idx INT := 0;
   v_payout_id UUID;
   v_all_repaid BOOLEAN := false;
+  v_borrower_id UUID;
+  v_total_paid_installment NUMERIC(14, 2);
 BEGIN
+  -- Bloqueo pesimista de fila en cuota
   SELECT * INTO v_installment
   FROM public.installments
   WHERE id = p_installment_id
@@ -694,6 +777,15 @@ BEGIN
     RAISE EXCEPTION 'La cuota ya se encuentra pagada';
   END IF;
 
+  -- Obtener préstamo para conocer el borrower_id
+  SELECT * INTO v_loan
+  FROM public.loans
+  WHERE id = v_installment.loan_id;
+
+  v_borrower_id := COALESCE(v_loan.borrower_id, p_payer_id);
+  v_total_paid_installment := v_installment.principal_amount + v_installment.interest_borrower;
+
+  -- Calcular total de inversiones activas
   SELECT COALESCE(SUM(amount), 0), COUNT(*)
   INTO v_total_invested, v_inv_count
   FROM public.investments
@@ -704,11 +796,13 @@ BEGIN
     RAISE EXCEPTION 'No se registran inversiones válidas para distribuir esta cuota';
   END IF;
 
+  -- Marcar cuota como pagada
   UPDATE public.installments SET
     status = 'paid',
     paid_at = now()
   WHERE id = p_installment_id;
 
+  -- Distribuir proporcionalmente entre inversores
   FOR v_inv IN
     SELECT id, investor_id, amount
     FROM public.investments
@@ -718,6 +812,7 @@ BEGIN
   LOOP
     v_current_idx := v_current_idx + 1;
 
+    -- Manejo exacto de redondeo en centavos para la última inversión
     IF v_current_idx = v_inv_count THEN
       v_principal_share := v_installment.principal_amount - v_accumulated_principal;
       v_interest_share := v_installment.interest_investors - v_accumulated_interest;
@@ -731,6 +826,7 @@ BEGIN
     v_total_share := v_principal_share + v_interest_share;
     v_payout_id := gen_random_uuid();
 
+    -- Registrar pago de cuota a inversor
     INSERT INTO public.installment_payouts (
       id,
       installment_id,
@@ -753,6 +849,7 @@ BEGIN
       now()
     );
 
+    -- Obtener último saldo del inversor
     SELECT COALESCE(balance_after, 0.00) INTO v_inv_current_balance
     FROM public.custody_transactions
     WHERE profile_id = v_inv.investor_id
@@ -765,6 +862,7 @@ BEGIN
 
     v_inv_balance_after := v_inv_current_balance + v_total_share;
 
+    -- Acreditar en saldo en custodia
     INSERT INTO public.custody_transactions (
       profile_id,
       type,
@@ -790,6 +888,7 @@ BEGIN
       now()
     );
 
+    -- Notificar al inversor
     INSERT INTO public.notifications (
       user_id,
       title,
@@ -807,6 +906,26 @@ BEGIN
     );
   END LOOP;
 
+  -- Notificación para la PyME (prestataria) confirmando el pago de la cuota
+  IF v_borrower_id IS NOT NULL THEN
+    INSERT INTO public.notifications (
+      user_id,
+      title,
+      message,
+      type,
+      action_url,
+      created_at
+    ) VALUES (
+      v_borrower_id,
+      'Pago procesado con éxito',
+      'Se procesó correctamente el pago de la cuota #' || v_installment.installment_number || ' por $' || to_char(v_total_paid_installment, 'FM999,999,990.00') || '.',
+      'success',
+      '/dashboard/pyme',
+      now()
+    );
+  END IF;
+
+  -- Verificar si todas las cuotas del crédito fueron pagadas
   SELECT NOT EXISTS (
     SELECT 1 FROM public.installments
     WHERE loan_id = v_installment.loan_id
@@ -818,6 +937,25 @@ BEGIN
       status = 'repaid',
       updated_at = now()
     WHERE id = v_installment.loan_id;
+
+    -- Notificación para la PyME por cancelación total del crédito
+    IF v_borrower_id IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id,
+        title,
+        message,
+        type,
+        action_url,
+        created_at
+      ) VALUES (
+        v_borrower_id,
+        '¡Préstamo cancelado en su totalidad!',
+        'Has completado el pago de todas las cuotas de tu financiamiento. ¡Felicitaciones por mantener un historial crediticio ejemplar!',
+        'success',
+        '/dashboard/pyme',
+        now()
+      );
+    END IF;
   END IF;
 
   RETURN jsonb_build_object(
@@ -997,4 +1135,19 @@ BEGIN
     is_verified = true,
     kyc_status = 'approved';
 
+END $$;
+
+-- 8. Publicación Realtime para notificaciones en vivo
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
 END $$;
