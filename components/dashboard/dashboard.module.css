@@ -1078,3 +1078,43 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Payment Schedule Filter */
+.scheduleHeaderWithFilter {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.scheduleFilterContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scheduleFilterLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.scheduleFilterSelect {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scheduleFilterSelect:focus {
+  border-color: #00d4b2;
+  box-shadow: 0 0 0 2px rgba(0, 212, 178, 0.2);
+}

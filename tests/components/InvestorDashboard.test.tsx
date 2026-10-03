@@ -579,6 +579,93 @@ describe('InvestorDashboard Component (Task 13)', () => {
         expect(screen.queryByTestId('promissory-note-modal')).not.toBeInTheDocument();
       });
     });
+
+    it('displays borrower company name instead of loan ID in active investments table', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={mockInvestments}
+          initialLoans={mockLoans}
+          initialCreditProfiles={mockCreditProfiles}
+          initialInstallments={mockInstallments}
+          initialBorrowerNames={{
+            'sme-1': 'Fábrica Textil Quilmes S.A.',
+            'sme-2': 'TecnoAlimentos Norte SRL',
+          }}
+        />
+      );
+
+      // In Destino/oportunidad, check company names
+      const borrower1 = screen.getByTestId('investment-borrower-inv-1');
+      expect(borrower1).toHaveTextContent('Fábrica Textil Quilmes S.A.');
+      expect(borrower1).not.toHaveTextContent('ID: loan-1');
+
+      const borrower2 = screen.getByTestId('investment-borrower-inv-2');
+      expect(borrower2).toHaveTextContent('TecnoAlimentos Norte SRL');
+      expect(borrower2).not.toHaveTextContent('ID: loan-2');
+    });
+
+    it('allows filtering payment schedule by company and shows all installments when "all" is selected', () => {
+      const installmentsWithMultipleCompanies: Installment[] = [
+        ...mockInstallments.slice(0, 2),
+        {
+          id: 'inst-loan2-1',
+          loan_id: 'loan-2',
+          installment_number: 1,
+          due_date: '2026-10-20',
+          principal_amount: 1_250_000,
+          interest_borrower: 150_000,
+          interest_investors: 140_000,
+          interest_lencord: 10_000,
+          uva_value_applied: 1200,
+          status: 'pending',
+          paid_at: null,
+        },
+      ];
+
+      render(
+        <InvestorDashboard
+          initialInvestments={mockInvestments}
+          initialLoans={mockLoans}
+          initialCreditProfiles={mockCreditProfiles}
+          initialInstallments={installmentsWithMultipleCompanies}
+          initialBorrowerNames={{
+            'sme-1': 'Fábrica Textil Quilmes S.A.',
+            'sme-2': 'TecnoAlimentos Norte SRL',
+          }}
+        />
+      );
+
+      const filterSelect = screen.getByTestId('schedule-company-filter');
+      expect(filterSelect).toBeInTheDocument();
+
+      // Initially all 3 installments are shown
+      expect(screen.getByTestId('installment-row-inst-1')).toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-2')).toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-loan2-1')).toBeInTheDocument();
+
+      // Check that company column displays the borrower name
+      expect(screen.getByTestId('installment-borrower-inst-1')).toHaveTextContent('Fábrica Textil Quilmes S.A.');
+      expect(screen.getByTestId('installment-borrower-inst-2')).toHaveTextContent('Fábrica Textil Quilmes S.A.');
+      expect(screen.getByTestId('installment-borrower-inst-loan2-1')).toHaveTextContent('TecnoAlimentos Norte SRL');
+
+      // Filter by 'sme-1'
+      fireEvent.change(filterSelect, { target: { value: 'sme-1' } });
+      expect(screen.getByTestId('installment-row-inst-1')).toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-2')).toBeInTheDocument();
+      expect(screen.queryByTestId('installment-row-inst-loan2-1')).not.toBeInTheDocument();
+
+      // Filter by 'sme-2'
+      fireEvent.change(filterSelect, { target: { value: 'sme-2' } });
+      expect(screen.queryByTestId('installment-row-inst-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('installment-row-inst-2')).not.toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-loan2-1')).toBeInTheDocument();
+
+      // Reset filter to 'all'
+      fireEvent.change(filterSelect, { target: { value: 'all' } });
+      expect(screen.getByTestId('installment-row-inst-1')).toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-2')).toBeInTheDocument();
+      expect(screen.getByTestId('installment-row-inst-loan2-1')).toBeInTheDocument();
+    });
   });
 });
 

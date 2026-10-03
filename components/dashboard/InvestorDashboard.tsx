@@ -27,6 +27,7 @@ export interface InvestorDashboardProps {
   initialLoans?: Loan[];
   initialInstallments?: Installment[];
   initialCreditProfiles?: Record<string, SmeCreditProfile>;
+  initialBorrowerNames?: Record<string, string>;
   initialTaxId?: string | null;
   className?: string;
 }
@@ -43,6 +44,7 @@ interface EnrichedInstallment {
   loan: Loan | null;
   investorSharePrincipal: number;
   investorShareInterest: number;
+  borrowerName?: string;
 }
 
 export function InvestorDashboard({
@@ -55,6 +57,7 @@ export function InvestorDashboard({
   initialLoans,
   initialInstallments,
   initialCreditProfiles,
+  initialBorrowerNames,
   initialTaxId,
   className = '',
 }: InvestorDashboardProps) {
@@ -107,6 +110,16 @@ export function InvestorDashboard({
     initialCreditProfiles ?? {}
   );
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
+  const [borrowerNamesMap, setBorrowerNamesMap] = useState<Record<string, string>>(() => {
+    const initialMap: Record<string, string> = { ...(initialBorrowerNames ?? {}) };
+    defaultMockStateStore.profiles.forEach((p) => {
+      if (p.id && (p.legal_name || (p as any).pyme_company_name)) {
+        initialMap[p.id] = (p as any).pyme_company_name || p.legal_name;
+      }
+    });
+    return initialMap;
+  });
+  const [scheduleCompanyFilter, setScheduleCompanyFilter] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(!initialInvestments);
 
   // Dual-role PyME activation state
@@ -193,63 +206,70 @@ export function InvestorDashboard({
       }
 
       // 2. Try Supabase client for authenticated session user and profile
-      try {
-        const client = createSupabaseBrowserClient();
-        const { data: authData } = await client.auth.getUser();
-        if (authData?.user && isMounted) {
-          const u = authData.user;
-          const authName =
-            u.user_metadata?.investor_legal_name ||
-            u.user_metadata?.investor_name ||
-            u.user_metadata?.legal_name ||
-            u.user_metadata?.name ||
-            u.user_metadata?.full_name;
-          if (!legalName && authName) setInvestorName(authName);
-          if (!userEmail && u.email) setInvestorEmail(u.email);
+      const isRealSupabase =
+        typeof process !== 'undefined' &&
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
-          const userRoles = Array.isArray(u.user_metadata?.roles)
-            ? u.user_metadata.roles
-            : [u.user_metadata?.role].filter(Boolean);
-          if (
-            userRoles.includes('borrower') ||
-            userRoles.includes('sme') ||
-            u.user_metadata?.role === 'borrower'
-          ) {
-            setHasBorrowerRole(true);
+      if (isRealSupabase) {
+        try {
+          const client = createSupabaseBrowserClient();
+          const { data: authData } = await client.auth.getUser();
+          if (authData?.user && isMounted) {
+            const u = authData.user;
+            const authName =
+              u.user_metadata?.investor_legal_name ||
+              u.user_metadata?.investor_name ||
+              u.user_metadata?.legal_name ||
+              u.user_metadata?.name ||
+              u.user_metadata?.full_name;
+            if (!legalName && authName) setInvestorName(authName);
+            if (!userEmail && u.email) setInvestorEmail(u.email);
+
+            const userRoles = Array.isArray(u.user_metadata?.roles)
+              ? u.user_metadata.roles
+              : [u.user_metadata?.role].filter(Boolean);
+            if (
+              userRoles.includes('borrower') ||
+              userRoles.includes('sme') ||
+              u.user_metadata?.role === 'borrower'
+            ) {
+              setHasBorrowerRole(true);
+            }
           }
+
+          const { data: profile } = await client
+            .from('profiles')
+            .select('id, role, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
+            .eq('id', currentInvestorId)
+            .maybeSingle();
+
+          if (profile && isMounted) {
+            if (!legalName) {
+              const profileInvName = (profile as any).investor_legal_name || profile.legal_name;
+              if (profileInvName) setInvestorName(profileInvName);
+            }
+            if (!userEmail && profile.email) setInvestorEmail(profile.email);
+            if (!cbuCvu && profile.bank_cbu_cvu) setInvestorCbu(profile.bank_cbu_cvu);
+            if (
+              custodyBalanceProp === undefined &&
+              profile.custody_balance !== undefined &&
+              profile.custody_balance !== null
+            ) {
+              setCustodyBalanceState(profile.custody_balance);
+            }
+            if (initialTaxId === undefined) {
+              setTaxId(profile.tax_id || null);
+            }
+            if (profile.role === 'borrower') {
+              setHasBorrowerRole(true);
+            }
+          } else if (!mockProfile && isMounted && initialTaxId === undefined) {
+            setTaxId(null);
+          }
+        } catch {
+          // Fallback already handled
         }
-
-        const { data: profile } = await client
-          .from('profiles')
-          .select('id, role, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
-          .eq('id', currentInvestorId)
-          .maybeSingle();
-
-        if (profile && isMounted) {
-          if (!legalName) {
-            const profileInvName = (profile as any).investor_legal_name || profile.legal_name;
-            if (profileInvName) setInvestorName(profileInvName);
-          }
-          if (!userEmail && profile.email) setInvestorEmail(profile.email);
-          if (!cbuCvu && profile.bank_cbu_cvu) setInvestorCbu(profile.bank_cbu_cvu);
-          if (
-            custodyBalanceProp === undefined &&
-            profile.custody_balance !== undefined &&
-            profile.custody_balance !== null
-          ) {
-            setCustodyBalanceState(profile.custody_balance);
-          }
-          if (initialTaxId === undefined) {
-            setTaxId(profile.tax_id || null);
-          }
-          if (profile.role === 'borrower') {
-            setHasBorrowerRole(true);
-          }
-        } else if (!mockProfile && isMounted && initialTaxId === undefined) {
-          setTaxId(null);
-        }
-      } catch {
-        // Fallback already handled
       }
     }
 
@@ -525,6 +545,7 @@ export function InvestorDashboard({
       }
       if (initialCreditProfiles) setCreditProfilesMap(initialCreditProfiles);
       if (initialInstallments) setInstallments(initialInstallments);
+      if (initialBorrowerNames) setBorrowerNamesMap((prev) => ({ ...prev, ...initialBorrowerNames }));
       setLoading(false);
       return;
     }
@@ -588,6 +609,41 @@ export function InvestorDashboard({
           })
         );
 
+        const newBorrowerNames: Record<string, string> = {};
+        const missingBorrowerIds: string[] = [];
+        uniqueBorrowerIds.forEach((borrowerId) => {
+          const mockB = defaultMockStateStore.profiles.find((p) => p.id === borrowerId);
+          if (mockB) {
+            newBorrowerNames[borrowerId] = (mockB as any).pyme_company_name || mockB.legal_name;
+          } else {
+            missingBorrowerIds.push(borrowerId);
+          }
+        });
+
+        const isRealSupabase =
+          typeof process !== 'undefined' &&
+          process.env.NEXT_PUBLIC_SUPABASE_URL &&
+          !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+        if (missingBorrowerIds.length > 0 && isRealSupabase) {
+          try {
+            const client = createSupabaseBrowserClient();
+            const { data: borrowerProfiles } = await client
+              .from('profiles')
+              .select('id, legal_name')
+              .in('id', missingBorrowerIds);
+            if (borrowerProfiles) {
+              borrowerProfiles.forEach((bp: any) => {
+                if (bp.id && bp.legal_name) {
+                  newBorrowerNames[bp.id] = bp.legal_name;
+                }
+              });
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         // 4. Fetch installments for all associated loans
         const allInstallmentsLists = await Promise.all(
           uniqueLoanIds.map(async (loanId) => {
@@ -624,6 +680,7 @@ export function InvestorDashboard({
           setInvestments(invs);
           setLoansMap(newLoansMap);
           setCreditProfilesMap(newCreditProfiles);
+          setBorrowerNamesMap((prev) => ({ ...prev, ...newBorrowerNames }));
           setInstallments(combinedInstallments);
           setCustodyTransactions(txs);
           setLoading(false);
@@ -654,13 +711,21 @@ export function InvestorDashboard({
       if (loan && loan.borrower_id && creditProfilesMap[loan.borrower_id]) {
         riskTier = creditProfilesMap[loan.borrower_id].risk_tier;
       }
+      const borrowerName =
+        (loan as any)?.borrower_name ||
+        (loan as any)?.company_name ||
+        (loan?.borrower_id && borrowerNamesMap[loan.borrower_id]) ||
+        (loan?.borrower_id && defaultMockStateStore.profiles.find((p) => p.id === loan.borrower_id)?.legal_name) ||
+        'Empresa PyME';
+
       return {
         investment: inv,
         loan,
         riskTier,
+        borrowerName,
       };
     });
-  }, [activeInvestments, loansMap, creditProfilesMap]);
+  }, [activeInvestments, loansMap, creditProfilesMap, borrowerNamesMap]);
 
   // Summary Metrics calculations
   const totalCapitalInvertido = useMemo(() => {
@@ -706,7 +771,7 @@ export function InvestorDashboard({
   const enrichedInstallments: EnrichedInstallment[] = useMemo(() => {
     const list: EnrichedInstallment[] = [];
 
-    enrichedInvestments.forEach(({ investment, loan }) => {
+    enrichedInvestments.forEach(({ investment, loan, borrowerName }) => {
       if (!loan) return;
       const loanInstallments = installments.filter((inst) => inst.loan_id === loan.id);
       const totalFunded = loan.amount_funded > 0 ? loan.amount_funded : loan.amount_requested;
@@ -718,6 +783,7 @@ export function InvestorDashboard({
           loan,
           investorSharePrincipal: inst.principal_amount * share,
           investorShareInterest: inst.interest_investors * share,
+          borrowerName,
         });
       });
     });
@@ -725,6 +791,25 @@ export function InvestorDashboard({
     // Sort by due date ascending
     return list.sort((a, b) => new Date(a.installment.due_date).getTime() - new Date(b.installment.due_date).getTime());
   }, [enrichedInvestments, installments]);
+
+  // Available companies for payment schedule filter
+  const availableBorrowersForFilter = useMemo(() => {
+    const map = new Map<string, string>();
+    enrichedInvestments.forEach(({ loan, borrowerName }) => {
+      if (loan?.borrower_id) {
+        map.set(loan.borrower_id, borrowerName || 'Empresa PyME');
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [enrichedInvestments]);
+
+  // Filtered installments according to scheduleCompanyFilter
+  const filteredInstallments = useMemo(() => {
+    if (scheduleCompanyFilter === 'all') {
+      return enrichedInstallments;
+    }
+    return enrichedInstallments.filter((item) => item.loan?.borrower_id === scheduleCompanyFilter);
+  }, [enrichedInstallments, scheduleCompanyFilter]);
 
   const effectiveCustodyBalance = useMemo(() => {
     if (custodyBalanceProp !== undefined) return custodyBalanceProp;
@@ -977,7 +1062,7 @@ export function InvestorDashboard({
                   </tr>
                 </thead>
                 <tbody>
-                  {enrichedInvestments.map(({ investment, loan, riskTier }) => {
+                  {enrichedInvestments.map(({ investment, loan, riskTier, borrowerName }) => {
                     const categoryLabel = loan
                       ? LOAN_CATEGORY_LABELS[loan.category] ?? loan.category
                       : 'Préstamo PyME';
@@ -992,7 +1077,12 @@ export function InvestorDashboard({
                       <tr key={investment.id} data-testid={`investment-row-${investment.id}`}>
                         <td>
                           <div className={styles.primaryText}>{categoryLabel}</div>
-                          <div className={styles.monoText}>ID: {investment.loan_id}</div>
+                          <div
+                            className={styles.secondaryText}
+                            data-testid={`investment-borrower-${investment.id}`}
+                          >
+                            {borrowerName}
+                          </div>
                         </td>
                         <td>
                           <div className={styles.primaryText}>{formatCurrency(investment.amount)}</div>
@@ -1044,25 +1134,53 @@ export function InvestorDashboard({
 
           {/* Payment Schedule Calendar/Table */}
           <section className={styles.section} aria-labelledby="payment-schedule-title">
-            <div className={styles.sectionHeader}>
-              <h2 id="payment-schedule-title" className={styles.sectionTitle}>
-                Cronograma de pagos
-              </h2>
-              <p className={styles.sectionDescription}>
-                Calendario de cuotas mensuales de amortización e interés a percibir en tu cuenta.
-              </p>
+            <div className={styles.scheduleHeaderWithFilter}>
+              <div className={styles.sectionHeader} style={{ marginBottom: 0 }}>
+                <h2 id="payment-schedule-title" className={styles.sectionTitle}>
+                  Cronograma de pagos
+                </h2>
+                <p className={styles.sectionDescription}>
+                  Calendario de cuotas mensuales de amortización e interés a percibir en tu cuenta.
+                </p>
+              </div>
+
+              {availableBorrowersForFilter.length > 0 && (
+                <div className={styles.scheduleFilterContainer}>
+                  <label htmlFor="schedule-company-filter" className={styles.scheduleFilterLabel}>
+                    Filtrar por empresa:
+                  </label>
+                  <select
+                    id="schedule-company-filter"
+                    value={scheduleCompanyFilter}
+                    onChange={(e) => setScheduleCompanyFilter(e.target.value)}
+                    className={styles.scheduleFilterSelect}
+                    data-testid="schedule-company-filter"
+                    aria-label="Filtrar cronograma de pagos por empresa"
+                  >
+                    <option value="all">Todas las empresas</option>
+                    {availableBorrowersForFilter.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className={styles.tableCard}>
-              {enrichedInstallments.length === 0 ? (
+              {filteredInstallments.length === 0 ? (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }} data-testid="no-installments-msg">
-                  No hay cuotas programadas para las inversiones seleccionadas aún.
+                  {enrichedInstallments.length === 0
+                    ? 'No hay cuotas programadas para las inversiones seleccionadas aún.'
+                    : 'No hay cuotas programadas para la empresa seleccionada.'}
                 </div>
               ) : (
                 <table className={styles.table} data-testid="payment-schedule-table">
                   <thead>
                     <tr>
                       <th scope="col">Vencimiento</th>
+                      <th scope="col">Empresa</th>
                       <th scope="col">Cuota</th>
                       <th scope="col">Capital</th>
                       <th scope="col">Interés estimado</th>
@@ -1071,8 +1189,8 @@ export function InvestorDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {enrichedInstallments.map(
-                      ({ installment, investorSharePrincipal, investorShareInterest }) => {
+                    {filteredInstallments.map(
+                      ({ installment, investorSharePrincipal, investorShareInterest, borrowerName }) => {
                         const totalCuota = investorSharePrincipal + investorShareInterest;
                         const statusClass =
                           installment.status === 'paid'
@@ -1085,6 +1203,11 @@ export function InvestorDashboard({
                           <tr key={installment.id} data-testid={`installment-row-${installment.id}`}>
                             <td>
                               <div className={styles.primaryText}>{installment.due_date}</div>
+                            </td>
+                            <td>
+                              <div className={styles.primaryText} data-testid={`installment-borrower-${installment.id}`}>
+                                {borrowerName}
+                              </div>
                             </td>
                             <td>Cuota #{installment.installment_number}</td>
                             <td>{formatCurrency(investorSharePrincipal)}</td>

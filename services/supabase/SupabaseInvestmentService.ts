@@ -377,6 +377,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
               investor_id: targetInvestorId,
               amount: input.amount,
               status: 'committed',
+              external_payment_id: null,
               created_at: new Date().toISOString(),
             };
 
