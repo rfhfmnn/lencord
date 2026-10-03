@@ -57,12 +57,12 @@
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  width: 360px;
-  max-width: 90vw;
+  width: 440px;
+  max-width: min(440px, calc(100vw - 2rem));
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
   z-index: 50;
   overflow: hidden;
   animation: fadeIn 0.15s ease-out;
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem 1.125rem;
   border-bottom: 1px solid #f1f5f9;
   background-color: #f8fafc;
 }
@@ -116,16 +116,34 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 360px;
+  max-height: min(480px, 70vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .item {
-  padding: 0.875rem 1rem;
+  padding: 0.875rem 1.125rem;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.5rem;
   transition: background-color 0.15s ease;
 }
 
@@ -143,29 +161,37 @@
 
 .itemHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .itemTitle {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #0a2540;
   margin: 0;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .itemTime {
   font-size: 0.6875rem;
   color: #94a3b8;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .itemMessage {
-  font-size: 0.8125rem;
+  font-size: 0.84375rem;
   color: #475569;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.55;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  display: block;
 }
 
 .itemFooter {
@@ -216,13 +242,13 @@
   right: 1.5rem;
   z-index: 9999;
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
   border-left: 4px solid #1e40af;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  padding: 1rem;
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 1rem 1.125rem;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -259,25 +285,32 @@
   background-color: #eff6ff;
   color: #1e40af;
   flex-shrink: 0;
+  margin-top: 0.125rem;
 }
 
 .toastBody {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.375rem;
 }
 
 .toastTitle {
   font-size: 0.875rem;
   font-weight: 700;
   color: #0f172a;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .toastMessage {
-  font-size: 0.8125rem;
+  font-size: 0.84375rem;
   color: #475569;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.55;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .toastCloseBtn {
