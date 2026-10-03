@@ -1151,3 +1151,42 @@ BEGIN
 EXCEPTION
   WHEN OTHERS THEN NULL;
 END $$;
+
+-- 9. Trigger automático al aprobar préstamo (status -> 'funding')
+CREATE OR REPLACE FUNCTION public.handle_loan_approval_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'funding' AND (OLD.status IS DISTINCT FROM 'funding') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.notifications
+      WHERE user_id = NEW.borrower_id
+        AND title = 'Préstamo aprobado'
+        AND created_at >= (now() - interval '5 minutes')
+    ) THEN
+      INSERT INTO public.notifications (
+        user_id,
+        title,
+        message,
+        type,
+        action_url,
+        created_at
+      ) VALUES (
+        NEW.borrower_id,
+        'Préstamo aprobado',
+        'Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace.',
+        'success',
+        '/dashboard/pyme',
+        now()
+      );
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_notify_loan_approval ON public.loans;
+CREATE TRIGGER trg_notify_loan_approval
+  AFTER UPDATE OF status ON public.loans
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_loan_approval_notification();
+

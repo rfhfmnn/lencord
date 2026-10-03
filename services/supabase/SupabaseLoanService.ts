@@ -278,6 +278,45 @@ export class SupabaseLoanService implements LoanServiceInterface {
         })
         .eq('profile_id', updatedLoan.borrower_id);
 
+      // In-app notification for borrower
+      try {
+        await client.from('notifications').insert({
+          user_id: updatedLoan.borrower_id,
+          title: 'Préstamo aprobado',
+          message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace.',
+          type: 'success',
+          read: false,
+          action_url: '/dashboard/pyme',
+        });
+      } catch (notifErr) {
+        console.warn('[SupabaseLoanService] Error inserting approval notification:', notifErr);
+      }
+
+      // Email notification for borrower
+      if (this.emailService) {
+        try {
+          const { data: borrowerProfile } = await client
+            .from('profiles')
+            .select('legal_name, email')
+            .eq('id', updatedLoan.borrower_id)
+            .maybeSingle();
+
+          if (borrowerProfile?.email) {
+            await this.emailService.sendCreditApprovalEmail({
+              to: borrowerProfile.email,
+              recipientName: borrowerProfile.legal_name || 'Solicitante PyME',
+              loanId: updatedLoan.id,
+              amount: updatedLoan.amount_requested,
+              riskTier: input.risk_tier,
+              investorRate: input.investor_rate,
+              fundingDeadline: input.funding_deadline,
+            });
+          }
+        } catch (emailErr) {
+          console.warn('[SupabaseLoanService] Error sending approval email:', emailErr);
+        }
+      }
+
       return updatedLoan;
     } catch (err) {
       throw mapSupabaseError(err, `Error al aprobar y publicar el préstamo ${input.loan_id}`);
