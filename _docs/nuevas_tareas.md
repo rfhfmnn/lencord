@@ -4,7 +4,7 @@ Este documento especifica el nuevo paquete de tareas priorizadas a partir del fe
 
 ---
 
-## [Tarea 1: Notificaciones automáticas bidireccionales (In-App y Email) entre PyME e Inversores](https://github.com/rfhfmnn/lencord/issues/79)
+## [Tarea 1: Notificaciones automáticas bidireccionales (In-App y Email) entre PyME e Inversores](https://github.com/rfhfmnn/lencord/issues/82)
 
 **Labels:** `notifications`, `email`, `backend`, `ux`
 
@@ -40,7 +40,7 @@ Implementar un sistema de notificaciones automáticas y reactivas tanto en la pl
 
 ---
 
-## [Tarea 2: Visualización de Pagaré para Inversores y Anexo de Acreedores con Privacidad](https://github.com/rfhfmnn/lencord/issues/80)
+## [Tarea 2: Visualización de Pagaré para Inversores y Anexo de Acreedores con Privacidad](https://github.com/rfhfmnn/lencord/issues/83)
 
 **Labels:** `legal`, `investor-dashboard`, `security`, `privacy`
 
@@ -73,7 +73,7 @@ Permitir a los inversores consultar y descargar el pagaré digital firmado direc
 
 ---
 
-## [Tarea 3: Formato monetario con decimales fijos en Saldo en Custodia y Operaciones de Fondos](https://github.com/rfhfmnn/lencord/issues/81)
+## [Tarea 3: Formato monetario con decimales fijos en Saldo en Custodia y Operaciones de Fondos](https://github.com/rfhfmnn/lencord/issues/84)
 
 **Labels:** `ui/ux`, `frontend`, `financial-accuracy`
 
@@ -102,7 +102,7 @@ Estandarizar la visualización de todos los saldos en custodia, movimientos cont
 
 ---
 
-## [Tarea 4: Separación de Nombre/Apellido del Representante y Persistencia de Teléfono en Mesa de Crédito](https://github.com/rfhfmnn/lencord/issues/82)
+## [Tarea 4: Separación de Nombre/Apellido del Representante y Persistencia de Teléfono en Mesa de Crédito](https://github.com/rfhfmnn/lencord/issues/85)
 
 **Labels:** `auth`, `forms`, `admin-console`, `bugfix`, `data-integrity`
 
