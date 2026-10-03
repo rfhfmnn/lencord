@@ -10,6 +10,11 @@ import type {
   CreditRejectionEmailParams,
   InvestmentConfirmationEmailParams,
   InstallmentReminderEmailParams,
+  NewInvestmentReceivedEmailParams,
+  LoanFundingCompletedBorrowerEmailParams,
+  LoanFundingCompletedInvestorEmailParams,
+  PromissoryNoteSignedInvestorEmailParams,
+  InstallmentPayoutCreditedEmailParams,
 } from './types';
 
 interface BaseTemplateOptions {
@@ -415,6 +420,249 @@ export function renderInstallmentReminderTemplate(params: InstallmentReminderEma
   });
 
   const text = `Estimado/a ${params.recipientName},\n\nTu cuota N° ${params.installmentNumber} del préstamo ${params.loanId} por ${formattedAmount} vence el ${params.dueDate}.\n\nPuedes consultar el cronograma en https://lencord.com.ar/dashboard/pyme`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// 7. New Investment Received Notice (PyME) - Event 1
+// ---------------------------------------------------------------------------
+export function renderNewInvestmentReceivedTemplate(params: NewInvestmentReceivedEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const formattedTicket = formatCurrency(params.amount);
+  const formattedTotalFunded = formatCurrency(params.amountFunded);
+  const formattedRequested = formatCurrency(params.amountRequested);
+  const subject = `Nuevo aporte de inversión recibido en tu solicitud (${params.loanId})`;
+  const previewText = `Se ha registrado una inversión por ${formattedTicket} (${params.percentage.toFixed(1)}% financiado).`;
+
+  const contentHtml = `
+    <p>Hola <strong>${params.recipientName}</strong>,</p>
+    <p>¡Buenas noticias! Se ha registrado un nuevo aporte de capital por parte de un inversor en tu subasta de financiamiento.</p>
+    <div style="background-color: #f0fdf4; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #bbf7d0;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
+        <tr>
+          <td style="color: #166534; width: 45%;">Préstamo / Solicitud:</td>
+          <td style="font-weight: 700; color: #0f172a;">${params.loanId}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Monto del aporte:</td>
+          <td style="font-weight: 700; color: #059669;">${formattedTicket}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Total acumulado fondeado:</td>
+          <td style="font-weight: 700; color: #0f172a;">${formattedTotalFunded} de ${formattedRequested}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Progreso de la subasta:</td>
+          <td style="font-weight: 700; color: #059669;">${params.percentage.toFixed(1)}% financiado</td>
+        </tr>
+      </table>
+    </div>
+    <p>Puedes seguir el avance de tu fondeo en tiempo real e interactuar con tu solicitud desde el panel PyME.</p>
+  `;
+
+  const html = renderLencordBaseTemplate({
+    title: 'Nuevo Aporte de Inversión',
+    previewText,
+    contentHtml,
+    actionText: 'Ver avance en mi panel',
+    actionUrl: 'https://lencord.com.ar/dashboard/pyme',
+  });
+
+  const text = `Hola ${params.recipientName},\n\nSe ha registrado un nuevo aporte de inversión por ${formattedTicket} en tu solicitud ${params.loanId}.\nProgreso acumulado: ${params.percentage.toFixed(1)}% (${formattedTotalFunded} de ${formattedRequested}).\n\nSeguí el avance en vivo en: https://lencord.com.ar/dashboard/pyme`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// 8. Loan Funding Completed Notice (PyME) - Event 2
+// ---------------------------------------------------------------------------
+export function renderLoanFundingCompletedBorrowerTemplate(params: LoanFundingCompletedBorrowerEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const formattedAmount = formatCurrency(params.amount);
+  const subject = `¡Subasta 100% financiada! Pagaré listo para tu firma digital (${params.loanId})`;
+  const previewText = `¡Felicitaciones! Tu solicitud por ${formattedAmount} alcanzó el 100%. Firmá el pagaré digital para la liberación de los fondos.`;
+
+  const contentHtml = `
+    <p>¡Felicitaciones <strong>${params.recipientName}</strong>!</p>
+    <p>Tu solicitud de financiamiento <strong>${params.loanId}</strong> ha alcanzado el <strong>100% de fondeo</strong> gracias al respaldo de los inversores de la comunidad.</p>
+    <div style="background-color: #f0fdf4; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #bbf7d0;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
+        <tr>
+          <td style="color: #166534; width: 45%;">Monto total financiado:</td>
+          <td style="font-weight: 700; color: #059669;">${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Próximo paso requerido:</td>
+          <td style="font-weight: 700; color: #0f172a;">Firma electrónica de pagaré digital</td>
+        </tr>
+      </table>
+    </div>
+    <p>Para transferir y desembolsar los fondos inmediatamente a tu CBU bancario registrado, ingresá a tu panel PyME y validá la firma digital del pagaré.</p>
+  `;
+
+  const html = renderLencordBaseTemplate({
+    title: '¡Subasta 100% Financiada!',
+    previewText,
+    contentHtml,
+    actionText: 'Firmar pagaré digital',
+    actionUrl: 'https://lencord.com.ar/dashboard/pyme',
+  });
+
+  const text = `¡Felicitaciones ${params.recipientName}!\n\nTu solicitud ${params.loanId} por ${formattedAmount} fue 100% financiada.\nPara recibir los fondos en tu CBU registrado, ingresá a firmar el pagaré digital: https://lencord.com.ar/dashboard/pyme`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// 9. Loan Funding Completed Notice (Investors) - Event 2
+// ---------------------------------------------------------------------------
+export function renderLoanFundingCompletedInvestorTemplate(params: LoanFundingCompletedInvestorEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const formattedTicket = formatCurrency(params.amountInvested);
+  const subject = `Subasta finalizada con éxito (${params.loanId})`;
+  const previewText = `La subasta de ${params.borrowerName} alcanzó el 100% de su objetivo. Tu inversión por ${formattedTicket} quedó perfeccionada.`;
+
+  const contentHtml = `
+    <p>Hola <strong>${params.recipientName}</strong>,</p>
+    <p>Te informamos que la subasta de financiamiento para la empresa <strong>${params.borrowerName}</strong> (Préstamo <strong>${params.loanId}</strong>) ha finalizado exitosamente al alcanzar el 100% del capital solicitado.</p>
+    <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #e2e8f0;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
+        <tr>
+          <td style="color: #64748b; width: 45%;">Empresa prestataria:</td>
+          <td style="font-weight: 600; color: #0f172a;">${params.borrowerName}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b;">Tu participación comprometida:</td>
+          <td style="font-weight: 700; color: #059669;">${formattedTicket}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b;">Estado actual:</td>
+          <td style="font-weight: 600; color: #0f172a;">En proceso de suscripción de pagaré y desembolso</td>
+        </tr>
+      </table>
+    </div>
+    <p>Te notificaremos en cuanto la PyME firme el pagaré digital y comience a devengarse el plan de amortización mensual.</p>
+  `;
+
+  const html = renderLencordBaseTemplate({
+    title: 'Subasta Finalizada con Éxito',
+    previewText,
+    contentHtml,
+    actionText: 'Ver mi portafolio',
+    actionUrl: 'https://lencord.com.ar/dashboard/inversor',
+  });
+
+  const text = `Hola ${params.recipientName},\n\nLa subasta de ${params.borrowerName} (${params.loanId}) completó el 100% de financiamiento.\nTu participación de ${formattedTicket} quedó asignada. Podés hacer seguimiento en: https://lencord.com.ar/dashboard/inversor`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// 10. Promissory Note Signed & Loan Activated Notice (Investors) - Event 3
+// ---------------------------------------------------------------------------
+export function renderPromissoryNoteSignedInvestorTemplate(params: PromissoryNoteSignedInvestorEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const formattedTicket = formatCurrency(params.amountInvested);
+  const subject = `Pagaré firmado y crédito activado (${params.loanId})`;
+  const previewText = `La PyME ${params.borrowerName} firmó el pagaré digital. Tu inversión de ${formattedTicket} ya comenzó a devengar rendimientos.`;
+
+  const contentHtml = `
+    <p>Hola <strong>${params.recipientName}</strong>,</p>
+    <p>Te confirmamos que la empresa <strong>${params.borrowerName}</strong> ha suscripto electrónicamente el pagaré digital y mutuo para el préstamo <strong>${params.loanId}</strong>.</p>
+    <div style="background-color: #f0fdf4; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #bbf7d0;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
+        <tr>
+          <td style="color: #166534; width: 45%;">Empresa prestataria:</td>
+          <td style="font-weight: 600; color: #0f172a;">${params.borrowerName}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Tu ticket invertido:</td>
+          <td style="font-weight: 700; color: #059669;">${formattedTicket}</td>
+        </tr>
+        <tr>
+          <td style="color: #166534;">Estado del préstamo:</td>
+          <td style="font-weight: 700; color: #059669;">Activo / Fondos Desembolsados</td>
+        </tr>
+      </table>
+    </div>
+    <p>Los fondos han sido transferidos a la cuenta de la PyME y el cronograma de cobro mensual ya está activo. Ya puedes consultar el pagaré firmado con su Anexo de Acreedores desde tu panel de inversor.</p>
+  `;
+
+  const html = renderLencordBaseTemplate({
+    title: 'Pagaré Firmado y Préstamo Activo',
+    previewText,
+    contentHtml,
+    actionText: 'Consultar pagaré firmado',
+    actionUrl: 'https://lencord.com.ar/dashboard/inversor',
+  });
+
+  const text = `Hola ${params.recipientName},\n\nLa PyME ${params.borrowerName} firmó el pagaré digital para el préstamo ${params.loanId}.\nTu inversión de ${formattedTicket} comenzó a devengar intereses.\nPodés ver la copia del pagaré firmado en tu panel: https://lencord.com.ar/dashboard/inversor`;
+
+  return { subject, html, text };
+}
+
+// ---------------------------------------------------------------------------
+// 11. Installment Payout Credited Notice (Investors) - Event 4
+// ---------------------------------------------------------------------------
+export function renderInstallmentPayoutCreditedTemplate(params: InstallmentPayoutCreditedEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const formattedTotal = formatCurrency(params.totalShare);
+  const formattedPrincipal = formatCurrency(params.principalShare);
+  const formattedInterest = formatCurrency(params.interestShare);
+  const subject = `Acreditación de cuota #${params.installmentNumber} recibida (${params.loanId})`;
+  const previewText = `Se acreditó ${formattedTotal} en tu saldo en custodia por la cuota #${params.installmentNumber}.`;
+
+  const contentHtml = `
+    <p>Hola <strong>${params.recipientName}</strong>,</p>
+    <p>Te confirmamos que se ha acreditado en tu saldo en custodia el cobro correspondiente a la <strong>cuota #${params.installmentNumber}</strong> del préstamo <strong>${params.loanId}</strong>.</p>
+    <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #e2e8f0;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
+        <tr>
+          <td style="color: #64748b; width: 45%;">Cuota cobrada:</td>
+          <td style="font-weight: 700; color: #0f172a;">Cuota #${params.installmentNumber}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b;">Amortización de capital:</td>
+          <td style="font-weight: 600; color: #0f172a;">${formattedPrincipal}</td>
+        </tr>
+        <tr>
+          <td style="color: #64748b;">Interés compensatorio:</td>
+          <td style="font-weight: 600; color: #059669;">+ ${formattedInterest}</td>
+        </tr>
+        <tr style="border-top: 1px solid #cbd5e1;">
+          <td style="color: #0f172a; font-weight: 700; padding-top: 8px;">Total neto acreditado:</td>
+          <td style="font-weight: 800; color: #059669; font-size: 16px; padding-top: 8px;">${formattedTotal}</td>
+        </tr>
+      </table>
+    </div>
+    <p>Los fondos ya se encuentran disponibles en tu saldo en custodia para reinvertir en nuevas subastas o retirar a tu cuenta bancaria (CBU/CVU).</p>
+  `;
+
+  const html = renderLencordBaseTemplate({
+    title: 'Cobro de Cuota Acreditado',
+    previewText,
+    contentHtml,
+    actionText: 'Ver saldo y movimientos',
+    actionUrl: 'https://lencord.com.ar/dashboard/inversor',
+  });
+
+  const text = `Hola ${params.recipientName},\n\nSe acreditó ${formattedTotal} en tu saldo en custodia por la cuota #${params.installmentNumber} del préstamo ${params.loanId}.\nDesglose: Capital ${formattedPrincipal}, Interés ${formattedInterest}.\n\nRevisá tus movimientos en: https://lencord.com.ar/dashboard/inversor`;
 
   return { subject, html, text };
 }

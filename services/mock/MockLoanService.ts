@@ -13,6 +13,7 @@ import type {
   PaymentGatewayInterface,
   SubmitLoanInput,
 } from '@/types';
+import type { MultiChannelNotificationServiceInterface } from '../notifications/channels';
 import { defaultMockPaymentGateway } from './MockPaymentGateway';
 import { defaultMockStateStore, MockStateStore } from './mockState';
 
@@ -20,15 +21,18 @@ export class MockLoanService implements LoanServiceInterface {
   private store: MockStateStore;
   private paymentGateway?: PaymentGatewayInterface;
   private emailService?: EmailServiceInterface;
+  private multiChannelNotifications?: MultiChannelNotificationServiceInterface;
 
   constructor(
     store: MockStateStore = defaultMockStateStore,
     paymentGateway: PaymentGatewayInterface = defaultMockPaymentGateway,
-    emailService?: EmailServiceInterface
+    emailService?: EmailServiceInterface,
+    multiChannelNotifications?: MultiChannelNotificationServiceInterface
   ) {
     this.store = store;
     this.paymentGateway = paymentGateway;
     this.emailService = emailService;
+    this.multiChannelNotifications = multiChannelNotifications;
   }
 
   public async getLoanById(id: string): Promise<Loan | null> {
@@ -429,6 +433,31 @@ export class MockLoanService implements LoanServiceInterface {
       }
     }
 
+    // Event 3: Pagaré firmado y crédito activado (Notifica a los inversores participantes con in-app + email)
+    if (this.multiChannelNotifications?.notifyPromissoryNoteSignedAndActivated) {
+      const allLoanInvestments = this.store.investments.filter((inv) => inv.loan_id === loan.id);
+      const uniqueInvestorIds = Array.from(new Set(allLoanInvestments.map((inv) => inv.investor_id)));
+      const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id) || {
+        id: loan.borrower_id,
+        legal_name: 'la PyME',
+      };
+      const participatingInvestors = uniqueInvestorIds.map((id) => {
+        const p = this.store.profiles.find((pr) => pr.id === id) || {
+          id,
+          legal_name: 'Inversor Registrado',
+          email: `${id}@lencord.com.ar`,
+        };
+        const invRecord = this.store.investments.find((inv) => inv.loan_id === loan.id && inv.investor_id === id);
+        return { profile: p, amount: invRecord?.amount ?? 0 };
+      });
+
+      await this.multiChannelNotifications.notifyPromissoryNoteSignedAndActivated({
+        loan,
+        borrower,
+        investors: participatingInvestors,
+      });
+    }
+
     return JSON.parse(JSON.stringify(loan));
   }
 
@@ -519,16 +548,38 @@ export class MockLoanService implements LoanServiceInterface {
       const borrower = targetLoan ? this.store.profiles.find((p) => p.id === targetLoan.borrower_id) : null;
       const borrowerName = (borrower as any)?.pyme_company_name || borrower?.legal_name || 'la PyME';
 
-      this.store.notifications.unshift({
-        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        user_id: inv.investor_id,
-        title: 'Cobro acreditado - Cuota',
-        message: `Cobro acreditado: Recibiste $${totalShare.toLocaleString('es-AR')} de la cuota ${installment.installment_number} de ${borrowerName}.`,
-        type: 'success',
-        read: false,
-        action_url: '/dashboard/inversor',
-        created_at: new Date().toISOString(),
-      });
+      // Event 4: Notify beneficiary investor of credited payout
+      if (this.multiChannelNotifications?.notifyInstallmentPayoutCredited && targetLoan) {
+        const invProfile = this.store.profiles.find((p) => p.id === inv.investor_id) || {
+          id: inv.investor_id,
+          legal_name: 'Inversor Registrado',
+          email: `${inv.investor_id}@lencord.com.ar`,
+        };
+        await this.multiChannelNotifications.notifyInstallmentPayoutCredited({
+          loan: targetLoan,
+          installment,
+          borrower: borrower || { id: targetLoan.borrower_id, legal_name: borrowerName },
+          payouts: [
+            {
+              investor: invProfile,
+              principalShare,
+              interestShare,
+              totalShare,
+            },
+          ],
+        });
+      } else {
+        this.store.notifications.unshift({
+          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          user_id: inv.investor_id,
+          title: 'Acreditación de cuota recibida',
+          message: `Se acreditó $${totalShare.toLocaleString('es-AR')} en tu saldo en custodia por la cuota #${installment.installment_number} de ${borrowerName}.`,
+          type: 'success',
+          read: false,
+          action_url: '/dashboard/inversor',
+          created_at: new Date().toISOString(),
+        });
+      }
     }
 
     const allRepaid = !this.store.installments.some(

@@ -211,7 +211,7 @@ describe('Data Architecture: Ledger, Installment Payouts, Audit & Atomic RPCs (I
       expect(txs[0].type).toBe('installment_payout');
 
       // Check notification sent to investors
-      const notifs = store.notifications.filter((n) => n.title.includes('Cuota'));
+      const notifs = store.notifications.filter((n) => n.title.toLowerCase().includes('cuota'));
       expect(notifs.length).toBe(2);
     });
 

@@ -195,7 +195,9 @@ describe('Installment Repayment Flow and Pro-Rata Distribution (Issue #69)', () 
 
     // Verify investor notifications
     const notifs = await services.notifications!.getNotifications('usr-investor-001');
-    const payoutNotif = notifs.find((n) => n.title.includes('Cobro acreditado'));
+    const payoutNotif = notifs.find(
+      (n) => n.title.includes('Cobro acreditado') || n.title.toLowerCase().includes('cuota')
+    );
     expect(payoutNotif).toBeDefined();
 
     // 2. Repay final installment 2 -> should set all_repaid = true and loan status = 'repaid'

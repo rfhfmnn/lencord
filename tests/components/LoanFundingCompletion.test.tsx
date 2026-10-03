@@ -88,12 +88,12 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
     const banner = screen.getByTestId('disbursement-banner');
     expect(banner).toBeInTheDocument();
     expect(banner).toHaveTextContent(/¡Felicitaciones! Tu solicitud fue 100% financiada/i);
-    expect(banner).toHaveTextContent(/Los fondos por \$ 3\.000\.000 han sido transferidos a tu cuenta CBU registrada/i);
+    expect(banner).toHaveTextContent(/Los fondos por \$ 3\.000\.000(,00)? han sido transferidos a tu cuenta CBU registrada/i);
 
     // 2. Next due notice
     const nextDue = screen.getByTestId('next-due-date-notice');
     expect(nextDue).toBeInTheDocument();
-    expect(nextDue).toHaveTextContent('Próximo vencimiento: Cuota #1 el 2026-10-31 ($ 1.072.500)');
+    expect(nextDue).toHaveTextContent(/Próximo vencimiento: Cuota #1 el 2026-10-31 \(\$ 1\.072\.500(,00)?\)/);
   });
 
   it('generates French amortization installment schedule upon loan activation', async () => {

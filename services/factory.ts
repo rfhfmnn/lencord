@@ -55,12 +55,22 @@ export function createMockServices(options?: MockServiceOptions): Services {
   const store = options?.store ?? defaultMockStateStore;
   const paymentGateway = options?.paymentGateway ?? defaultMockPaymentGateway;
   const emailService = options?.email ?? defaultMockEmailService;
+  const notificationsService = new MockNotificationService(store);
   const multiChannelNotifications =
     options?.multiChannelNotifications ??
-    new MultiChannelNotificationService(defaultMockChannelAdapter);
+    new MultiChannelNotificationService(
+      defaultMockChannelAdapter,
+      notificationsService,
+      emailService
+    );
 
   return {
-    loans: new MockLoanService(store, paymentGateway, emailService),
+    loans: new MockLoanService(
+      store,
+      paymentGateway,
+      emailService,
+      multiChannelNotifications
+    ),
     investments: new MockInvestmentService(
       store,
       paymentGateway,
@@ -70,7 +80,7 @@ export function createMockServices(options?: MockServiceOptions): Services {
     creditScoring: new MockCreditScoringService(store),
     legal: new MockLegalService(store),
     payments: paymentGateway,
-    notifications: new MockNotificationService(store),
+    notifications: notificationsService,
     email: emailService,
     multiChannelNotifications,
   };

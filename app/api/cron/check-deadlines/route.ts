@@ -149,6 +149,29 @@ async function handleCheckDeadlines(req: NextRequest) {
             ? (defaultMockStateStore.profiles || []).find((p) => p.id === loan.borrower_id)
             : undefined;
           if (borrower) {
+            // Event 5: In-app and email reminder for PyME borrower 3 days before due date (Issue #82)
+            const alreadySent = (defaultMockStateStore.notifications || []).some(
+              (n) =>
+                n.user_id === borrower.id &&
+                n.title === 'Próximo vencimiento de cuota' &&
+                n.message.includes(`cuota #${inst.installment_number}`)
+            );
+            if (!alreadySent && services.multiChannelNotifications?.notifyUpcomingInstallmentReminder && loan) {
+              try {
+                await services.multiChannelNotifications.notifyUpcomingInstallmentReminder({
+                  loan,
+                  installment: inst,
+                  borrower,
+                  daysRemaining: diffDays,
+                });
+              } catch (reminderErr) {
+                console.warn(
+                  '[Cron:check-deadlines] Failed to dispatch upcoming installment in-app/email reminder:',
+                  reminderErr
+                );
+              }
+            }
+
             try {
               await services.multiChannelNotifications.sendUrgentPaymentReminderAlert(
                 {

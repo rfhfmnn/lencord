@@ -83,7 +83,7 @@ describe('Legal Pages, Terms and Risk Consent (Issue #72)', () => {
       expect(
         screen.getByRole('heading', { name: /^políticas de privacidad y advertencia de riesgos$/i, level: 1 })
       ).toBeInTheDocument();
-      expect(screen.getByText('Protección de Datos y Riesgos')).toBeInTheDocument();
+      expect(screen.getByText(/Protección de datos y riesgos/i)).toBeInTheDocument();
     });
 
     it('displays highlighted credit risk warning banner without state/SEDESA guarantee', () => {
@@ -153,8 +153,11 @@ describe('Legal Pages, Terms and Risk Consent (Issue #72)', () => {
       fireEvent.change(screen.getByLabelText(/CUIT de la empresa/i), {
         target: { value: '30-50001091-2' },
       });
-      fireEvent.change(screen.getByLabelText(/Nombre y apellido del apoderado/i), {
-        target: { value: 'Roberto Carlos' },
+      fireEvent.change(screen.getByLabelText(/Nombre del representante/i), {
+        target: { value: 'Roberto' },
+      });
+      fireEvent.change(screen.getByLabelText(/Apellido del representante/i), {
+        target: { value: 'Carlos' },
       });
       fireEvent.change(screen.getByLabelText(/Correo electrónico corporativo/i), {
         target: { value: 'roberto@metalurgica.com.ar' },

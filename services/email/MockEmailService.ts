@@ -12,6 +12,11 @@ import type {
   CreditApprovalEmailParams,
   CreditRejectionEmailParams,
   RegistrationEmailParams,
+  NewInvestmentReceivedEmailParams,
+  LoanFundingCompletedBorrowerEmailParams,
+  LoanFundingCompletedInvestorEmailParams,
+  PromissoryNoteSignedInvestorEmailParams,
+  InstallmentPayoutCreditedEmailParams,
   SendEmailOptions,
   SendEmailResult,
 } from './types';
@@ -22,6 +27,11 @@ import {
   renderInvestmentConfirmationTemplate,
   renderLoanSubmissionTemplate,
   renderRegistrationTemplate,
+  renderNewInvestmentReceivedTemplate,
+  renderLoanFundingCompletedBorrowerTemplate,
+  renderLoanFundingCompletedInvestorTemplate,
+  renderPromissoryNoteSignedInvestorTemplate,
+  renderInstallmentPayoutCreditedTemplate,
 } from './templates';
 
 export interface SentEmailRecord extends SendEmailOptions {
@@ -165,6 +175,66 @@ export class MockEmailService implements EmailServiceInterface {
     params: InstallmentReminderEmailParams
   ): Promise<SendEmailResult> {
     const { subject, html, text } = renderInstallmentReminderTemplate(params);
+    return this.send({
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  public async sendNewInvestmentReceivedEmail(
+    params: NewInvestmentReceivedEmailParams
+  ): Promise<SendEmailResult> {
+    const { subject, html, text } = renderNewInvestmentReceivedTemplate(params);
+    return this.send({
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  public async sendLoanFundingCompletedBorrowerEmail(
+    params: LoanFundingCompletedBorrowerEmailParams
+  ): Promise<SendEmailResult> {
+    const { subject, html, text } = renderLoanFundingCompletedBorrowerTemplate(params);
+    return this.send({
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  public async sendLoanFundingCompletedInvestorEmail(
+    params: LoanFundingCompletedInvestorEmailParams
+  ): Promise<SendEmailResult> {
+    const { subject, html, text } = renderLoanFundingCompletedInvestorTemplate(params);
+    return this.send({
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  public async sendPromissoryNoteSignedInvestorEmail(
+    params: PromissoryNoteSignedInvestorEmailParams
+  ): Promise<SendEmailResult> {
+    const { subject, html, text } = renderPromissoryNoteSignedInvestorTemplate(params);
+    return this.send({
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  public async sendInstallmentPayoutCreditedEmail(
+    params: InstallmentPayoutCreditedEmailParams
+  ): Promise<SendEmailResult> {
+    const { subject, html, text } = renderInstallmentPayoutCreditedTemplate(params);
     return this.send({
       to: params.to,
       subject,

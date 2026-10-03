@@ -372,6 +372,49 @@ export interface InstallmentReminderEmailParams {
   dueDate: string;
 }
 
+export interface NewInvestmentReceivedEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  amount: number;
+  amountFunded: number;
+  amountRequested: number;
+  percentage: number;
+}
+
+export interface LoanFundingCompletedBorrowerEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  amount: number;
+}
+
+export interface LoanFundingCompletedInvestorEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  borrowerName: string;
+  amountInvested: number;
+}
+
+export interface PromissoryNoteSignedInvestorEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  borrowerName: string;
+  amountInvested: number;
+}
+
+export interface InstallmentPayoutCreditedEmailParams {
+  to: string;
+  recipientName: string;
+  loanId: string;
+  installmentNumber: number;
+  principalShare: number;
+  interestShare: number;
+  totalShare: number;
+}
+
 export interface EmailServiceInterface {
   send(options: SendEmailOptions): Promise<SendEmailResult>;
   sendRegistrationEmail(params: RegistrationEmailParams): Promise<SendEmailResult>;
@@ -380,5 +423,10 @@ export interface EmailServiceInterface {
   sendCreditRejectionEmail(params: CreditRejectionEmailParams): Promise<SendEmailResult>;
   sendInvestmentConfirmationEmail(params: InvestmentConfirmationEmailParams): Promise<SendEmailResult>;
   sendInstallmentReminderEmail(params: InstallmentReminderEmailParams): Promise<SendEmailResult>;
+  sendNewInvestmentReceivedEmail?(params: NewInvestmentReceivedEmailParams): Promise<SendEmailResult>;
+  sendLoanFundingCompletedBorrowerEmail?(params: LoanFundingCompletedBorrowerEmailParams): Promise<SendEmailResult>;
+  sendLoanFundingCompletedInvestorEmail?(params: LoanFundingCompletedInvestorEmailParams): Promise<SendEmailResult>;
+  sendPromissoryNoteSignedInvestorEmail?(params: PromissoryNoteSignedInvestorEmailParams): Promise<SendEmailResult>;
+  sendInstallmentPayoutCreditedEmail?(params: InstallmentPayoutCreditedEmailParams): Promise<SendEmailResult>;
 }
 

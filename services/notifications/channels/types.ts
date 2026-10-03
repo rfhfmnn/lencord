@@ -4,7 +4,7 @@
  * Conforms to Issue #50 and _docs/next_tasks.md Task 27.
  */
 
-import type { NotificationPreferences, Profile } from '@/types';
+import type { Installment, Investment, Loan, NotificationPreferences, Profile } from '@/types';
 
 export type ChannelType = 'sms' | 'whatsapp';
 
@@ -66,6 +66,44 @@ export interface UrgentPaymentReminderAlertParams {
   dueDate: string;
   daysRemaining?: number;
   channel?: ChannelType;
+}
+
+export interface NotifyNewInvestmentParams {
+  loan: Loan;
+  investment: Investment;
+  borrower: Partial<Profile>;
+  investor?: Partial<Profile>;
+}
+
+export interface NotifyLoanFundingCompletedParams {
+  loan: Loan;
+  borrower: Partial<Profile>;
+  investors: Array<{ profile: Partial<Profile>; amount?: number }>;
+}
+
+export interface NotifyPromissoryNoteSignedParams {
+  loan: Loan;
+  borrower: Partial<Profile>;
+  investors: Array<{ profile: Partial<Profile>; amount?: number }>;
+}
+
+export interface NotifyInstallmentPayoutParams {
+  loan: Loan;
+  installment: Installment;
+  borrower: Partial<Profile>;
+  payouts: Array<{
+    investor: Partial<Profile>;
+    principalShare: number;
+    interestShare: number;
+    totalShare: number;
+  }>;
+}
+
+export interface NotifyUpcomingInstallmentReminderParams {
+  loan: Loan;
+  installment: Installment;
+  borrower: Partial<Profile>;
+  daysRemaining?: number;
 }
 
 export interface DeliveryStatusWebhookPayload {
@@ -156,4 +194,11 @@ export interface MultiChannelNotificationServiceInterface {
     userId: string,
     preferences: Partial<NotificationPreferences>
   ): Promise<NotificationPreferences>;
+
+  // Lifecycle Bidirectional Notification Events (Issue #82)
+  notifyNewInvestmentReceived?(params: NotifyNewInvestmentParams): Promise<void>;
+  notifyLoanFundingCompleted?(params: NotifyLoanFundingCompletedParams): Promise<void>;
+  notifyPromissoryNoteSignedAndActivated?(params: NotifyPromissoryNoteSignedParams): Promise<void>;
+  notifyInstallmentPayoutCredited?(params: NotifyInstallmentPayoutParams): Promise<void>;
+  notifyUpcomingInstallmentReminder?(params: NotifyUpcomingInstallmentReminderParams): Promise<void>;
 }

@@ -145,41 +145,6 @@ export class MockInvestmentService implements InvestmentServiceInterface {
           });
         }
       }
-
-      // 2. Resolve borrower info for notifications
-      const borrowerProfile = this.store.profiles.find((p) => p.id === loan.borrower_id);
-      const borrowerName = (borrowerProfile as any)?.pyme_company_name || borrowerProfile?.legal_name || 'la PyME';
-      const borrowerCbu = borrowerProfile?.bank_cbu_cvu || '0000003100010000000001';
-      const cbuLast4 = borrowerCbu.slice(-4);
-
-      // 3. Emit celebration notification to borrower
-      this.store.notifications.unshift({
-        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        user_id: loan.borrower_id,
-        title: '¡Subasta financiada al 100%!',
-        message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Los fondos por $${loan.amount_requested.toLocaleString('es-AR')} han sido transferidos a tu cuenta CBU registrada (terminada en ${cbuLast4}).`,
-        type: 'success',
-        read: false,
-        action_url: '/dashboard/pyme',
-        created_at: new Date().toISOString(),
-      });
-
-      // 4. Emit notification to all participating investors
-      const allLoanInvestments = this.store.investments.filter((inv) => inv.loan_id === loan.id);
-      const uniqueInvestorIds = Array.from(new Set([...allLoanInvestments.map((inv) => inv.investor_id), input.investor_id]));
-
-      for (const invId of uniqueInvestorIds) {
-        this.store.notifications.unshift({
-          id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          user_id: invId,
-          title: 'Subasta completada',
-          message: `La subasta de ${borrowerName} se completó exitosamente. Tu inversión ya está activa y devengando rendimientos.`,
-          type: 'success',
-          read: false,
-          action_url: '/dashboard/inversor',
-          created_at: new Date().toISOString(),
-        });
-      }
     }
 
     const investment: Investment = {
@@ -194,6 +159,43 @@ export class MockInvestmentService implements InvestmentServiceInterface {
     };
 
     this.store.investments.push(investment);
+
+    // Event 1: Notify PyME borrower of new investment contribution (in-app + email)
+    const borrowerProfile = this.store.profiles.find((p) => p.id === loan.borrower_id) || {
+      id: loan.borrower_id,
+      legal_name: 'la PyME',
+      email: 'pyme@lencord.com.ar',
+    };
+
+    if (this.multiChannelNotifications?.notifyNewInvestmentReceived) {
+      await this.multiChannelNotifications.notifyNewInvestmentReceived({
+        loan,
+        investment,
+        borrower: borrowerProfile,
+        investor,
+      });
+    }
+
+    // Event 2: When loan reaches 100%, notify PyME (sign promissory note) and all participating investors (in-app + email)
+    if (isFullyFunded && this.multiChannelNotifications?.notifyLoanFundingCompleted) {
+      const allLoanInvestments = this.store.investments.filter((inv) => inv.loan_id === loan.id);
+      const uniqueInvestorIds = Array.from(new Set([...allLoanInvestments.map((inv) => inv.investor_id), input.investor_id]));
+      const participatingInvestors = uniqueInvestorIds.map((id) => {
+        const p = this.store.profiles.find((pr) => pr.id === id) || {
+          id,
+          legal_name: 'Inversor Registrado',
+          email: `${id}@lencord.com.ar`,
+        };
+        const invRecord = this.store.investments.find((inv) => inv.loan_id === loan.id && inv.investor_id === id);
+        return { profile: p, amount: invRecord?.amount ?? input.amount };
+      });
+
+      await this.multiChannelNotifications.notifyLoanFundingCompleted({
+        loan,
+        borrower: borrowerProfile,
+        investors: participatingInvestors,
+      });
+    }
 
     // Emit in-app notification for investor
     this.store.notifications.unshift({
@@ -229,20 +231,8 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       }
     }
 
-    // If fully funded, emit notification for borrower
+    // Dispatch high-priority loan funding alert via WhatsApp / SMS if fully funded
     if (loan.status === 'funded') {
-      this.store.notifications.unshift({
-        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        user_id: loan.borrower_id,
-        title: 'Subasta completada al 100%',
-        message: '¡Tu proyecto alcanzó el fondeo total! Firma el Pagaré Digital para proceder con el desembolso.',
-        type: 'warning',
-        read: false,
-        action_url: '/dashboard/pyme',
-        created_at: new Date().toISOString(),
-      });
-
-      // Dispatch high-priority loan funding alert via WhatsApp / SMS
       if (this.multiChannelNotifications) {
         try {
           const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id);
