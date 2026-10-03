@@ -781,12 +781,24 @@ export function InvestorDashboard({
   const enrichedInstallments: EnrichedInstallment[] = useMemo(() => {
     const list: EnrichedInstallment[] = [];
 
-    enrichedInvestments.forEach(({ investment, loan, borrowerName }) => {
+    // Group active investments by loan to combine multiple investments in the same loan
+    const loanTotalInvestedMap = new Map<string, number>();
+    enrichedInvestments.forEach(({ investment, loan }) => {
       if (!loan) return;
-      const loanInstallments = installments.filter((inst) => inst.loan_id === loan.id);
-      const totalFunded = loan.amount_funded > 0 ? loan.amount_funded : loan.amount_requested;
-      const share = totalFunded > 0 ? investment.amount / totalFunded : 0;
+      const current = loanTotalInvestedMap.get(loan.id) ?? 0;
+      loanTotalInvestedMap.set(loan.id, current + (investment.amount || 0));
+    });
 
+    const seenLoans = new Set<string>();
+    enrichedInvestments.forEach(({ loan, borrowerName }) => {
+      if (!loan || seenLoans.has(loan.id)) return;
+      seenLoans.add(loan.id);
+
+      const totalInvestorAmount = loanTotalInvestedMap.get(loan.id) || 0;
+      const totalFunded = loan.amount_funded > 0 ? loan.amount_funded : loan.amount_requested;
+      const share = totalFunded > 0 ? totalInvestorAmount / totalFunded : 0;
+
+      const loanInstallments = installments.filter((inst) => inst.loan_id === loan.id);
       loanInstallments.forEach((inst) => {
         list.push({
           installment: inst,
@@ -1200,7 +1212,7 @@ export function InvestorDashboard({
                   </thead>
                   <tbody>
                     {filteredInstallments.map(
-                      ({ installment, investorSharePrincipal, investorShareInterest, borrowerName }) => {
+                      ({ installment, investorSharePrincipal, investorShareInterest, borrowerName }, idx) => {
                         const totalCuota = investorSharePrincipal + investorShareInterest;
                         const statusClass =
                           installment.status === 'paid'
@@ -1210,7 +1222,7 @@ export function InvestorDashboard({
                               : styles.statusPending;
 
                         return (
-                          <tr key={installment.id} data-testid={`installment-row-${installment.id}`}>
+                          <tr key={`${installment.id}-${idx}`} data-testid={`installment-row-${installment.id}`}>
                             <td>
                               <div className={styles.primaryText}>{installment.due_date}</div>
                             </td>
