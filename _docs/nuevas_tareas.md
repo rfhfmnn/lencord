@@ -12,6 +12,9 @@ Este documento especifica el nuevo paquete de tareas priorizadas a partir del fe
 Implementar un sistema de notificaciones automáticas y reactivas tanto en la plataforma (campana in-app respaldada en la tabla `notifications`) como por correo electrónico transaccional, informando a la PyME y a los inversores sobre cada hito crítico de su financiamiento: nueva inversión recibida, subasta completada al 100%, activación con pagaré firmado, cobro/liquidación de cuota mensual y alertas preventivas de vencimiento.
 
 ### Acceptance criteria
+- [x] **Evento 0 - Aprobación y Publicación de Préstamo por Administración (PyME):**
+  - Al aprobarse y publicarse una solicitud de financiamiento por el administrador (`approveAndPublishLoan` o transición a `status = 'funding'`), se inserta en `notifications` una fila con `user_id = loan.borrower_id`, `type = 'success'`, `title = 'Préstamo aprobado'`, `action_url = '/dashboard/pyme'` y el mensaje *"Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace."*.
+  - Se despacha el correo transaccional de aprobación crediticia (`sendCreditApprovalEmail`) con monto solicitado, tasa inversor, tasa PyME y fecha límite de fondeo.
 - [ ] **Evento 1 - Nueva Inversión en Subasta (PyME):**
   - Al confirmarse una inversión en un préstamo (`process_investment_checkout_rpc`), se inserta en `notifications` una fila con `user_id = loan.borrower_id`, `type = 'info'`, `title = 'Nuevo aporte de inversión recibido'`, `action_url = '/dashboard/pyme'` y un mensaje indicando el monto invertido formateado en pesos y el nuevo porcentaje acumulado de la subasta.
   - Se invoca el servicio de email para enviar un correo a la dirección del prestatario informando el aporte recibido y el enlace directo a su panel.
