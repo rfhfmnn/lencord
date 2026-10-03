@@ -363,6 +363,19 @@ describe('InvestorDashboard Component (Task 13)', () => {
       expect(screen.getByTestId('edit-dni-button')).toBeInTheDocument();
     });
 
+    it('does not display any DNI number and shows DNI pendiente when investor has no registered DNI', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId={null}
+        />
+      );
+
+      expect(screen.getByTestId('dni-badge')).toHaveTextContent('DNI pendiente');
+      expect(screen.queryByTestId('current-tax-id')).toBeNull();
+      expect(screen.getByTestId('input-dni')).toBeInTheDocument();
+    });
+
     it('renders "DNI pendiente" badge, validates format, and updates state upon saving (Issue #53)', async () => {
       render(
         <InvestorDashboard

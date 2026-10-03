@@ -46,7 +46,7 @@ interface EnrichedInstallment {
 }
 
 export function InvestorDashboard({
-  investorId = 'prof-inv-001',
+  investorId: investorIdProp,
   legalName,
   userEmail,
   cbuCvu,
@@ -66,7 +66,11 @@ export function InvestorDashboard({
     servicesFromContext = null;
   }
 
-  const [currentInvestorId, setCurrentInvestorId] = useState<string>(investorId);
+  // If investorId is not passed and initialInvestments is provided (unit test mode), use 'prof-inv-001'.
+  // Otherwise, default to empty string so authenticated users don't momentarily load mock profile data.
+  const [currentInvestorId, setCurrentInvestorId] = useState<string>(
+    investorIdProp || (initialInvestments ? 'prof-inv-001' : '')
+  );
   const [investorName, setInvestorName] = useState<string>(legalName ?? '');
   const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? '');
   const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? '');
@@ -115,54 +119,76 @@ export function InvestorDashboard({
   const [isActivatingPyme, setIsActivatingPyme] = useState<boolean>(false);
   const [pymeActivationSuccess, setPymeActivationSuccess] = useState<string | null>(null);
 
-
   // Sync if prop changes or detect authenticated user
   useEffect(() => {
+    let isMounted = true;
     async function resolveInvestorId() {
-      if (investorId && investorId !== 'prof-inv-001') {
-        setCurrentInvestorId(investorId);
+      if (investorIdProp && investorIdProp !== 'prof-inv-001') {
+        setCurrentInvestorId(investorIdProp);
         return;
       }
       try {
         const client = createSupabaseBrowserClient();
         const { data } = await client.auth.getUser();
-        if (data?.user?.id) {
+        if (data?.user?.id && isMounted) {
           setCurrentInvestorId(data.user.id);
-        } else if (investorId) {
-          setCurrentInvestorId(investorId);
+          return;
+        } else if (investorIdProp && isMounted) {
+          setCurrentInvestorId(investorIdProp);
+          return;
         }
       } catch {
-        if (investorId) setCurrentInvestorId(investorId);
+        if (investorIdProp && isMounted) {
+          setCurrentInvestorId(investorIdProp);
+          return;
+        }
+      }
+      // If no authenticated user and no prop passed, fallback to mock profile in mock/dev mode
+      if (isMounted) {
+        setCurrentInvestorId((prev) => prev || investorIdProp || 'prof-inv-001');
       }
     }
     resolveInvestorId();
-  }, [investorId]);
+    return () => {
+      isMounted = false;
+    };
+  }, [investorIdProp]);
+
+  // Reset taxId when currentInvestorId changes if not locked by initialTaxId prop
+  useEffect(() => {
+    if (initialTaxId === undefined) {
+      setTaxId(null);
+    }
+  }, [currentInvestorId, initialTaxId]);
 
   useEffect(() => {
     let isMounted = true;
     async function loadProfileData() {
+      if (!currentInvestorId) return;
+
       // 1. Check in mockStateStore first
       const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
       if (mockProfile) {
         if (!legalName) {
           const invName = (mockProfile as any).investor_legal_name || (mockProfile as any).investor_name || mockProfile.legal_name;
-          if (invName) setInvestorName(invName);
+          if (invName && isMounted) setInvestorName(invName);
         }
-        if (!userEmail && mockProfile.email) setInvestorEmail(mockProfile.email);
-        if (!cbuCvu && mockProfile.bank_cbu_cvu) setInvestorCbu(mockProfile.bank_cbu_cvu);
-        if ((mockProfile as any).bank_alias) setInvestorAlias((mockProfile as any).bank_alias);
+        if (!userEmail && mockProfile.email && isMounted) setInvestorEmail(mockProfile.email);
+        if (!cbuCvu && mockProfile.bank_cbu_cvu && isMounted) setInvestorCbu(mockProfile.bank_cbu_cvu);
+        if ((mockProfile as any).bank_alias && isMounted) setInvestorAlias((mockProfile as any).bank_alias);
         if (
           custodyBalanceProp === undefined &&
           mockProfile.custody_balance !== undefined &&
-          mockProfile.custody_balance !== null
+          mockProfile.custody_balance !== null &&
+          isMounted
         ) {
           setCustodyBalanceState(mockProfile.custody_balance);
         }
-        if (initialTaxId === undefined && mockProfile.tax_id) {
-          setTaxId(mockProfile.tax_id);
+        if (initialTaxId === undefined && isMounted) {
+          setTaxId(mockProfile.tax_id || null);
         }
         if (mockProfile.role === 'borrower' || (mockProfile as any).has_pyme_role) {
-          setHasBorrowerRole(true);
+          if (isMounted) setHasBorrowerRole(true);
         }
       }
 
@@ -213,12 +239,14 @@ export function InvestorDashboard({
           ) {
             setCustodyBalanceState(profile.custody_balance);
           }
-          if (initialTaxId === undefined && profile.tax_id) {
-            setTaxId(profile.tax_id);
+          if (initialTaxId === undefined) {
+            setTaxId(profile.tax_id || null);
           }
           if (profile.role === 'borrower') {
             setHasBorrowerRole(true);
           }
+        } else if (!mockProfile && isMounted && initialTaxId === undefined) {
+          setTaxId(null);
         }
       } catch {
         // Fallback already handled
@@ -504,6 +532,9 @@ export function InvestorDashboard({
     let isMounted = true;
 
     async function loadInvestorData() {
+      if (!currentInvestorId) {
+        return;
+      }
       try {
         setLoading(true);
         const resolvedServices =
