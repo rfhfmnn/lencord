@@ -45,7 +45,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     expect(screen.getByTestId('role-tab-sme')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByLabelText(/Razón social de la empresa/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/CUIT de la empresa/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Nombre y apellido del apoderado/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nombre del representante/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Apellido del representante/i)).toBeInTheDocument();
     expect(screen.getByTestId('submit-register-btn')).toHaveTextContent('Registrar mi empresa');
 
     // Toggle to Inversor
@@ -75,7 +76,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
 
     expect(await screen.findByText(/La razón social o nombre de la empresa es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/El CUIT es obligatorio/i)).toBeInTheDocument();
-    expect(screen.getByText(/El nombre del apoderado o representante es obligatorio/i)).toBeInTheDocument();
+    expect(screen.getByText(/El nombre del representante es obligatorio/i)).toBeInTheDocument();
+    expect(screen.getByText(/El apellido del representante es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/El correo electrónico es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/La contraseña es obligatoria/i)).toBeInTheDocument();
     expect(mockSignUp).not.toHaveBeenCalled();
@@ -94,8 +96,11 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     fireEvent.change(screen.getByLabelText(/Razón social de la empresa/i), {
       target: { value: 'Industrias Andinas S.A.' },
     });
-    fireEvent.change(screen.getByLabelText(/Nombre y apellido del apoderado/i), {
-      target: { value: 'Carlos Mendoza' },
+    fireEvent.change(screen.getByLabelText(/Nombre del representante/i), {
+      target: { value: 'Carlos' },
+    });
+    fireEvent.change(screen.getByLabelText(/Apellido del representante/i), {
+      target: { value: 'Mendoza' },
     });
     fireEvent.change(screen.getByLabelText(/Correo electrónico corporativo/i), {
       target: { value: 'carlos@andinas.com.ar' },
@@ -186,8 +191,11 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     fireEvent.change(screen.getByLabelText(/CUIT de la empresa/i), {
       target: { value: '30-50001091-2' },
     });
-    fireEvent.change(screen.getByLabelText(/Nombre y apellido del apoderado/i), {
-      target: { value: 'Mariana López' },
+    fireEvent.change(screen.getByLabelText(/Nombre del representante/i), {
+      target: { value: 'Mariana' },
+    });
+    fireEvent.change(screen.getByLabelText(/Apellido del representante/i), {
+      target: { value: 'López' },
     });
     fireEvent.change(screen.getByLabelText(/Correo electrónico corporativo/i), {
       target: { value: 'contacto@techpyme.com.ar' },
@@ -208,6 +216,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
             legal_name: 'Tech PyME S.A.S.',
             tax_id: '30500010912',
             representative_name: 'Mariana López',
+            first_name: 'Mariana',
+            last_name: 'López',
           },
         },
       });
@@ -222,7 +232,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
           tax_id: '30500010912',
           legal_name: 'Tech PyME S.A.S.',
           email: 'contacto@techpyme.com.ar',
-          first_name: 'Mariana López',
+          first_name: 'Mariana',
+          last_name: 'López',
         })
       );
     });
@@ -277,6 +288,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
             legal_name: 'Gonzalo Fernández',
             tax_id: '35987654',
             representative_name: '',
+            first_name: 'Gonzalo',
+            last_name: 'Fernández',
           },
         },
       });

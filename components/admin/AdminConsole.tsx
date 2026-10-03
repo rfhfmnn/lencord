@@ -762,8 +762,17 @@ export function AdminConsole({
                   </div>
 
                   <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Representante Legal / Titular</span>
+                    <span className={styles.infoValue} data-testid="detail-representative">
+                      {selectedProfile?.first_name || selectedProfile?.last_name
+                        ? `${selectedProfile.first_name || ''} ${selectedProfile.last_name || ''}`.trim()
+                        : 'No registrado'}
+                    </span>
+                  </div>
+
+                  <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Teléfono de Contacto</span>
-                    <span className={styles.infoValue}>{selectedProfile?.phone || 'No registrado'}</span>
+                    <span className={styles.infoValue} data-testid="detail-phone">{selectedProfile?.phone || 'No registrado'}</span>
                   </div>
 
                   <div className={styles.infoItem}>

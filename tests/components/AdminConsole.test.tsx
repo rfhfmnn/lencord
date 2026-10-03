@@ -14,6 +14,8 @@ describe('AdminConsole Component (Task 15)', () => {
       role: 'sme',
       tax_id: '30712345679',
       legal_name: 'Metalúrgica Quilmes S.R.L.',
+      first_name: 'Esteban',
+      last_name: 'Quito',
       phone: '+54 11 4253-8899',
       kyc_status: 'approved',
       bank_cbu_cvu: '0720123488000012345678',
@@ -123,6 +125,8 @@ describe('AdminConsole Component (Task 15)', () => {
     // Company info
     expect(screen.getByTestId('detail-cuit')).toHaveTextContent('30712345679');
     expect(screen.getByTestId('detail-amount')).toHaveTextContent('$ 8.000.000');
+    expect(screen.getByTestId('detail-representative')).toHaveTextContent('Esteban Quito');
+    expect(screen.getByTestId('detail-phone')).toHaveTextContent('+54 11 4253-8899');
     expect(screen.getByTestId('detail-description')).toHaveTextContent('Financiamiento para Capital de trabajo');
 
     // Documents

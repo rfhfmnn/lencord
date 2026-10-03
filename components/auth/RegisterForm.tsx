@@ -37,7 +37,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   // PyME / Borrower Form State
   const [companyName, setCompanyName] = useState('');
   const [cuit, setCuit] = useState('');
-  const [representativeName, setRepresentativeName] = useState('');
+  const [repFirstName, setRepFirstName] = useState('');
+  const [repLastName, setRepLastName] = useState('');
 
   // Investor Form State
   const [fullName, setFullName] = useState('');
@@ -127,8 +128,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           'El CUIT ingresado no es válido según el algoritmo de verificación oficial (ARCA/AFIP).';
       }
 
-      if (!representativeName.trim()) {
-        newErrors.representativeName = 'El nombre del apoderado o representante es obligatorio.';
+      if (!repFirstName.trim()) {
+        newErrors.repFirstName = 'El nombre del representante es obligatorio.';
+      }
+      if (!repLastName.trim()) {
+        newErrors.repLastName = 'El apellido del representante es obligatorio.';
       }
     }
 
@@ -174,7 +178,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const profileRole = role === 'borrower' ? 'borrower' : 'investor';
       const cleanTaxId = role === 'borrower' ? (cleanCuit(cuit) || null) : (cleanCuit(taxId) || null);
       const legalName = role === 'borrower' ? companyName.trim() : fullName.trim();
-      const repName = role === 'borrower' ? representativeName.trim() : '';
+      const repFirstNameVal = role === 'borrower' ? repFirstName.trim() : '';
+      const repLastNameVal = role === 'borrower' ? repLastName.trim() : '';
+      const repFullName = `${repFirstNameVal} ${repLastNameVal}`.trim();
 
       // 1. Supabase Auth Registration
       const { data, error: signUpError } = await client.auth.signUp({
@@ -185,7 +191,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             role: profileRole,
             legal_name: legalName,
             tax_id: cleanTaxId || null,
-            representative_name: repName,
+            representative_name: repFullName,
+            first_name: role === 'borrower' ? repFirstNameVal : fullName.trim().split(' ')[0] || '',
+            last_name: role === 'borrower' ? repLastNameVal : fullName.trim().split(' ').slice(1).join(' ') || '',
           },
         },
       });
@@ -215,8 +223,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             tax_id: cleanTaxId || null,
             legal_name: legalName,
             email: cleanEmail,
-            first_name: role === 'borrower' ? representativeName.trim() : fullName.trim().split(' ')[0] || '',
-            last_name: role === 'borrower' ? '' : fullName.trim().split(' ').slice(1).join(' ') || '',
+            first_name: role === 'borrower' ? repFirstNameVal : fullName.trim().split(' ')[0] || '',
+            last_name: role === 'borrower' ? repLastNameVal : fullName.trim().split(' ').slice(1).join(' ') || '',
             phone: '',
             bank_cbu_cvu: '0000000000000000000000',
             kyc_status: 'pending',
@@ -430,21 +438,44 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
               <div className={styles.formGroup}>
                 <Input
-                  label="Nombre y apellido del apoderado / representante"
-                  name="representativeName"
-                  value={representativeName}
+                  label="Nombre del representante"
+                  name="repFirstName"
+                  value={repFirstName}
                   onChange={(e) => {
-                    setRepresentativeName(e.target.value);
-                    if (errors.representativeName) {
+                    setRepFirstName(e.target.value);
+                    if (errors.repFirstName) {
                       setErrors((prev) => {
                         const next = { ...prev };
-                        delete next.representativeName;
+                        delete next.repFirstName;
                         return next;
                       });
                     }
                   }}
-                  placeholder="Ej: Laura Gómez"
-                  error={errors.representativeName}
+                  placeholder="Ej: Laura"
+                  error={errors.repFirstName}
+                  data-testid="input-rep-first-name"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <Input
+                  label="Apellido del representante"
+                  name="repLastName"
+                  value={repLastName}
+                  onChange={(e) => {
+                    setRepLastName(e.target.value);
+                    if (errors.repLastName) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.repLastName;
+                        return next;
+                      });
+                    }
+                  }}
+                  placeholder="Ej: Gómez"
+                  error={errors.repLastName}
+                  data-testid="input-rep-last-name"
                   required
                 />
               </div>

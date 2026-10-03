@@ -56,14 +56,15 @@ describe('StepProgress Component (Task 11)', () => {
 });
 
 describe('Step 1: Company and Representative Info (Task 11)', () => {
-  it('renders all Step 1 fields', () => {
+  it('renders all Step 1 fields including separate first and last name for representative', () => {
     render(<StepCompanyInfo onContinue={vi.fn()} />);
 
     expect(screen.getByTestId('input-legal-name')).toBeInTheDocument();
     expect(screen.getByTestId('input-tax-id')).toBeInTheDocument();
     expect(screen.getByTestId('select-company-type')).toBeInTheDocument();
     expect(screen.getByTestId('input-start-date')).toBeInTheDocument();
-    expect(screen.getByTestId('input-rep-name')).toBeInTheDocument();
+    expect(screen.getByTestId('input-rep-first-name')).toBeInTheDocument();
+    expect(screen.getByTestId('input-rep-last-name')).toBeInTheDocument();
     expect(screen.getByTestId('input-rep-dni')).toBeInTheDocument();
     expect(screen.getByTestId('input-rep-phone')).toBeInTheDocument();
   });
@@ -77,6 +78,8 @@ describe('Step 1: Company and Representative Info (Task 11)', () => {
 
     expect(screen.getByText('Ingresá la razón social o nombre de fantasía de la empresa.')).toBeInTheDocument();
     expect(screen.getByText('Ingresá el número de CUIT.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá el nombre del apoderado o titular.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá el apellido del apoderado o titular.')).toBeInTheDocument();
     expect(onContinueMock).not.toHaveBeenCalled();
 
     // Fill invalid CUIT
@@ -89,7 +92,7 @@ describe('Step 1: Company and Representative Info (Task 11)', () => {
     expect(onContinueMock).not.toHaveBeenCalled();
   });
 
-  it('calls onContinue with valid Step 1 data', () => {
+  it('calls onContinue with valid Step 1 data and separate first/last name', () => {
     const onContinueMock = vi.fn();
     render(<StepCompanyInfo onContinue={onContinueMock} />);
 
@@ -97,21 +100,26 @@ describe('Step 1: Company and Representative Info (Task 11)', () => {
     fireEvent.change(screen.getByTestId('input-tax-id'), { target: { value: '30-50001091-2' } });
     fireEvent.change(screen.getByTestId('select-company-type'), { target: { value: 'SA' } });
     fireEvent.change(screen.getByTestId('input-start-date'), { target: { value: '2020-05-15' } });
-    fireEvent.change(screen.getByTestId('input-rep-name'), { target: { value: 'Laura Benítez' } });
+    fireEvent.change(screen.getByTestId('input-rep-first-name'), { target: { value: 'Laura' } });
+    fireEvent.change(screen.getByTestId('input-rep-last-name'), { target: { value: 'Benítez' } });
     fireEvent.change(screen.getByTestId('input-rep-dni'), { target: { value: '34567890' } });
     fireEvent.change(screen.getByTestId('input-rep-phone'), { target: { value: '+54 11 4444-5555' } });
 
     fireEvent.click(screen.getByTestId('step1-continue-button'));
 
-    expect(onContinueMock).toHaveBeenCalledWith({
-      legal_name: 'Industrias Andinas S.A.',
-      tax_id: '30-50001091-2',
-      company_type: 'SA',
-      start_date: '2020-05-15',
-      rep_name: 'Laura Benítez',
-      rep_dni: '34567890',
-      rep_phone: '+54 11 4444-5555',
-    });
+    expect(onContinueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        legal_name: 'Industrias Andinas S.A.',
+        tax_id: '30-50001091-2',
+        company_type: 'SA',
+        start_date: '2020-05-15',
+        rep_first_name: 'Laura',
+        rep_last_name: 'Benítez',
+        rep_name: 'Laura Benítez',
+        rep_dni: '34567890',
+        rep_phone: '+54 11 4444-5555',
+      })
+    );
   });
 });
 
@@ -231,6 +239,12 @@ describe('Step 2: Project Conditions and Description (Task 11)', () => {
 });
 
 describe('LoanWizard Navigation and State Preservation (Task 11)', () => {
+  beforeEach(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.clear();
+    }
+  });
+
   it('navigates from Step 1 to Step 2, and preserves state when navigating back', () => {
     render(<LoanWizard />);
 
@@ -241,7 +255,8 @@ describe('LoanWizard Navigation and State Preservation (Task 11)', () => {
     fireEvent.change(screen.getByTestId('input-legal-name'), { target: { value: 'TecnoAgro S.R.L.' } });
     fireEvent.change(screen.getByTestId('input-tax-id'), { target: { value: '30-50001091-2' } });
     fireEvent.change(screen.getByTestId('input-start-date'), { target: { value: '2021-03-01' } });
-    fireEvent.change(screen.getByTestId('input-rep-name'), { target: { value: 'Federico Gómez' } });
+    fireEvent.change(screen.getByTestId('input-rep-first-name'), { target: { value: 'Federico' } });
+    fireEvent.change(screen.getByTestId('input-rep-last-name'), { target: { value: 'Gómez' } });
     fireEvent.change(screen.getByTestId('input-rep-dni'), { target: { value: '32111222' } });
     fireEvent.change(screen.getByTestId('input-rep-phone'), { target: { value: '+54 11 9999-8888' } });
 
@@ -264,11 +279,31 @@ describe('LoanWizard Navigation and State Preservation (Task 11)', () => {
     expect(screen.getByTestId('step-counter-badge')).toHaveTextContent('Paso 1 de 4');
     expect(screen.getByTestId('input-legal-name')).toHaveValue('TecnoAgro S.R.L.');
     expect(screen.getByTestId('input-tax-id')).toHaveValue('30-50001091-2');
-    expect(screen.getByTestId('input-rep-name')).toHaveValue('Federico Gómez');
+    expect(screen.getByTestId('input-rep-first-name')).toHaveValue('Federico');
+    expect(screen.getByTestId('input-rep-last-name')).toHaveValue('Gómez');
 
     // Return to Step 2
     fireEvent.click(screen.getByTestId('step1-continue-button'));
     expect(screen.getByTestId('step-counter-badge')).toHaveTextContent('Paso 2 de 4');
     expect(screen.getByTestId('textarea-description')).toHaveValue('Capital de trabajo para siembra 2026.');
+  });
+
+  it('prepopulates representative first name, last name, and phone from userProfile (Issue #85)', () => {
+    const mockProfile = {
+      id: 'borrower-profile-123',
+      legal_name: 'Pyme Pionera S.A.',
+      tax_id: '30500010912',
+      email: 'pionera@pyme.com',
+      first_name: 'Valeria',
+      last_name: 'Rossi',
+      phone: '+54 9 11 4455-6677',
+      isVerified: true,
+    };
+
+    render(<LoanWizard userProfile={mockProfile} />);
+
+    expect(screen.getByTestId('input-rep-first-name')).toHaveValue('Valeria');
+    expect(screen.getByTestId('input-rep-last-name')).toHaveValue('Rossi');
+    expect(screen.getByTestId('input-rep-phone')).toHaveValue('+54 9 11 4455-6677');
   });
 });

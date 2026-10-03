@@ -23,6 +23,9 @@ export interface BorrowerProfile {
   tax_id?: string;
   phone?: string;
   bank_cbu_cvu?: string;
+  first_name?: string;
+  last_name?: string;
+  representative_name?: string;
   isVerified?: boolean;
 }
 
@@ -71,11 +74,21 @@ export function LoanWizard({
   const [step1Data, setStep1Data] = useState<Partial<Step1FormData>>(() => {
     if (initialStep1Data) return initialStep1Data;
     if (userProfileProp) {
+      const fName =
+        userProfileProp.first_name ||
+        (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ')[0] : '');
+      const lName =
+        userProfileProp.last_name ||
+        (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ').slice(1).join(' ') : '');
+      const repName = userProfileProp.representative_name || `${fName} ${lName}`.trim();
       return {
         legal_name: userProfileProp.legal_name || '',
         tax_id: userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : '',
         email: userProfileProp.email || '',
         rep_phone: userProfileProp.phone || '',
+        rep_first_name: fName,
+        rep_last_name: lName,
+        rep_name: repName,
       };
     }
     return {};
@@ -147,12 +160,23 @@ export function LoanWizard({
       if (userProfileProp) {
         setBorrowerId(userProfileProp.id);
         setIsPrepopulated(userProfileProp.isVerified !== false);
+        const fName =
+          userProfileProp.first_name ||
+          (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ')[0] : '');
+        const lName =
+          userProfileProp.last_name ||
+          (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ').slice(1).join(' ') : '');
+        const repName = userProfileProp.representative_name || `${fName} ${lName}`.trim();
+
         setStep1Data((prev) => ({
           ...prev,
           legal_name: userProfileProp.legal_name || prev.legal_name || '',
           tax_id: userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : (prev.tax_id || ''),
           email: userProfileProp.email || prev.email || '',
           rep_phone: userProfileProp.phone || prev.rep_phone || '',
+          rep_first_name: fName || prev.rep_first_name || '',
+          rep_last_name: lName || prev.rep_last_name || '',
+          rep_name: repName || prev.rep_name || '',
         }));
         if (userProfileProp.bank_cbu_cvu) {
           setStep4Data((prev) => ({
@@ -210,11 +234,16 @@ export function LoanWizard({
           '';
         let phone = authUser.user_metadata?.phone || '';
         let cbu = authUser.user_metadata?.bank_cbu_cvu || '';
+        let firstName = authUser.user_metadata?.first_name || '';
+        let lastName = authUser.user_metadata?.last_name || '';
+        let repName = authUser.user_metadata?.representative_name || '';
+        if (!firstName && repName) firstName = repName.split(' ')[0] || '';
+        if (!lastName && repName) lastName = repName.split(' ').slice(1).join(' ') || '';
 
         try {
           const { data: profile } = await client
             .from('profiles')
-            .select('id, tax_id, legal_name, phone, bank_cbu_cvu, role')
+            .select('id, tax_id, legal_name, phone, bank_cbu_cvu, role, first_name, last_name')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -223,6 +252,8 @@ export function LoanWizard({
             if (profile.tax_id) taxId = profile.tax_id;
             if (profile.phone) phone = profile.phone;
             if (profile.bank_cbu_cvu) cbu = profile.bank_cbu_cvu;
+            if (profile.first_name) firstName = profile.first_name;
+            if (profile.last_name) lastName = profile.last_name;
           }
         } catch {
           // Keep metadata fallbacks
@@ -231,12 +262,16 @@ export function LoanWizard({
         if (isMounted) {
           const hasVerifiedIdentity = Boolean(legalName || taxId);
           setIsPrepopulated(hasVerifiedIdentity);
+          const fullRepName = `${firstName} ${lastName}`.trim() || repName;
           setStep1Data((prev) => ({
             ...prev,
             legal_name: legalName || prev.legal_name || '',
             tax_id: taxId ? formatCuit(taxId) : (prev.tax_id || ''),
             email: authUser.email || prev.email || '',
             rep_phone: phone || prev.rep_phone || '',
+            rep_first_name: firstName || prev.rep_first_name || '',
+            rep_last_name: lastName || prev.rep_last_name || '',
+            rep_name: fullRepName || prev.rep_name || '',
           }));
           if (cbu) {
             setStep4Data((prev) => ({
@@ -360,6 +395,22 @@ export function LoanWizard({
       };
 
       const createdLoan = await resolvedServices.loans.submitLoanApplication(loanPayload);
+
+      // Persist contact phone and representative names into borrower's profile
+      try {
+        const client = supabaseClient || createSupabaseBrowserClient();
+        const profileUpdates: Record<string, any> = {};
+        if (step1Data.rep_phone) profileUpdates.phone = step1Data.rep_phone;
+        if (step1Data.rep_first_name) profileUpdates.first_name = step1Data.rep_first_name;
+        if (step1Data.rep_last_name) profileUpdates.last_name = step1Data.rep_last_name;
+        if (step4Data.cbu_cvu) profileUpdates.bank_cbu_cvu = step4Data.cbu_cvu;
+
+        if (Object.keys(profileUpdates).length > 0 && effectiveBorrowerId) {
+          await client.from('profiles').update(profileUpdates).eq('id', effectiveBorrowerId);
+        }
+      } catch (profileUpdateErr) {
+        console.warn('[LoanWizard] Non-blocking profile update failure:', profileUpdateErr);
+      }
 
       // Persist submitted loan receipt in localStorage to survive browser refresh
       try {

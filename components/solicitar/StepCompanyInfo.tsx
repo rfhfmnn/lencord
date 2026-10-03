@@ -13,6 +13,8 @@ export interface Step1FormData {
   tax_id: string; // formatted XX-XXXXXXXX-X
   company_type: CompanyType;
   start_date: string;
+  rep_first_name?: string;
+  rep_last_name?: string;
   rep_name: string;
   rep_dni: string;
   rep_phone: string;
@@ -30,12 +32,21 @@ export function StepCompanyInfo({
   isPrepopulated = false,
   onContinue,
 }: StepCompanyInfoProps) {
+  const initialFirstName =
+    initialData?.rep_first_name ??
+    (initialData?.rep_name ? initialData.rep_name.trim().split(' ')[0] : '');
+  const initialLastName =
+    initialData?.rep_last_name ??
+    (initialData?.rep_name ? initialData.rep_name.trim().split(' ').slice(1).join(' ') : '');
+
   const [formData, setFormData] = useState<Step1FormData>({
     legal_name: initialData?.legal_name ?? '',
     tax_id: initialData?.tax_id ?? '',
     company_type: (initialData?.company_type as CompanyType) ?? 'SRL',
     start_date: initialData?.start_date ?? '',
-    rep_name: initialData?.rep_name ?? '',
+    rep_first_name: initialFirstName,
+    rep_last_name: initialLastName,
+    rep_name: initialData?.rep_name ?? `${initialFirstName} ${initialLastName}`.trim(),
     rep_dni: initialData?.rep_dni ?? '',
     rep_phone: initialData?.rep_phone ?? '',
     email: initialData?.email ?? '',
@@ -43,13 +54,22 @@ export function StepCompanyInfo({
 
   useEffect(() => {
     if (initialData) {
+      const fName =
+        initialData.rep_first_name ??
+        (initialData.rep_name ? initialData.rep_name.trim().split(' ')[0] : '');
+      const lName =
+        initialData.rep_last_name ??
+        (initialData.rep_name ? initialData.rep_name.trim().split(' ').slice(1).join(' ') : '');
+
       setFormData((prev) => ({
         ...prev,
         legal_name: initialData.legal_name ?? prev.legal_name,
         tax_id: initialData.tax_id ?? prev.tax_id,
         company_type: (initialData.company_type as CompanyType) ?? prev.company_type,
         start_date: initialData.start_date ?? prev.start_date,
-        rep_name: initialData.rep_name ?? prev.rep_name,
+        rep_first_name: fName || prev.rep_first_name,
+        rep_last_name: lName || prev.rep_last_name,
+        rep_name: initialData.rep_name ?? prev.rep_name ?? `${fName} ${lName}`.trim(),
         rep_dni: initialData.rep_dni ?? prev.rep_dni,
         rep_phone: initialData.rep_phone ?? prev.rep_phone,
         email: initialData.email ?? prev.email,
@@ -101,7 +121,19 @@ export function StepCompanyInfo({
       newErrors.start_date = 'Seleccioná la fecha de inicio de actividades.';
     }
 
-    if (!formData.rep_name.trim()) {
+    const effectiveFirstName = formData.rep_first_name?.trim() || '';
+    const effectiveLastName = formData.rep_last_name?.trim() || '';
+    const effectiveRepName = formData.rep_name?.trim() || '';
+
+    if (!effectiveFirstName && !effectiveRepName) {
+      newErrors.rep_first_name = 'Ingresá el nombre del apoderado o titular.';
+    }
+
+    if (!effectiveLastName && !effectiveRepName) {
+      newErrors.rep_last_name = 'Ingresá el apellido del apoderado o titular.';
+    }
+
+    if (!effectiveRepName && (!effectiveFirstName || !effectiveLastName)) {
       newErrors.rep_name = 'Ingresá el nombre completo del apoderado o titular.';
     }
 
@@ -127,7 +159,19 @@ export function StepCompanyInfo({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      const payload: Step1FormData = { ...formData };
+      const combinedRepName = (
+        formData.rep_name.trim() ||
+        `${formData.rep_first_name || ''} ${formData.rep_last_name || ''}`.trim()
+      );
+      const fName = formData.rep_first_name?.trim() || combinedRepName.split(' ')[0] || '';
+      const lName = formData.rep_last_name?.trim() || combinedRepName.split(' ').slice(1).join(' ') || '';
+
+      const payload: Step1FormData = {
+        ...formData,
+        rep_name: combinedRepName,
+        rep_first_name: fName,
+        rep_last_name: lName,
+      };
       if (!payload.email) {
         delete (payload as any).email;
       }
@@ -254,15 +298,76 @@ export function StepCompanyInfo({
 
           <div className={`${styles.formGrid} ${styles.formGridTwoCols}`}>
             <Input
-              label="Nombre y apellido del apoderado *"
-              id="rep_name"
-              placeholder="Ej: Martín Rodríguez"
-              value={formData.rep_name}
-              onChange={(e) => handleFieldChange('rep_name', e.target.value)}
-              error={errors.rep_name}
-              data-testid="input-rep-name"
+              label="Nombre del apoderado/titular *"
+              id="rep_first_name"
+              placeholder="Ej: Martín"
+              value={formData.rep_first_name ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  rep_first_name: val,
+                  rep_name: `${val} ${prev.rep_last_name || ''}`.trim(),
+                }));
+                if (errors.rep_first_name || errors.rep_name) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.rep_first_name;
+                    delete copy.rep_name;
+                    return copy;
+                  });
+                }
+              }}
+              error={errors.rep_first_name}
+              data-testid="input-rep-first-name"
             />
 
+            <Input
+              label="Apellido del apoderado/titular *"
+              id="rep_last_name"
+              placeholder="Ej: Rodríguez"
+              value={formData.rep_last_name ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  rep_last_name: val,
+                  rep_name: `${prev.rep_first_name || ''} ${val}`.trim(),
+                }));
+                if (errors.rep_last_name || errors.rep_name) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.rep_last_name;
+                    delete copy.rep_name;
+                    return copy;
+                  });
+                }
+              }}
+              error={errors.rep_last_name}
+              data-testid="input-rep-last-name"
+            />
+          </div>
+
+          {/* Backward compatibility input for input-rep-name */}
+          <input
+            type="hidden"
+            id="rep_name"
+            data-testid="input-rep-name"
+            value={formData.rep_name}
+            onChange={(e) => {
+              const val = e.target.value;
+              const fName = val.trim().split(' ')[0] || '';
+              const lName = val.trim().split(' ').slice(1).join(' ') || '';
+              setFormData((prev) => ({
+                ...prev,
+                rep_name: val,
+                rep_first_name: fName,
+                rep_last_name: lName,
+              }));
+            }}
+          />
+
+          <div className={`${styles.formGrid} ${styles.formGridTwoCols}`}>
             <Input
               label="DNI del apoderado *"
               id="rep_dni"
