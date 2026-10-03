@@ -12,6 +12,8 @@ import { calculateDaysRemaining, formatRateDisplay, LOAN_CATEGORY_LABELS } from 
 import { InvestmentModal } from './InvestmentModal';
 import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import { createSupabaseBrowserClient } from '@/services/supabase';
+import { defaultMockStateStore } from '@/services/mock';
+import { SEED_PROFILES } from '@/services/mock/seedData';
 import styles from './loan-detail.module.css';
 
 export const CATEGORY_DESTINATION_DESCRIPTIONS: Record<string, string> = {
@@ -50,6 +52,7 @@ export interface LoanDetailProps {
   loanId: string;
   initialLoan?: Loan;
   initialCreditProfile?: SmeCreditProfile;
+  initialCompanyName?: string;
   investorId?: string;
   referenceDate?: Date;
 }
@@ -58,6 +61,7 @@ export function LoanDetail({
   loanId,
   initialLoan,
   initialCreditProfile,
+  initialCompanyName,
   investorId = 'prof-inv-001',
   referenceDate,
 }: LoanDetailProps) {
@@ -100,6 +104,9 @@ export function LoanDetail({
   const [creditProfile, setCreditProfile] = useState<SmeCreditProfile | null>(
     initialCreditProfile ?? null
   );
+  const [companyName, setCompanyName] = useState<string>(
+    initialCompanyName ?? initialLoan?.borrower_name ?? initialLoan?.company_name ?? ''
+  );
   const [loading, setLoading] = useState<boolean>(!initialLoan);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -109,6 +116,16 @@ export function LoanDetail({
     if (initialLoan) {
       setLoan(initialLoan);
       if (initialCreditProfile) setCreditProfile(initialCreditProfile);
+      if (initialCompanyName) {
+        setCompanyName(initialCompanyName);
+      } else if (initialLoan.borrower_name || initialLoan.company_name) {
+        setCompanyName((initialLoan.borrower_name || initialLoan.company_name)!);
+      } else {
+        const found =
+          defaultMockStateStore.profiles.find((p) => p.id === initialLoan.borrower_id) ||
+          SEED_PROFILES.find((p) => p.id === initialLoan.borrower_id);
+        if (found?.legal_name) setCompanyName(found.legal_name);
+      }
       setLoading(false);
       return;
     }
@@ -148,9 +165,42 @@ export function LoanDetail({
           fetchedCreditProfile = null;
         }
 
+        let resolvedName =
+          initialCompanyName ||
+          fetchedLoan.borrower_name ||
+          fetchedLoan.company_name;
+
+        if (!resolvedName) {
+          const mockProfile =
+            defaultMockStateStore.profiles.find((p) => p.id === fetchedLoan.borrower_id) ||
+            SEED_PROFILES.find((p) => p.id === fetchedLoan.borrower_id);
+          if (mockProfile?.legal_name) {
+            resolvedName = mockProfile.legal_name;
+          }
+        }
+
+        if (!resolvedName) {
+          try {
+            const client = createSupabaseBrowserClient();
+            const { data: prof } = await client
+              .from('profiles')
+              .select('legal_name')
+              .eq('id', fetchedLoan.borrower_id)
+              .maybeSingle();
+            if (prof?.legal_name) {
+              resolvedName = prof.legal_name;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         if (isMounted) {
           setLoan(fetchedLoan);
           setCreditProfile(fetchedCreditProfile);
+          if (resolvedName) {
+            setCompanyName(resolvedName);
+          }
           setLoading(false);
         }
       } catch (err: unknown) {
@@ -166,7 +216,7 @@ export function LoanDetail({
     return () => {
       isMounted = false;
     };
-  }, [loanId, initialLoan, initialCreditProfile, servicesFromContext]);
+  }, [loanId, initialLoan, initialCreditProfile, initialCompanyName, servicesFromContext]);
 
   if (loading) {
     return (
@@ -216,6 +266,14 @@ export function LoanDetail({
     investorId && loan.borrower_id && investorId === loan.borrower_id
   );
 
+  const companyDisplayName =
+    companyName ||
+    loan.borrower_name ||
+    loan.company_name ||
+    defaultMockStateStore.profiles.find((p) => p.id === loan.borrower_id)?.legal_name ||
+    SEED_PROFILES.find((p) => p.id === loan.borrower_id)?.legal_name ||
+    'Empresa PyME';
+
   const handleInvestmentSuccess = (result: CommitInvestmentResult) => {
     setLoan(result.loan);
   };
@@ -248,6 +306,13 @@ export function LoanDetail({
         <h1 className={styles.title} data-testid="detail-title">
           Financiamiento PyME: {categoryLabel}
         </h1>
+
+        <div className={styles.companyBanner} data-testid="detail-company-banner">
+          <span className={styles.companyBannerLabel}>Empresa solicitante:</span>
+          <span className={styles.companyBannerName} data-testid="detail-company-name">
+            {companyDisplayName}
+          </span>
+        </div>
 
         <p className={styles.destinationDescription} data-testid="detail-destination-desc">
           {destinationDesc}
@@ -363,6 +428,13 @@ export function LoanDetail({
         <h2 className={styles.sectionTitle}>Evaluación crediticia y solvencia</h2>
         <div className={styles.creditList}>
           <div className={styles.creditItem}>
+            <span className={styles.creditItemLabel}>Razón Social</span>
+            <span className={styles.creditItemValue} data-testid="detail-credit-company-name">
+              {companyDisplayName}
+            </span>
+          </div>
+
+          <div className={styles.creditItem}>
             <span className={styles.creditItemLabel}>Situación Deudores BCRA</span>
             <span className={styles.creditItemValue} data-testid="detail-bcra-score">
               {formatBcraScoreDisplay(creditProfile?.bcra_situation)}
@@ -416,7 +488,11 @@ export function LoanDetail({
         <InvestmentModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          loan={loan}
+          loan={{
+            ...loan,
+            borrower_name: loan.borrower_name || companyDisplayName,
+            company_name: loan.company_name || companyDisplayName,
+          }}
           onSuccess={handleInvestmentSuccess}
           investorId={effectiveInvestorId}
         />

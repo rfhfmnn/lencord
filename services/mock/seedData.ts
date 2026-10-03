@@ -196,6 +196,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-001',
     borrower_id: 'prof-sme-001',
+    borrower_name: 'Metalúrgica Quilmes S.R.L.',
+    company_name: 'Metalúrgica Quilmes S.R.L.',
     amount_requested: 12000000,
     amount_funded: 6000000,
     term_months: 3,
@@ -214,6 +216,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-002',
     borrower_id: 'prof-sme-002',
+    borrower_name: 'Alimentos del Valle SAS',
+    company_name: 'Alimentos del Valle SAS',
     amount_requested: 25000000,
     amount_funded: 15000000,
     term_months: 12,
@@ -232,6 +236,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-003',
     borrower_id: 'prof-sme-003',
+    borrower_name: 'Distribuidora San Telmo S.A.',
+    company_name: 'Distribuidora San Telmo S.A.',
     amount_requested: 18000000,
     amount_funded: 5000000,
     term_months: 6,
@@ -250,6 +256,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-004',
     borrower_id: 'prof-sme-004',
+    borrower_name: 'TecnoAgro Rosario SAS',
+    company_name: 'TecnoAgro Rosario SAS',
     amount_requested: 30000000,
     amount_funded: 30000000,
     term_months: 12,
@@ -268,6 +276,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-005',
     borrower_id: 'prof-sme-005',
+    borrower_name: 'Café de Especialidad Palermo SAS',
+    company_name: 'Café de Especialidad Palermo SAS',
     amount_requested: 5000000,
     amount_funded: 1000000,
     term_months: 6,
@@ -286,6 +296,8 @@ export const SEED_LOANS: Loan[] = [
   {
     id: 'loan-seed-006',
     borrower_id: 'prof-sme-001',
+    borrower_name: 'Metalúrgica Quilmes S.R.L.',
+    company_name: 'Metalúrgica Quilmes S.R.L.',
     amount_requested: 8000000,
     amount_funded: 0,
     term_months: 3,

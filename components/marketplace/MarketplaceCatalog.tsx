@@ -5,6 +5,8 @@ import type { Loan, RateType, RiskTier } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { createSupabaseBrowserClient } from '@/services/supabase';
+import { defaultMockStateStore } from '@/services/mock';
+import { SEED_PROFILES } from '@/services/mock/seedData';
 import { LoanCard } from './LoanCard';
 import styles from './marketplace.module.css';
 
@@ -13,6 +15,7 @@ export type TermFilter = 'all' | 'short' | 'medium' | 'long';
 export interface MarketplaceCatalogProps {
   initialLoans?: Loan[];
   initialRiskMap?: Record<string, RiskTier>;
+  initialCompanyMap?: Record<string, string>;
   className?: string;
   pollIntervalMs?: number;
 }
@@ -20,6 +23,7 @@ export interface MarketplaceCatalogProps {
 export function MarketplaceCatalog({
   initialLoans,
   initialRiskMap,
+  initialCompanyMap,
   className = '',
   pollIntervalMs,
 }: MarketplaceCatalogProps) {
@@ -33,6 +37,7 @@ export function MarketplaceCatalog({
 
   const [loans, setLoans] = useState<Loan[]>(initialLoans ?? []);
   const [riskMap, setRiskMap] = useState<Record<string, RiskTier>>(initialRiskMap ?? {});
+  const [companyMap, setCompanyMap] = useState<Record<string, string>>(initialCompanyMap ?? {});
   const [loading, setLoading] = useState<boolean>(!initialLoans);
 
   // Filter states
@@ -56,7 +61,7 @@ export function MarketplaceCatalog({
       // Only active loans in funding stage
       const fundingLoans = await resolvedServices.loans.listLoans({ status: 'funding' });
 
-      // Retrieve risk tiers for each unique borrower
+      // Retrieve risk tiers and company legal names for each unique borrower
       const uniqueBorrowerIds = Array.from(
         new Set(fundingLoans.map((l: Loan) => l.borrower_id))
       );
@@ -78,8 +83,50 @@ export function MarketplaceCatalog({
         newRiskMap[item.borrowerId] = item.riskTier;
       }
 
+      const newCompanyMap: Record<string, string> = {};
+      const missingBorrowerIds: string[] = [];
+
+      uniqueBorrowerIds.forEach((borrowerId) => {
+        const loanWithCompany = fundingLoans.find(
+          (l) => l.borrower_id === borrowerId && (l.borrower_name || l.company_name)
+        );
+        if (loanWithCompany) {
+          newCompanyMap[borrowerId] = (loanWithCompany.borrower_name || loanWithCompany.company_name)!;
+          return;
+        }
+
+        const mockB =
+          defaultMockStateStore.profiles.find((p) => p.id === borrowerId) ||
+          SEED_PROFILES.find((p) => p.id === borrowerId);
+        if (mockB && (mockB.legal_name || (mockB as any).pyme_company_name)) {
+          newCompanyMap[borrowerId] = (mockB as any).pyme_company_name || mockB.legal_name;
+        } else {
+          missingBorrowerIds.push(borrowerId);
+        }
+      });
+
+      if (missingBorrowerIds.length > 0) {
+        try {
+          const client = createSupabaseBrowserClient();
+          const { data: borrowerProfiles } = await client
+            .from('profiles')
+            .select('id, legal_name')
+            .in('id', missingBorrowerIds);
+          if (borrowerProfiles) {
+            borrowerProfiles.forEach((bp: any) => {
+              if (bp.id && bp.legal_name) {
+                newCompanyMap[bp.id] = bp.legal_name;
+              }
+            });
+          }
+        } catch {
+          // ignore in offline/mock
+        }
+      }
+
       setLoans(fundingLoans);
       setRiskMap((prev) => ({ ...prev, ...newRiskMap }));
+      setCompanyMap((prev) => ({ ...prev, ...newCompanyMap }));
     } catch (err) {
       console.error('Error refreshing marketplace loans:', err);
     }
@@ -90,6 +137,22 @@ export function MarketplaceCatalog({
     if (initialLoans) {
       setLoans(initialLoans);
       if (initialRiskMap) setRiskMap(initialRiskMap);
+      if (initialCompanyMap) {
+        setCompanyMap(initialCompanyMap);
+      } else {
+        const initialMap: Record<string, string> = {};
+        initialLoans.forEach((l) => {
+          if (l.borrower_name || l.company_name) {
+            initialMap[l.borrower_id] = (l.borrower_name || l.company_name)!;
+          } else {
+            const found =
+              defaultMockStateStore.profiles.find((p) => p.id === l.borrower_id) ||
+              SEED_PROFILES.find((p) => p.id === l.borrower_id);
+            if (found?.legal_name) initialMap[l.borrower_id] = found.legal_name;
+          }
+        });
+        setCompanyMap(initialMap);
+      }
       setLoading(false);
       return;
     }
@@ -310,6 +373,14 @@ export function MarketplaceCatalog({
               key={loan.id}
               loan={loan}
               riskTier={riskMap[loan.borrower_id] ?? 'Tier B'}
+              companyName={
+                companyMap[loan.borrower_id] ||
+                loan.borrower_name ||
+                loan.company_name ||
+                defaultMockStateStore.profiles.find((p) => p.id === loan.borrower_id)?.legal_name ||
+                SEED_PROFILES.find((p) => p.id === loan.borrower_id)?.legal_name ||
+                'Empresa PyME'
+              }
             />
           ))}
         </div>

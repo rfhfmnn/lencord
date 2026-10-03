@@ -202,4 +202,26 @@ describe('LoanDetail Component (Task 10)', () => {
     });
     expect(screen.getByText('No se encontró la oportunidad')).toBeInTheDocument();
   });
+
+  it('renders borrower company legal name / razón social in header banner and credit evaluation section', () => {
+    render(
+      <LoanDetail
+        loanId={mockLoan.id}
+        initialLoan={mockLoan}
+        initialCreditProfile={mockCreditProfile}
+        initialCompanyName="Metalúrgica Quilmes S.R.L."
+      />
+    );
+
+    // Header company banner
+    const companyBanner = screen.getByTestId('detail-company-banner');
+    expect(companyBanner).toBeInTheDocument();
+    const companyName = screen.getByTestId('detail-company-name');
+    expect(companyName).toHaveTextContent('Metalúrgica Quilmes S.R.L.');
+
+    // Credit solvency section
+    const creditCompanyName = screen.getByTestId('detail-credit-company-name');
+    expect(creditCompanyName).toHaveTextContent('Metalúrgica Quilmes S.R.L.');
+  });
 });
+

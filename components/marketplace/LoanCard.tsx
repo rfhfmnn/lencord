@@ -44,6 +44,7 @@ export function truncateDescription(description?: string | null, maxLength: numb
 export interface LoanCardProps {
   loan: Loan;
   riskTier?: RiskTier;
+  companyName?: string;
   referenceDate?: Date;
   className?: string;
 }
@@ -51,12 +52,19 @@ export interface LoanCardProps {
 export function LoanCard({
   loan,
   riskTier = 'Tier B',
+  companyName,
   referenceDate,
   className = '',
 }: LoanCardProps) {
   const categoryLabel = LOAN_CATEGORY_LABELS[loan.category] ?? loan.category;
   const rateDisplay = formatRateDisplay(loan.rate_type, loan.investor_rate);
   const termDisplay = `${loan.term_months} ${loan.term_months === 1 ? 'mes' : 'meses'}`;
+
+  const companyDisplayName =
+    companyName ||
+    loan.borrower_name ||
+    loan.company_name ||
+    'Empresa PyME';
 
   const fundingPercentage = Math.min(
     100,
@@ -71,7 +79,7 @@ export function LoanCard({
       href={`/marketplace/${loan.id}`}
       className={`${styles.card} ${className}`}
       data-testid={`loan-card-${loan.id}`}
-      aria-label={`Préstamo para ${categoryLabel}, ${termDisplay}, tasa ${rateDisplay}`}
+      aria-label={`Oportunidad para ${companyDisplayName}, ${categoryLabel}, ${termDisplay}, tasa ${rateDisplay}`}
     >
       {/* Header: Category and Anonymized Risk Tier Badge */}
       <div className={styles.headerRow}>
@@ -80,6 +88,11 @@ export function LoanCard({
         </span>
         <TierBadge tier={riskTier} data-testid="loan-risk-badge" />
       </div>
+
+      {/* SME Razón Social / Company Name */}
+      <h3 className={styles.companyName} data-testid="loan-company-name">
+        {companyDisplayName}
+      </h3>
 
       {/* Brief Project Description (Issue #59) */}
       <p className={styles.projectDescription} data-testid="loan-description">

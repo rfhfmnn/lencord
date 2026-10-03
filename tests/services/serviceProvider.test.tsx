@@ -72,6 +72,30 @@ describe('Service Provider, Factory, and Environment Switching', () => {
       disburseLoan: vi.fn(),
       collectInstallment: vi.fn(),
     },
+    notifications: {
+      getNotifications: vi.fn(),
+      getUnreadCount: vi.fn(),
+      createNotification: vi.fn(),
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+    },
+    email: {
+      send: vi.fn(),
+      sendRegistrationEmail: vi.fn(),
+      sendLoanSubmissionEmail: vi.fn(),
+      sendCreditApprovalEmail: vi.fn(),
+      sendCreditRejectionEmail: vi.fn(),
+      sendInvestmentConfirmationEmail: vi.fn(),
+      sendInstallmentReminderEmail: vi.fn(),
+    },
+    multiChannelNotifications: {
+      notifyNewInvestmentReceived: vi.fn(),
+      notifyLoanFullyFunded: vi.fn(),
+      notifyPromissoryNoteSigned: vi.fn(),
+      notifyInstallmentPayoutCredited: vi.fn(),
+      notifyInstallmentUpcomingDue: vi.fn(),
+      notifyLoanApproved: vi.fn(),
+    } as any,
   });
 
   beforeEach(() => {

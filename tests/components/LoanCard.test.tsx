@@ -155,5 +155,43 @@ describe('LoanCard Component (Task 9)', () => {
       expect(truncateDescription(exactly91)).toBe(`${'A'.repeat(90)}...`);
     });
   });
+
+  describe('Company Legal Name / Razón Social Display', () => {
+    it('renders company legal name when provided via companyName prop', () => {
+      render(
+        <LoanCard
+          loan={mockLoan}
+          riskTier="Tier A"
+          companyName="Metalúrgica Quilmes S.R.L."
+        />
+      );
+      const companyEl = screen.getByTestId('loan-company-name');
+      expect(companyEl).toBeInTheDocument();
+      expect(companyEl).toHaveTextContent('Metalúrgica Quilmes S.R.L.');
+    });
+
+    it('renders company legal name from loan.borrower_name when prop is not supplied', () => {
+      const loanWithName: Loan = {
+        ...mockLoan,
+        borrower_name: 'Alimentos del Valle SAS',
+      };
+      render(<LoanCard loan={loanWithName} riskTier="Tier B" />);
+      const companyEl = screen.getByTestId('loan-company-name');
+      expect(companyEl).toHaveTextContent('Alimentos del Valle SAS');
+    });
+
+    it('renders fallback "Empresa PyME" when borrower name is not available', () => {
+      const loanWithoutName: Loan = {
+        ...mockLoan,
+        borrower_id: 'unknown-borrower-999',
+        borrower_name: null,
+        company_name: null,
+      };
+      render(<LoanCard loan={loanWithoutName} riskTier="Tier C" />);
+      const companyEl = screen.getByTestId('loan-company-name');
+      expect(companyEl).toHaveTextContent('Empresa PyME');
+    });
+  });
 });
+
 

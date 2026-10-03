@@ -159,6 +159,8 @@ export interface Loan {
   notification_dispatched?: boolean | null;
   funding_deadline: string | null; // ISO 8601 Timestamp or null if open auction
   created_at: string; // ISO 8601 Timestamp
+  borrower_name?: string | null;
+  company_name?: string | null;
 }
 
 /**

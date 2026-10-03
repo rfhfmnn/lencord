@@ -62,8 +62,20 @@ export class SupabaseLoanService implements LoanServiceInterface {
         .eq('id', id)
         .maybeSingle();
 
-      if (error) {
-        throw mapSupabaseError(error, `Error al obtener el préstamo ${id}`);
+      if (data && data.borrower_id && !data.borrower_name) {
+        try {
+          const { data: prof } = await client
+            .from('profiles')
+            .select('legal_name')
+            .eq('id', data.borrower_id)
+            .maybeSingle();
+          if (prof?.legal_name) {
+            (data as any).borrower_name = prof.legal_name;
+            (data as any).company_name = prof.legal_name;
+          }
+        } catch {
+          // ignore
+        }
       }
 
       return data as Loan | null;
@@ -124,6 +136,26 @@ export class SupabaseLoanService implements LoanServiceInterface {
         if (!pError && profiles) {
           const eligibleBorrowerIds = new Set(profiles.map((p) => p.profile_id));
           loans = loans.filter((l) => eligibleBorrowerIds.has(l.borrower_id));
+        }
+      }
+
+      if (loans.length > 0) {
+        try {
+          const borrowerIds = Array.from(new Set(loans.map((l) => l.borrower_id)));
+          const { data: profs } = await client
+            .from('profiles')
+            .select('id, legal_name')
+            .in('id', borrowerIds);
+          if (profs && profs.length > 0) {
+            const nameMap = new Map(profs.map((p) => [p.id, p.legal_name]));
+            loans = loans.map((l) => ({
+              ...l,
+              borrower_name: l.borrower_name ?? nameMap.get(l.borrower_id) ?? null,
+              company_name: l.company_name ?? nameMap.get(l.borrower_id) ?? null,
+            }));
+          }
+        } catch {
+          // ignore
         }
       }
 

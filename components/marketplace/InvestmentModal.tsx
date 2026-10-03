@@ -11,6 +11,7 @@ import type {
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { defaultMockStateStore } from '@/services/mock/mockState';
+import { SEED_PROFILES } from '@/services/mock/seedData';
 import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -642,7 +643,23 @@ export function InvestmentModal({
                 <h3 id={titleId} className={styles.title}>
                   Invertir en esta PyME
                 </h3>
-                <p className={styles.subtitle}>Ingresá el monto en pesos que deseas aportar a esta subasta.</p>
+                <p className={styles.subtitle}>
+                  {(() => {
+                    const companyDisplayName =
+                      loan.borrower_name ||
+                      loan.company_name ||
+                      defaultMockStateStore.profiles.find((p) => p.id === loan.borrower_id)?.legal_name ||
+                      SEED_PROFILES.find((p) => p.id === loan.borrower_id)?.legal_name;
+                    return companyDisplayName ? (
+                      <>
+                        Financiamiento para{' '}
+                        <strong data-testid="modal-company-name">{companyDisplayName}</strong>.
+                        <br />
+                      </>
+                    ) : null;
+                  })()}
+                  Ingresá el monto en pesos que deseas aportar a esta subasta.
+                </p>
               </div>
               <button
                 type="button"

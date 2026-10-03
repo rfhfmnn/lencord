@@ -36,10 +36,20 @@ export class MockLoanService implements LoanServiceInterface {
     this.multiChannelNotifications = multiChannelNotifications;
   }
 
+  private enrichLoanWithBorrower(loan: Loan): Loan {
+    const profile = this.store.profiles.find((p) => p.id === loan.borrower_id);
+    const legalName = profile?.legal_name || (profile as any)?.pyme_company_name;
+    return {
+      ...loan,
+      borrower_name: loan.borrower_name ?? legalName ?? null,
+      company_name: loan.company_name ?? legalName ?? null,
+    };
+  }
+
   public async getLoanById(id: string): Promise<Loan | null> {
     const loan = this.store.loans.find((l) => l.id === id);
     if (!loan) return null;
-    return JSON.parse(JSON.stringify(loan));
+    return this.enrichLoanWithBorrower(JSON.parse(JSON.stringify(loan)));
   }
 
   public async listLoans(filters?: LoanFilters): Promise<Loan[]> {
@@ -86,7 +96,7 @@ export class MockLoanService implements LoanServiceInterface {
       }
     }
 
-    return JSON.parse(JSON.stringify(result));
+    return JSON.parse(JSON.stringify(result)).map((l: Loan) => this.enrichLoanWithBorrower(l));
   }
 
   public async submitLoanApplication(input: SubmitLoanInput): Promise<Loan> {

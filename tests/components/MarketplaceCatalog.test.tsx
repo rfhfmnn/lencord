@@ -245,4 +245,28 @@ describe('MarketplaceCatalog Component (Task 9)', () => {
       expect(loan).toBeDefined();
     });
   });
+
+  it('renders company legal name (razón social) on each loan card', () => {
+    const loansWithCompanies: Loan[] = [
+      {
+        ...mockLoans[0],
+        borrower_name: 'Metalúrgica Quilmes S.R.L.',
+      },
+      {
+        ...mockLoans[1],
+        borrower_name: 'Alimentos del Valle SAS',
+      },
+    ];
+
+    render(
+      <MarketplaceCatalog initialLoans={loansWithCompanies} initialRiskMap={mockRiskMap} />
+    );
+
+    const card1 = screen.getByTestId('loan-card-loan-1');
+    const card2 = screen.getByTestId('loan-card-loan-2');
+
+    expect(within(card1).getByTestId('loan-company-name')).toHaveTextContent('Metalúrgica Quilmes S.R.L.');
+    expect(within(card2).getByTestId('loan-company-name')).toHaveTextContent('Alimentos del Valle SAS');
+  });
 });
+
