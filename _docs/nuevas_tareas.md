@@ -196,21 +196,21 @@ Dividir el ingreso de la identidad del representante legal en dos casillas indep
 Mostrar claramente la Razón Social de la empresa PyME en todas las oportunidades de inversión del marketplace (tanto en las tarjetas del catálogo general `/marketplace` como en la vista de detalle de cada subasta `/marketplace/[id]` y en el modal de inversión), permitiendo que los inversores identifiquen de inmediato a la entidad prestataria.
 
 ### Acceptance criteria
-- [ ] **Tarjetas del Catálogo de Oportunidades (`LoanCard.tsx`):**
+- [x] **Tarjetas del Catálogo de Oportunidades (`LoanCard.tsx`):**
   - Cada tarjeta de préstamo en `/marketplace` renderiza de forma visible la razón social de la empresa prestataria (`data-testid="loan-company-name"`).
   - La razón social se ubica de forma destacada sobre la descripción del proyecto, respetando la tipografía y jerarquía visual del design system.
   - Si la razón social es extensa, se trunca limpiamente con ellipsis en una sola línea manteniendo la alineación de la tarjeta.
   - Si una oportunidad no cuenta con razón social registrada, se muestra el fallback `"Empresa PyME"`.
-- [ ] **Vista Detallada de la Oportunidad (`LoanDetail.tsx`):**
+- [x] **Vista Detallada de la Oportunidad (`LoanDetail.tsx`):**
   - En el encabezado principal de la subasta `/marketplace/[id]`, se exhibe un bloque informativo destacado con la razón social de la PyME (`data-testid="detail-company-name"`).
   - En la sección *"Evaluación crediticia y solvencia"*, se incluye una fila explícita indicando *"Razón Social"* y el nombre legal de la compañía (`data-testid="detail-credit-company-name"`).
-- [ ] **Modal de Inversión (`InvestmentModal.tsx`):**
+- [x] **Modal de Inversión (`InvestmentModal.tsx`):**
   - El encabezado o subtítulo del modal de inversión (`data-testid="investment-modal"`) indica la razón social de la PyME en la que se está invirtiendo.
-- [ ] **Resolución de Datos en Capa de Servicios y Catálogo (`MarketplaceCatalog.tsx` y servicios):**
+- [x] **Resolución de Datos en Capa de Servicios y Catálogo (`MarketplaceCatalog.tsx` y servicios):**
   - `MarketplaceCatalog.tsx` recupera los nombres legales de las empresas prestatarias mediante los perfiles asociados a cada `borrower_id` y los transfiere a cada `LoanCard`.
   - `MockLoanService` y `SupabaseLoanService` enriquecen las instancias de `Loan` con el campo `borrower_name` / `company_name` a partir de `profiles.legal_name`.
   - Los datos semilla de préstamos (`SEED_LOANS`) cuentan con la razón social asignada correspondiente a su prestatario.
-- [ ] **Pruebas automatizadas:**
+- [x] **Pruebas automatizadas:**
   - Se ejecutan y pasan los tests unitarios en:
     - `tests/components/LoanCard.test.tsx` (validando que renderiza la razón social y fallback).
     - `tests/components/MarketplaceCatalog.test.tsx` (validando que las tarjetas en el catálogo muestran las razones sociales correspondientes).
