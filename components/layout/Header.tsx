@@ -457,9 +457,7 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <span className={styles.custodyLabel}>Custodia:</span>
                     <span className={styles.custodyValue}>
-                      {(currentUser.custodyBalance ?? 0) === 0
-                        ? '$ 0,00'
-                        : formatCurrency(currentUser.custodyBalance!)}
+                      {formatCurrency(currentUser.custodyBalance ?? 0, { decimals: true })}
                     </span>
                   </div>
                 )}
@@ -631,9 +629,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className={styles.custodyBalance} data-testid="header-mobile-custody-balance">
                       <span className={styles.custodyLabel}>Custodia:</span>
                       <span className={styles.custodyValue}>
-                        {(currentUser.custodyBalance ?? 0) === 0
-                          ? '$ 0,00'
-                          : formatCurrency(currentUser.custodyBalance!)}
+                        {formatCurrency(currentUser.custodyBalance ?? 0, { decimals: true })}
                       </span>
                     </div>
                   )}

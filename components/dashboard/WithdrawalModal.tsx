@@ -45,7 +45,7 @@ export function WithdrawalModal({
   if (!isOpen) return null;
 
   const handleWithdrawAll = () => {
-    setAmountStr(availableBalance.toString());
+    setAmountStr(availableBalance.toFixed(2));
     setError(null);
   };
 
@@ -160,7 +160,7 @@ export function WithdrawalModal({
             <div className={styles.receiptDetailsCard}>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptRowLabel}>Importe solicitado:</span>
-                <span className={styles.receiptRowValue}>{formatCurrency(completedTx.amount)}</span>
+                <span className={styles.receiptRowValue}>{formatCurrency(completedTx.amount, { decimals: true })}</span>
               </div>
               <div className={styles.receiptRow}>
                 <span className={styles.receiptRowLabel}>CBU de destino:</span>
@@ -202,7 +202,7 @@ export function WithdrawalModal({
               <div className={styles.balanceBox} data-testid="modal-available-balance">
                 <div>
                   <span className={styles.balanceLabel}>Saldo disponible en custodia</span>
-                  <span className={styles.balanceValue}>{formatCurrency(availableBalance)}</span>
+                  <span className={styles.balanceValue}>{formatCurrency(availableBalance, { decimals: true })}</span>
                 </div>
               </div>
 

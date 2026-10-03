@@ -38,16 +38,38 @@ export const BORROWER_CER_MARGIN = 0.15; // 15% CER spread
 export const INVESTOR_FIXED_TNA = 0.45; // 45% TNA
 export const INVESTOR_CER_MARGIN = 0.125; // 12.5% CER spread
 
+export interface FormatCurrencyOptions {
+  decimals?: boolean;
+}
+
 /**
- * Format numeric value as Argentine currency ($ 1.500.000).
+ * Format numeric value as Argentine currency ($ 1.500.000 or $ 1.500.000,00 with decimals).
  */
-export function formatCurrency(value: number): string {
-  if (isNaN(value) || !isFinite(value)) return '$ 0';
+export function formatCurrency(
+  value: number,
+  options?: boolean | FormatCurrencyOptions
+): string {
+  const showDecimals = typeof options === 'boolean' ? options : options?.decimals ?? false;
+  if (isNaN(value) || !isFinite(value)) {
+    return showDecimals ? '$ 0,00' : '$ 0';
+  }
+
+  if (showDecimals) {
+    const fixed = Math.abs(value).toFixed(2);
+    const [intPart, decPart] = fixed.split('.');
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return value < 0 ? `-$ ${formattedInt},${decPart}` : `$ ${formattedInt},${decPart}`;
+  }
+
   const rounded = Math.round(value);
   const parts = Math.abs(rounded)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return rounded < 0 ? `-$ ${parts}` : `$ ${parts}`;
+}
+
+export function formatCurrencyPrecise(value: number): string {
+  return formatCurrency(value, { decimals: true });
 }
 
 /**

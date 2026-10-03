@@ -1041,11 +1041,11 @@ export function BorrowerDashboard({
               <div style={{ flex: 1 }}>
                 <h3 className={styles.disbursementTitle}>¡Felicitaciones! Tu solicitud fue 100% financiada.</h3>
                 <p className={styles.disbursementText}>
-                  Los fondos por <strong>{formatCurrency(currentLoan.amount_requested)}</strong> han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
+                  Los fondos por <strong>{formatCurrency(currentLoan.amount_requested, { decimals: true })}</strong> han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
                 </p>
                 {nextPendingInstallment && (
                   <p className={styles.disbursementNextDue} data-testid="next-due-date-notice">
-                    Próximo vencimiento: Cuota #{nextPendingInstallment.installment_number} el {nextPendingInstallment.due_date} ({formatCurrency(nextPendingInstallment.principal_amount + nextPendingInstallment.interest_borrower)})
+                    Próximo vencimiento: Cuota #{nextPendingInstallment.installment_number} el {nextPendingInstallment.due_date} ({formatCurrency(nextPendingInstallment.principal_amount + nextPendingInstallment.interest_borrower, { decimals: true })})
                   </p>
                 )}
               </div>
@@ -1518,17 +1518,18 @@ export function BorrowerDashboard({
               <div className={styles.breakdownBox} data-testid="repayment-breakdown">
                 <div className={styles.breakdownRow}>
                   <span>Capital a amortizar:</span>
-                  <strong>{formatCurrency(repaymentModalInstallment.principal_amount)}</strong>
+                  <strong>{formatCurrency(repaymentModalInstallment.principal_amount, { decimals: true })}</strong>
                 </div>
                 <div className={styles.breakdownRow}>
                   <span>Interés compensatorio:</span>
-                  <strong>{formatCurrency(repaymentModalInstallment.interest_borrower)}</strong>
+                  <strong>{formatCurrency(repaymentModalInstallment.interest_borrower, { decimals: true })}</strong>
                 </div>
                 <div className={styles.breakdownTotal}>
                   <span>Total a pagar:</span>
                   <span style={{ color: '#059669', fontSize: '1.25rem' }}>
                     {formatCurrency(
-                      repaymentModalInstallment.principal_amount + repaymentModalInstallment.interest_borrower
+                      repaymentModalInstallment.principal_amount + repaymentModalInstallment.interest_borrower,
+                      { decimals: true }
                     )}
                   </span>
                 </div>

@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import {
   HeroSimulator,
   formatCurrency,
+  formatCurrencyPrecise,
   calculateBorrowerInstallment,
   calculateInvestorYield,
   BORROWER_MIN_AMOUNT,
@@ -162,11 +163,18 @@ describe('HeroSimulator Component', () => {
   });
 
   describe('Mathematical Calculations & Edge Cases', () => {
-    it('formats Argentine currency correctly ($ 1.500.000)', () => {
+    it('formats Argentine currency correctly ($ 1.500.000) and supports decimals ($ 1.500.000,00)', () => {
       expect(formatCurrency(1500000)).toBe('$ 1.500.000');
       expect(formatCurrency(100000)).toBe('$ 100.000');
       expect(formatCurrency(20000000)).toBe('$ 20.000.000');
       expect(formatCurrency(0)).toBe('$ 0');
+
+      // With decimals option (Issue #84)
+      expect(formatCurrency(1500000, { decimals: true })).toBe('$ 1.500.000,00');
+      expect(formatCurrency(100000.5, { decimals: true })).toBe('$ 100.000,50');
+      expect(formatCurrency(1234.567, { decimals: true })).toBe('$ 1.234,57');
+      expect(formatCurrency(0, { decimals: true })).toBe('$ 0,00');
+      expect(formatCurrencyPrecise(250000.75)).toBe('$ 250.000,75');
     });
 
     it('handles borrower edge cases: minimum amount and maximum amount without error', () => {

@@ -748,10 +748,10 @@ export function InvestorDashboard({
           <div>
             <span className={styles.metricLabel}>Saldo disponible en custodia</span>
             <div className={styles.custodyBalanceAmount} data-testid="available-custody-balance">
-              Saldo disponible en custodia: {formatCurrency(effectiveCustodyBalance)}
+              Saldo disponible en custodia: {formatCurrency(effectiveCustodyBalance, { decimals: true })}
             </div>
             <span className="sr-only" data-testid="illustrative-custody-balance">
-              {formatCurrency(effectiveCustodyBalance)}
+              {formatCurrency(effectiveCustodyBalance, { decimals: true })}
             </span>
             <p className={styles.custodyDisclaimerText} data-testid="custody-disclaimer">
               <strong>Aviso regulatorio:</strong> Los fondos líquidos y transacciones se encuentran bajo custodia de una entidad financiera y/o Proveedor de Servicios de Pago (PSP) autorizado por el Banco Central de la República Argentina (BCRA). Lencord es una plataforma tecnológica y no realiza intermediación financiera, captación no autorizada ni custodia directa de saldos monetarios de terceros.
@@ -801,13 +801,13 @@ export function InvestorDashboard({
           <section className={styles.metricsGrid} aria-label="Métricas principales de inversión">
             <div className={styles.metricCard} data-testid="metric-total-capital">
               <span className={styles.metricLabel}>Capital invertido</span>
-              <span className={styles.metricValue}>{formatCurrency(totalCapitalInvertido)}</span>
+              <span className={styles.metricValue}>{formatCurrency(totalCapitalInvertido, { decimals: true })}</span>
               <span className={styles.metricSubtextNeutral}>Capital activo en subastas y préstamos</span>
             </div>
 
             <div className={styles.metricCard} data-testid="metric-estimated-returns">
               <span className={styles.metricLabel}>Rendimiento estimado/intereses ganados</span>
-              <span className={styles.metricValue}>{formatCurrency(estimatedTotalYield)}</span>
+              <span className={styles.metricValue}>{formatCurrency(estimatedTotalYield, { decimals: true })}</span>
               <span className={styles.metricSubtext}>+ Rendimiento total proyectado al vencimiento</span>
             </div>
 
@@ -1155,7 +1155,7 @@ export function InvestorDashboard({
                             className={isCredit ? styles.amountPositive : styles.amountNegative}
                             data-testid={`custody-tx-amount-${tx.id}`}
                           >
-                            {isCredit ? `+ ${formatCurrency(tx.amount)}` : `- ${formatCurrency(tx.amount)}`}
+                            {isCredit ? `+ ${formatCurrency(tx.amount, { decimals: true })}` : `- ${formatCurrency(tx.amount, { decimals: true })}`}
                           </span>
                         </td>
                         <td>

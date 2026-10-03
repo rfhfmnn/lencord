@@ -199,7 +199,7 @@ describe('Custody Balance, Movements History and CBU Withdrawal (Issue #70)', ()
     const rows = screen.getAllByRole('row');
     expect(rows.length).toBeGreaterThan(3);
     expect(screen.getByText('Retiro')).toBeInTheDocument();
-    const negativeAmounts = screen.getAllByText('- $ 500.000');
+    const negativeAmounts = screen.getAllByText(/- \$ 500\.000/);
     expect(negativeAmounts.length).toBeGreaterThanOrEqual(2);
   });
 });
