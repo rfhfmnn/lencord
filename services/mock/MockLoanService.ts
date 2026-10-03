@@ -456,6 +456,17 @@ export class MockLoanService implements LoanServiceInterface {
         borrower,
         investors: participatingInvestors,
       });
+    } else {
+      this.store.notifications.unshift({
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        user_id: loan.borrower_id,
+        title: 'Pagaré firmado: fondos desembolsados',
+        message: `Has firmado exitosamente el pagaré digital por $${loan.amount_requested.toLocaleString('es-AR')}. Los fondos fueron transferidos a tu cuenta bancaria y el crédito comenzó a devengar cuotas.`,
+        type: 'success',
+        read: false,
+        action_url: '/dashboard/pyme',
+        created_at: new Date().toISOString(),
+      });
     }
 
     return JSON.parse(JSON.stringify(loan));

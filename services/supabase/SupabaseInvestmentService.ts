@@ -25,15 +25,18 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
   private clientProvider?: SupabaseClientProvider;
   private paymentGateway?: PaymentGatewayInterface;
   private emailService?: EmailServiceInterface;
+  private multiChannelNotifications?: import('../notifications/channels').MultiChannelNotificationServiceInterface;
 
   constructor(
     client?: SupabaseClientProvider,
     paymentGateway?: PaymentGatewayInterface,
-    emailService?: EmailServiceInterface
+    emailService?: EmailServiceInterface,
+    multiChannelNotifications?: import('../notifications/channels').MultiChannelNotificationServiceInterface
   ) {
     this.clientProvider = client;
     this.paymentGateway = paymentGateway;
     this.emailService = emailService;
+    this.multiChannelNotifications = multiChannelNotifications;
   }
 
   private async getClient(): Promise<SupabaseClient> {
@@ -168,6 +171,85 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
         created_at: new Date().toISOString(),
       };
 
+      // Notify PyME borrower of new investment
+      try {
+        const formattedAmount = Number(input.amount || 0).toLocaleString('es-AR');
+        const percentage = updatedLoan.amount_requested > 0
+          ? (updatedLoan.amount_funded / updatedLoan.amount_requested) * 100
+          : 0;
+        await client.from('notifications').insert({
+          user_id: updatedLoan.borrower_id,
+          type: 'info',
+          title: 'Nuevo aporte de inversión recibido',
+          action_url: '/dashboard/pyme',
+          message: `Se ha registrado una inversión por $${formattedAmount} (${percentage.toFixed(1)}% financiado).`,
+          read: false,
+        });
+
+        if (updatedLoan.status === 'funded') {
+          await client.from('notifications').insert({
+            user_id: updatedLoan.borrower_id,
+            type: 'success',
+            title: '¡Subasta 100% financiada! Pagaré listo para firma',
+            action_url: '/dashboard/pyme',
+            message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.`,
+            read: false,
+          });
+        }
+      } catch (notifErr) {
+        console.warn('[SupabaseInvestmentService] Error inserting borrower notification:', notifErr);
+      }
+
+      if (this.multiChannelNotifications?.notifyNewInvestmentReceived) {
+        try {
+          const { data: borrowerProfile } = await client
+            .from('profiles')
+            .select('id, legal_name, email')
+            .eq('id', updatedLoan.borrower_id)
+            .maybeSingle();
+
+          const { data: investorProfile } = await client
+            .from('profiles')
+            .select('id, legal_name, email')
+            .eq('id', targetInvestorId)
+            .maybeSingle();
+
+          await this.multiChannelNotifications.notifyNewInvestmentReceived({
+            loan: updatedLoan,
+            investment,
+            borrower: borrowerProfile || { id: updatedLoan.borrower_id, legal_name: 'la PyME' },
+            investor: investorProfile || undefined,
+          });
+
+          if (updatedLoan.status === 'funded' && this.multiChannelNotifications.notifyLoanFundingCompleted) {
+            const { data: invs } = await client
+              .from('investments')
+              .select('investor_id, amount')
+              .eq('loan_id', updatedLoan.id);
+
+            const uniqueInvIds = Array.from(new Set((invs || []).map((i: any) => i.investor_id)));
+            const { data: invProfiles } = await client
+              .from('profiles')
+              .select('id, legal_name, email')
+              .in('id', uniqueInvIds);
+
+            const participating = uniqueInvIds.map((id) => {
+              const p = (invProfiles || []).find((pr: any) => pr.id === id) || { id, legal_name: 'Inversor' };
+              const invRecord = (invs || []).find((i: any) => i.investor_id === id);
+              return { profile: p, amount: invRecord?.amount ?? 0 };
+            });
+
+            await this.multiChannelNotifications.notifyLoanFundingCompleted({
+              loan: updatedLoan,
+              borrower: borrowerProfile || { id: updatedLoan.borrower_id, legal_name: 'la PyME' },
+              investors: participating,
+            });
+          }
+        } catch (mErr) {
+          console.warn('[SupabaseInvestmentService] Multi-channel notification warning:', mErr);
+        }
+      }
+
       return {
         investment,
         loan: updatedLoan,
@@ -238,6 +320,107 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
       throw mapSupabaseError(
         new Error(data.error_message || data.error || data.message || 'Error en la operación')
       );
+    }
+
+    try {
+      const { data: loanRow } = await client
+        .from('loans')
+        .select('*')
+        .eq('id', input.loan_id)
+        .maybeSingle();
+
+      if (loanRow) {
+        const updatedLoan = loanRow as Loan;
+        const formattedAmount = Number(input.amount || 0).toLocaleString('es-AR');
+        const currentFunded = Number(data?.amount_funded ?? updatedLoan.amount_funded);
+        const percentage = updatedLoan.amount_requested > 0
+          ? (currentFunded / updatedLoan.amount_requested) * 100
+          : 0;
+
+        await client.from('notifications').insert({
+          user_id: updatedLoan.borrower_id,
+          type: 'info',
+          title: 'Nuevo aporte de inversión recibido',
+          action_url: '/dashboard/pyme',
+          message: `Se ha registrado una inversión por $${formattedAmount} (${percentage.toFixed(1)}% financiado).`,
+          read: false,
+        });
+
+        if (data?.loan_status === 'funded' || updatedLoan.status === 'funded') {
+          await client.from('notifications').insert({
+            user_id: updatedLoan.borrower_id,
+            type: 'success',
+            title: '¡Subasta 100% financiada! Pagaré listo para firma',
+            action_url: '/dashboard/pyme',
+            message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.`,
+            read: false,
+          });
+        }
+
+        if (this.multiChannelNotifications?.notifyNewInvestmentReceived) {
+          try {
+            const { data: borrowerProfile } = await client
+              .from('profiles')
+              .select('id, legal_name, email')
+              .eq('id', updatedLoan.borrower_id)
+              .maybeSingle();
+
+            const { data: investorProfile } = await client
+              .from('profiles')
+              .select('id, legal_name, email')
+              .eq('id', targetInvestorId)
+              .maybeSingle();
+
+            const mockInv: Investment = {
+              id: data?.investment_id || `inv-${Date.now()}`,
+              loan_id: input.loan_id,
+              investor_id: targetInvestorId,
+              amount: input.amount,
+              status: 'committed',
+              created_at: new Date().toISOString(),
+            };
+
+            await this.multiChannelNotifications.notifyNewInvestmentReceived({
+              loan: updatedLoan,
+              investment: mockInv,
+              borrower: borrowerProfile || { id: updatedLoan.borrower_id, legal_name: 'la PyME' },
+              investor: investorProfile || undefined,
+            });
+
+            if (
+              (data?.loan_status === 'funded' || updatedLoan.status === 'funded') &&
+              this.multiChannelNotifications.notifyLoanFundingCompleted
+            ) {
+              const { data: invs } = await client
+                .from('investments')
+                .select('investor_id, amount')
+                .eq('loan_id', updatedLoan.id);
+
+              const uniqueInvIds = Array.from(new Set((invs || []).map((i: any) => i.investor_id)));
+              const { data: invProfiles } = await client
+                .from('profiles')
+                .select('id, legal_name, email')
+                .in('id', uniqueInvIds);
+
+              const participating = uniqueInvIds.map((id) => {
+                const p = (invProfiles || []).find((pr: any) => pr.id === id) || { id, legal_name: 'Inversor' };
+                const invRecord = (invs || []).find((i: any) => i.investor_id === id);
+                return { profile: p, amount: invRecord?.amount ?? 0 };
+              });
+
+              await this.multiChannelNotifications.notifyLoanFundingCompleted({
+                loan: updatedLoan,
+                borrower: borrowerProfile || { id: updatedLoan.borrower_id, legal_name: 'la PyME' },
+                investors: participating,
+              });
+            }
+          } catch (mErr) {
+            console.warn('[SupabaseInvestmentService] Multi-channel notification warning in checkout:', mErr);
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn('[SupabaseInvestmentService] Error inserting borrower notification in checkout:', notifErr);
     }
 
     return {

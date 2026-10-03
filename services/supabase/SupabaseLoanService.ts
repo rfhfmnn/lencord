@@ -25,15 +25,18 @@ export class SupabaseLoanService implements LoanServiceInterface {
   private clientProvider?: SupabaseClientProvider;
   private paymentGateway?: PaymentGatewayInterface;
   private emailService?: EmailServiceInterface;
+  private multiChannelNotifications?: import('../notifications/channels').MultiChannelNotificationServiceInterface;
 
   constructor(
     client?: SupabaseClientProvider,
     paymentGateway?: PaymentGatewayInterface,
-    emailService?: EmailServiceInterface
+    emailService?: EmailServiceInterface,
+    multiChannelNotifications?: import('../notifications/channels').MultiChannelNotificationServiceInterface
   ) {
     this.clientProvider = client;
     this.paymentGateway = paymentGateway;
     this.emailService = emailService;
+    this.multiChannelNotifications = multiChannelNotifications;
   }
 
   private async getClient(): Promise<SupabaseClient> {
@@ -526,6 +529,56 @@ export class SupabaseLoanService implements LoanServiceInterface {
         }
 
         await client.from('installments').insert(rows);
+      }
+
+      // 5. Notify PyME borrower that promissory note is signed and funds disbursed
+      try {
+        const formattedAmount = Number(loan.amount_requested || 0).toLocaleString('es-AR');
+        await client.from('notifications').insert({
+          user_id: loan.borrower_id,
+          type: 'success',
+          title: 'Pagaré firmado: fondos desembolsados',
+          action_url: '/dashboard/pyme',
+          message: `Has firmado exitosamente el pagaré digital por $${formattedAmount}. Los fondos fueron transferidos a tu cuenta bancaria y el crédito comenzó a devengar cuotas.`,
+          read: false,
+        });
+      } catch (notifErr) {
+        console.warn('[SupabaseLoanService] Warning inserting promissory note signed notification:', notifErr);
+      }
+
+      if (this.multiChannelNotifications?.notifyPromissoryNoteSignedAndActivated) {
+        try {
+          const { data: invs } = await client
+            .from('investments')
+            .select('investor_id, amount')
+            .eq('loan_id', loan.id);
+
+          const uniqueInvIds = Array.from(new Set((invs || []).map((i: any) => i.investor_id)));
+          const { data: invProfiles } = await client
+            .from('profiles')
+            .select('id, legal_name, email')
+            .in('id', uniqueInvIds);
+
+          const { data: borrowerProfile } = await client
+            .from('profiles')
+            .select('id, legal_name, email')
+            .eq('id', loan.borrower_id)
+            .maybeSingle();
+
+          const participating = uniqueInvIds.map((id) => {
+            const p = (invProfiles || []).find((pr: any) => pr.id === id) || { id, legal_name: 'Inversor' };
+            const invRecord = (invs || []).find((i: any) => i.investor_id === id);
+            return { profile: p, amount: invRecord?.amount ?? 0 };
+          });
+
+          await this.multiChannelNotifications.notifyPromissoryNoteSignedAndActivated({
+            loan: updatedLoan as Loan,
+            borrower: borrowerProfile || { id: loan.borrower_id, legal_name: 'la PyME' },
+            investors: participating,
+          });
+        } catch (mErr) {
+          console.warn('[SupabaseLoanService] Multi-channel promissory note alert warning:', mErr);
+        }
       }
 
       return updatedLoan as Loan;

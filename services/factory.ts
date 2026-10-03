@@ -133,13 +133,25 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
     liveServiceRegistry.email ??
     new ResendEmailService();
 
+  const notificationsService =
+    liveServiceRegistry.notifications ??
+    new SupabaseNotificationService(clientProvider);
+
+  const multiChannelNotifications =
+    liveServiceRegistry.multiChannelNotifications ??
+    new MultiChannelNotificationService(
+      new TwilioChannelAdapter(),
+      notificationsService,
+      emailService
+    );
+
   const services: Services = {
     loans:
       liveServiceRegistry.loans ??
-      new SupabaseLoanService(clientProvider, paymentGateway, emailService),
+      new SupabaseLoanService(clientProvider, paymentGateway, emailService, multiChannelNotifications),
     investments:
       liveServiceRegistry.investments ??
-      new SupabaseInvestmentService(clientProvider, paymentGateway, emailService),
+      new SupabaseInvestmentService(clientProvider, paymentGateway, emailService, multiChannelNotifications),
     creditScoring:
       liveServiceRegistry.creditScoring ??
       new BcraCreditScoringService({ clientProvider }),
@@ -147,28 +159,23 @@ export function createLiveServices(options?: LiveServiceOptions): Services {
       liveServiceRegistry.legal ??
       new SupabaseLegalService(clientProvider),
     payments: paymentGateway,
+    notifications: notificationsService,
+    email: emailService,
+    multiChannelNotifications,
   };
 
   if (liveServiceRegistry.email) {
     services.email = liveServiceRegistry.email;
   } else if (options?.email) {
     services.email = options.email;
-  } else if (Object.keys(liveServiceRegistry).length === 0) {
-    services.email = emailService;
   }
 
   if (liveServiceRegistry.notifications) {
     services.notifications = liveServiceRegistry.notifications;
-  } else if (Object.keys(liveServiceRegistry).length === 0) {
-    services.notifications = new SupabaseNotificationService(clientProvider);
   }
 
   if (liveServiceRegistry.multiChannelNotifications) {
     services.multiChannelNotifications = liveServiceRegistry.multiChannelNotifications;
-  } else if (Object.keys(liveServiceRegistry).length === 0) {
-    services.multiChannelNotifications = new MultiChannelNotificationService(
-      new TwilioChannelAdapter()
-    );
   }
 
   return services;

@@ -202,7 +202,13 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
       investors,
     });
 
-    // 1. In-App Notifications for investors
+    // 1. In-App Notifications for borrower and investors
+    const borrowerNotifs = await notificationService.getNotifications(mockBorrower.id);
+    expect(borrowerNotifs).toHaveLength(1);
+    expect(borrowerNotifs[0].type).toBe('success');
+    expect(borrowerNotifs[0].title).toBe('Pagaré firmado: fondos desembolsados');
+    expect(borrowerNotifs[0].action_url).toBe('/dashboard/pyme');
+
     const inv1Notifs = await notificationService.getNotifications(mockInvestor1.id);
     expect(inv1Notifs).toHaveLength(1);
     expect(inv1Notifs[0].type).toBe('success');

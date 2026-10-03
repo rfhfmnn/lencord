@@ -451,6 +451,16 @@ export class MultiChannelNotificationService
    */
   public async notifyPromissoryNoteSignedAndActivated(params: NotifyPromissoryNoteSignedParams): Promise<void> {
     const borrowerName = params.borrower?.legal_name || 'la PyME';
+    const formattedAmount = Number(params.loan.amount_requested || 0).toLocaleString('es-AR');
+
+    // 1. In-app notification for PyME borrower
+    await this.createInAppNotification({
+      user_id: params.loan.borrower_id,
+      type: 'success',
+      title: 'Pagaré firmado: fondos desembolsados',
+      action_url: '/dashboard/pyme',
+      message: `Has firmado exitosamente el pagaré digital por $${formattedAmount}. Los fondos fueron transferidos a tu cuenta bancaria y el crédito comenzó a devengar cuotas.`,
+    });
 
     // Deduplicate investors
     const seenInvestorIds = new Set<string>();
