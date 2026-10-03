@@ -16,6 +16,7 @@ import type {
 } from '@/types';
 import { createSupabaseServerClient, createSupabaseBrowserClient } from './client';
 import { mapSupabaseError } from './errors';
+import { generateFrenchInstallments } from '../amortization';
 
 export type SupabaseClientProvider =
   | SupabaseClient
@@ -488,45 +489,26 @@ export class SupabaseLoanService implements LoanServiceInterface {
         .eq('loan_id', loanId);
 
       if (!existingInst || existingInst.length === 0) {
-        const term = loan.term_months || 1;
-        const annualRate = loan.borrower_rate || 45;
-        const monthlyRate = annualRate > 0 ? annualRate / 100 / 12 : 0.04;
-        let installmentAmount = 0;
-        if (term === 1) {
-          installmentAmount = loan.amount_requested * (1 + monthlyRate);
-        } else {
-          const factor = Math.pow(1 + monthlyRate, term);
-          installmentAmount = (loan.amount_requested * (monthlyRate * factor)) / (factor - 1);
-        }
+        const generated = generateFrenchInstallments({
+          loanId: loan.id,
+          amount: loan.amount_requested,
+          termMonths: loan.term_months || 1,
+          borrowerRate: loan.borrower_rate || 45,
+          investorRate: loan.investor_rate || 42.5,
+          baseUvaValue: loan.base_uva_value,
+        });
 
-        let remaining = loan.amount_requested;
-        const now = new Date();
-        const investorRateRatio = loan.borrower_rate > 0 ? loan.investor_rate / loan.borrower_rate : 0.9;
-        const rows = [];
-
-        for (let i = 1; i <= term; i++) {
-          const interestTotal = remaining * monthlyRate;
-          const principal = installmentAmount - interestTotal;
-          remaining = Math.max(0, remaining - principal);
-          const dueDate = new Date(now.getTime() + i * 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0];
-
-          const interestInvestors = Number((interestTotal * investorRateRatio).toFixed(2));
-          const interestLencord = Number((interestTotal - interestInvestors).toFixed(2));
-
-          rows.push({
-            loan_id: loan.id,
-            installment_number: i,
-            due_date: dueDate,
-            principal_amount: Number(principal.toFixed(2)),
-            interest_borrower: Number(interestTotal.toFixed(2)),
-            interest_investors: interestInvestors,
-            interest_lencord: interestLencord,
-            uva_value_applied: loan.base_uva_value,
-            status: 'pending',
-          });
-        }
+        const rows = generated.map((inst) => ({
+          loan_id: inst.loan_id,
+          installment_number: inst.installment_number,
+          due_date: inst.due_date,
+          principal_amount: inst.principal_amount,
+          interest_borrower: inst.interest_borrower,
+          interest_investors: inst.interest_investors,
+          interest_lencord: inst.interest_lencord,
+          uva_value_applied: inst.uva_value_applied,
+          status: inst.status,
+        }));
 
         await client.from('installments').insert(rows);
       }
