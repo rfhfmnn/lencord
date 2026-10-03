@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Input } from '@/components/ui/Input';
 import { cleanCuit, validateCuit, formatCuit } from '@/components/solicitar/cuitValidator';
 import { defaultMockStateStore } from '@/services/mock/mockState';
+import { SEED_PROFILES } from '@/services/mock/seedData';
 import { WithdrawalModal } from './WithdrawalModal';
 import { PromissoryNoteModal } from '@/components/legal/PromissoryNoteModal';
 import styles from './dashboard.module.css';
@@ -112,6 +113,11 @@ export function InvestorDashboard({
   const [installments, setInstallments] = useState<Installment[]>(initialInstallments ?? []);
   const [borrowerNamesMap, setBorrowerNamesMap] = useState<Record<string, string>>(() => {
     const initialMap: Record<string, string> = { ...(initialBorrowerNames ?? {}) };
+    SEED_PROFILES.forEach((p) => {
+      if (p.id && (p.legal_name || (p as any).pyme_company_name)) {
+        initialMap[p.id] = (p as any).pyme_company_name || p.legal_name;
+      }
+    });
     defaultMockStateStore.profiles.forEach((p) => {
       if (p.id && (p.legal_name || (p as any).pyme_company_name)) {
         initialMap[p.id] = (p as any).pyme_company_name || p.legal_name;
@@ -612,8 +618,10 @@ export function InvestorDashboard({
         const newBorrowerNames: Record<string, string> = {};
         const missingBorrowerIds: string[] = [];
         uniqueBorrowerIds.forEach((borrowerId) => {
-          const mockB = defaultMockStateStore.profiles.find((p) => p.id === borrowerId);
-          if (mockB) {
+          const mockB =
+            defaultMockStateStore.profiles.find((p) => p.id === borrowerId) ||
+            SEED_PROFILES.find((p) => p.id === borrowerId);
+          if (mockB && (mockB.legal_name || (mockB as any).pyme_company_name)) {
             newBorrowerNames[borrowerId] = (mockB as any).pyme_company_name || mockB.legal_name;
           } else {
             missingBorrowerIds.push(borrowerId);
@@ -714,9 +722,11 @@ export function InvestorDashboard({
       const borrowerName =
         (loan as any)?.borrower_name ||
         (loan as any)?.company_name ||
+        (loan as any)?.legal_name ||
         (loan?.borrower_id && borrowerNamesMap[loan.borrower_id]) ||
         (loan?.borrower_id && defaultMockStateStore.profiles.find((p) => p.id === loan.borrower_id)?.legal_name) ||
-        'Empresa PyME';
+        (loan?.borrower_id && SEED_PROFILES.find((p) => p.id === loan.borrower_id)?.legal_name) ||
+        (loan?.borrower_id ? `Razón Social (${loan.borrower_id})` : 'Razón Social no especificada');
 
       return {
         investment: inv,
@@ -797,7 +807,7 @@ export function InvestorDashboard({
     const map = new Map<string, string>();
     enrichedInvestments.forEach(({ loan, borrowerName }) => {
       if (loan?.borrower_id) {
-        map.set(loan.borrower_id, borrowerName || 'Empresa PyME');
+        map.set(loan.borrower_id, borrowerName || 'Razón Social no especificada');
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));

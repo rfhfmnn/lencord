@@ -300,6 +300,17 @@ CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Public can view borrower company profiles" ON public.profiles;
+CREATE POLICY "Public can view borrower company profiles"
+  ON public.profiles FOR SELECT
+  USING (
+    role IN ('borrower', 'sme')
+    OR EXISTS (
+      SELECT 1 FROM public.loans
+      WHERE loans.borrower_id = profiles.id
+    )
+  );
+
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
