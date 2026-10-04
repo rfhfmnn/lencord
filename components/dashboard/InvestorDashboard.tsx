@@ -75,10 +75,15 @@ export function InvestorDashboard({
   const [currentInvestorId, setCurrentInvestorId] = useState<string>(
     investorIdProp || (initialInvestments ? 'prof-inv-001' : '')
   );
-  const [investorName, setInvestorName] = useState<string>(legalName ?? '');
-  const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? '');
-  const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? '');
-  const [investorAlias, setInvestorAlias] = useState<string>('');
+  const initialProfile = (
+    defaultMockStateStore.profiles.find((p) => p.id === (investorIdProp || (initialInvestments ? 'prof-inv-001' : ''))) ||
+    SEED_PROFILES.find((p) => p.id === (investorIdProp || (initialInvestments ? 'prof-inv-001' : '')))
+  );
+
+  const [investorName, setInvestorName] = useState<string>(legalName ?? initialProfile?.legal_name ?? '');
+  const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? initialProfile?.email ?? '');
+  const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? initialProfile?.bank_cbu_cvu ?? '');
+  const [investorAlias, setInvestorAlias] = useState<string>((initialProfile as any)?.bank_alias ?? '');
   const [custodyTransactions, setCustodyTransactions] = useState<CustodyTransaction[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState<boolean>(false);
   const [custodyBalanceState, setCustodyBalanceState] = useState<number | null>(
@@ -146,15 +151,19 @@ export function InvestorDashboard({
     setCreditProfilesMap({});
     setInstallments([]);
     setCustodyTransactions([]);
-    if (!legalName) setInvestorName('');
-    if (!userEmail) setInvestorEmail('');
-    if (!cbuCvu) setInvestorCbu('');
-    setInvestorAlias('');
-    if (custodyBalanceProp === undefined) setCustodyBalanceState(null);
-    if (initialTaxId === undefined) setTaxId(null);
+    const initialProf =
+      defaultMockStateStore.profiles.find((p) => p.id === (investorIdProp || '')) ||
+      SEED_PROFILES.find((p) => p.id === (investorIdProp || ''));
+    if (!legalName) setInvestorName(initialProf?.legal_name ?? '');
+    if (!userEmail) setInvestorEmail(initialProf?.email ?? '');
+    if (!cbuCvu) setInvestorCbu(initialProf?.bank_cbu_cvu ?? '');
+    setInvestorAlias((initialProf as any)?.bank_alias ?? '');
+    if (custodyBalanceProp === undefined) setCustodyBalanceState(initialProf?.custody_balance ?? null);
+    if (initialTaxId === undefined) setTaxId(initialProf?.tax_id ?? null);
     setHasBorrowerRole(false);
   }, [
     initialInvestments,
+    investorIdProp,
     legalName,
     userEmail,
     cbuCvu,

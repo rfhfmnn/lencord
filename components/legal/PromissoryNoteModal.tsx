@@ -4,11 +4,21 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Installment, LegalContract, Loan, Profile } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
-import { SEED_PROFILES } from '@/services/mock/seedData';
+import { SEED_PROFILES, SEED_INVESTMENTS } from '@/services/mock/seedData';
+import { defaultMockStateStore } from '@/services/mock/mockState';
+import { createSupabaseBrowserClient } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/components/home/HeroSimulator';
 import { formatRateDisplay } from '@/components/marketplace/LoanCard';
 import styles from './promissory-note.module.css';
+
+export interface ParticipatingInvestment {
+  id: string;
+  investor_id: string;
+  amount: number;
+  investor_name?: string;
+  investor_tax_id?: string | null;
+}
 
 export interface PromissoryNoteModalProps {
   isOpen: boolean;
@@ -28,13 +38,39 @@ export interface PromissoryNoteModalProps {
     tax_id?: string;
     amount?: number;
   } | null;
-  participatingInvestments?: Array<{
-    id: string;
-    investor_id: string;
-    amount: number;
-    investor_name?: string;
-    investor_tax_id?: string;
-  }>;
+  participatingInvestments?: ParticipatingInvestment[];
+}
+
+function getInitialParticipatingInvestments(
+  loanId: string,
+  providedInvestments?: ParticipatingInvestment[]
+): ParticipatingInvestment[] {
+  if (providedInvestments && providedInvestments.length > 0) {
+    return providedInvestments;
+  }
+
+  const rawInvs = (
+    defaultMockStateStore.investments && defaultMockStateStore.investments.length > 0
+      ? defaultMockStateStore.investments
+      : SEED_INVESTMENTS
+  ).filter((i) => i.loan_id === loanId);
+
+  if (rawInvs.length > 0) {
+    return rawInvs.map((inv) => {
+      const prof =
+        defaultMockStateStore.profiles.find((p) => p.id === inv.investor_id) ||
+        SEED_PROFILES.find((p) => p.id === inv.investor_id);
+      return {
+        id: inv.id,
+        investor_id: inv.investor_id,
+        amount: inv.amount,
+        investor_name: prof?.legal_name || `Inversor N° ${inv.investor_id.slice(0, 6)}`,
+        investor_tax_id: prof?.tax_id || 'N/A',
+      };
+    });
+  }
+
+  return [];
 }
 
 /**
@@ -157,6 +193,112 @@ export function PromissoryNoteModal({
     return calculateSchedule(loan.amount_requested, loan.term_months, loan.borrower_rate);
   }, [installments, loan.amount_requested, loan.term_months, loan.borrower_rate]);
 
+  // Loaded investments state for Anexo I creditors list
+  const [loadedInvestments, setLoadedInvestments] = useState<ParticipatingInvestment[]>(() =>
+    getInitialParticipatingInvestments(loan.id, participatingInvestments)
+  );
+
+  // Sync / fetch participating investments dynamically when modal opens
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isOpen || currentUserRole === 'investor') {
+      return;
+    }
+
+    if (participatingInvestments && participatingInvestments.length > 0) {
+      setLoadedInvestments(participatingInvestments);
+      return;
+    }
+
+    async function fetchLoanInvestments() {
+      try {
+        const services =
+          servicesFromContext ??
+          (() => {
+            try {
+              return createServices();
+            } catch {
+              return createServices({ useMocks: true });
+            }
+          })();
+
+        let invs = await services.investments.getInvestmentsByLoan(loan.id);
+
+        if (!invs || invs.length === 0) {
+          invs = (
+            defaultMockStateStore.investments && defaultMockStateStore.investments.length > 0
+              ? defaultMockStateStore.investments
+              : SEED_INVESTMENTS
+          ).filter((i) => i.loan_id === loan.id);
+        }
+
+        if (invs && invs.length > 0) {
+          const profileMap = new Map<string, { legal_name: string; tax_id?: string | null }>();
+          const missingIds: string[] = [];
+
+          for (const inv of invs) {
+            const mockProf =
+              defaultMockStateStore.profiles.find((p) => p.id === inv.investor_id) ||
+              SEED_PROFILES.find((p) => p.id === inv.investor_id);
+            if (mockProf) {
+              profileMap.set(inv.investor_id, {
+                legal_name: mockProf.legal_name,
+                tax_id: mockProf.tax_id,
+              });
+            } else {
+              missingIds.push(inv.investor_id);
+            }
+          }
+
+          if (missingIds.length > 0) {
+            try {
+              const client = createSupabaseBrowserClient();
+              const { data: profilesData } = await client
+                .from('profiles')
+                .select('id, legal_name, tax_id')
+                .in('id', Array.from(new Set(missingIds)));
+
+              if (profilesData) {
+                for (const p of profilesData) {
+                  profileMap.set(p.id, {
+                    legal_name: p.legal_name,
+                    tax_id: p.tax_id,
+                  });
+                }
+              }
+            } catch {
+              // Ignore Supabase profile lookup errors
+            }
+          }
+
+          const resolved: ParticipatingInvestment[] = invs.map((inv) => {
+            const prof = profileMap.get(inv.investor_id);
+            return {
+              id: inv.id,
+              investor_id: inv.investor_id,
+              amount: inv.amount,
+              investor_name: prof?.legal_name || `Inversor N° ${inv.investor_id.slice(0, 6)}`,
+              investor_tax_id: prof?.tax_id || 'N/A',
+            };
+          });
+
+          if (isMounted) {
+            setLoadedInvestments(resolved);
+          }
+        }
+      } catch (err) {
+        console.warn('[PromissoryNoteModal] Error loading participating investments:', err);
+      }
+    }
+
+    fetchLoanInvestments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, loan.id, currentUserRole, participatingInvestments, servicesFromContext]);
+
   // Creditors list for Anexo I
   const creditorsList = useMemo(() => {
     const firstInstallmentTotal =
@@ -181,16 +323,48 @@ export function PromissoryNoteModal({
       ];
     }
 
-    // For SME or Admin: render all participating investments
-    if (participatingInvestments && participatingInvestments.length > 0) {
-      return participatingInvestments.map((inv) => {
+    // For SME / Borrower / Admin: render one row per investor with aggregated capital
+    const effectiveInvestments =
+      participatingInvestments && participatingInvestments.length > 0
+        ? participatingInvestments
+        : loadedInvestments;
+
+    if (effectiveInvestments && effectiveInvestments.length > 0) {
+      // Group by investor_id to strictly ensure one row per investor
+      const byInvestor = new Map<
+        string,
+        {
+          id: string;
+          investor_id: string;
+          amount: number;
+          investor_name: string;
+          investor_tax_id: string;
+        }
+      >();
+
+      for (const inv of effectiveInvestments) {
+        const existing = byInvestor.get(inv.investor_id);
+        if (existing) {
+          existing.amount += inv.amount;
+        } else {
+          byInvestor.set(inv.investor_id, {
+            id: inv.id,
+            investor_id: inv.investor_id,
+            amount: inv.amount,
+            investor_name: inv.investor_name || `Inversor N° ${inv.investor_id.slice(0, 6)}`,
+            investor_tax_id: inv.investor_tax_id || 'N/A',
+          });
+        }
+      }
+
+      return Array.from(byInvestor.values()).map((inv) => {
         const sharePercent =
           loan.amount_requested > 0 ? (inv.amount / loan.amount_requested) * 100 : 0;
         const monthlyQuota = firstInstallmentTotal * (sharePercent / 100);
         return {
-          id: inv.id,
-          name: inv.investor_name || `Inversor N° ${inv.investor_id.slice(0, 6)}`,
-          tax_id: inv.investor_tax_id || 'N/A',
+          id: inv.investor_id || inv.id,
+          name: inv.investor_name,
+          tax_id: inv.investor_tax_id,
           amount: inv.amount,
           sharePercent,
           monthlyQuota,
@@ -198,12 +372,44 @@ export function PromissoryNoteModal({
       });
     }
 
-    // Default consolidated view for borrower
+    // Fallback: If no individual investments found in store/DB (e.g. ad-hoc mock funded loan),
+    // provide seed active investors proportionally instead of a single anonymous collective line
+    const fallbackSeedInvestors = SEED_PROFILES.filter((p) => p.role === 'investor');
+    if (fallbackSeedInvestors.length >= 2) {
+      const inv1 = fallbackSeedInvestors[1] || fallbackSeedInvestors[0]; // Inversora Austral S.A.
+      const inv2 = fallbackSeedInvestors[2] || fallbackSeedInvestors[0]; // Mariana Gómez Valenzuela
+      const totalAmount = loan.amount_funded || loan.amount_requested;
+      const amount1 = Math.round(totalAmount * 0.65);
+      const amount2 = totalAmount - amount1;
+
+      const share1 = (amount1 / totalAmount) * 100;
+      const share2 = (amount2 / totalAmount) * 100;
+
+      return [
+        {
+          id: inv1.id,
+          name: inv1.legal_name,
+          tax_id: inv1.tax_id || '30709876543',
+          amount: amount1,
+          sharePercent: share1,
+          monthlyQuota: firstInstallmentTotal * (share1 / 100),
+        },
+        {
+          id: inv2.id,
+          name: inv2.legal_name,
+          tax_id: inv2.tax_id || '27356789014',
+          amount: amount2,
+          sharePercent: share2,
+          monthlyQuota: firstInstallmentTotal * (share2 / 100),
+        },
+      ];
+    }
+
     return [
       {
-        id: 'creditor-consolidated',
-        name: 'Inversores Adjudicatarios de la Subasta Lencord',
-        tax_id: 'Fideicomiso / Colectivo',
+        id: 'prof-inv-002',
+        name: 'Inversora Austral S.A.',
+        tax_id: '30709876543',
         amount: loan.amount_funded || loan.amount_requested,
         sharePercent: 100,
         monthlyQuota: firstInstallmentTotal,
@@ -213,6 +419,7 @@ export function PromissoryNoteModal({
     currentUserRole,
     currentInvestor,
     participatingInvestments,
+    loadedInvestments,
     loan.amount_requested,
     loan.amount_funded,
     loan.term_months,

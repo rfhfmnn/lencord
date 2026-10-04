@@ -365,4 +365,96 @@ describe('PromissoryNoteModal Component & Signing Flow (Issue #16)', () => {
     expect(screen.getByTestId('borrower-status-badge')).toHaveTextContent('active');
     expect(screen.getByTestId('amortization-table')).toBeInTheDocument();
   });
+
+  it('renders one row per investor in Anexo I with investor name, tax ID, invested amount and monthly quota', async () => {
+    render(
+      <ServiceProvider services={services}>
+        <PromissoryNoteModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={sampleFundedLoan}
+          borrower={sampleBorrower}
+          installments={sampleInstallments}
+        />
+      </ServiceProvider>
+    );
+
+    // Verify Anexo I table is rendered
+    expect(screen.getByTestId('contract-annex-creditors')).toBeInTheDocument();
+
+    // Verify neither anonymous nor single collective fallback row is rendered
+    expect(screen.queryByText(/Inversores Adjudicatarios de la Subasta Lencord/i)).not.toBeInTheDocument();
+
+    // In sampleFundedLoan (loan-seed-004), two investors participated:
+    // 1. Inversora Austral S.A. ($ 20.000.000)
+    // 2. Mariana Gómez Valenzuela ($ 10.000.000)
+    const row1 = screen.getByTestId('creditor-row-prof-inv-002');
+    expect(row1).toBeInTheDocument();
+    expect(row1).toHaveTextContent('Inversora Austral S.A.');
+    expect(row1).toHaveTextContent('30709876543');
+    expect(row1).toHaveTextContent('$ 20.000.000');
+    expect(row1).toHaveTextContent('66.67%');
+
+    const row2 = screen.getByTestId('creditor-row-prof-inv-003');
+    expect(row2).toBeInTheDocument();
+    expect(row2).toHaveTextContent('Mariana Gómez Valenzuela');
+    expect(row2).toHaveTextContent('27356789014');
+    expect(row2).toHaveTextContent('$ 10.000.000');
+    expect(row2).toHaveTextContent('33.33%');
+  });
+
+  it('aggregates multiple investments from the same investor into a single row per investor with combined amount', async () => {
+    const customInvestments = [
+      {
+        id: 'inv-a-1',
+        investor_id: 'inv-person-1',
+        investor_name: 'Carlos Alberto Bianchi',
+        investor_tax_id: '20123456789',
+        amount: 5_000_000,
+      },
+      {
+        id: 'inv-a-2',
+        investor_id: 'inv-person-1', // Same investor second bid
+        investor_name: 'Carlos Alberto Bianchi',
+        investor_tax_id: '20123456789',
+        amount: 3_000_000,
+      },
+      {
+        id: 'inv-b-1',
+        investor_id: 'inv-person-2',
+        investor_name: 'Lucía Fernández S.R.L.',
+        investor_tax_id: '30998877665',
+        amount: 2_000_000,
+      },
+    ];
+
+    render(
+      <ServiceProvider services={services}>
+        <PromissoryNoteModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={{ ...sampleFundedLoan, amount_requested: 10_000_000, amount_funded: 10_000_000 }}
+          borrower={sampleBorrower}
+          participatingInvestments={customInvestments}
+        />
+      </ServiceProvider>
+    );
+
+    // Verify row for Carlos Alberto Bianchi combines $5M + $3M = $8M (80%)
+    const bianchiRow = screen.getByTestId('creditor-row-inv-person-1');
+    expect(bianchiRow).toBeInTheDocument();
+    expect(bianchiRow).toHaveTextContent('Carlos Alberto Bianchi');
+    expect(bianchiRow).toHaveTextContent('20123456789');
+    expect(bianchiRow).toHaveTextContent('$ 8.000.000');
+    expect(bianchiRow).toHaveTextContent('80.00%');
+
+    // Verify row for Lucía Fernández S.R.L. ($2M, 20%)
+    const luciaRow = screen.getByTestId('creditor-row-inv-person-2');
+    expect(luciaRow).toBeInTheDocument();
+    expect(luciaRow).toHaveTextContent('Lucía Fernández S.R.L.');
+    expect(luciaRow).toHaveTextContent('30998877665');
+    expect(luciaRow).toHaveTextContent('$ 2.000.000');
+    expect(luciaRow).toHaveTextContent('20.00%');
+  });
 });
+
