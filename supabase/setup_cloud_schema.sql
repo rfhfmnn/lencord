@@ -93,6 +93,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   kyc_status kyc_status NOT NULL DEFAULT 'pending',
   bank_cbu_cvu VARCHAR(22) NOT NULL DEFAULT '0000000000000000000000',
   is_verified BOOLEAN NOT NULL DEFAULT false,
+  company_type VARCHAR(50) NULL,
+  start_date DATE NULL,
   notification_preferences JSONB NOT NULL DEFAULT '{"email": true, "sms": true, "whatsapp": true}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   CONSTRAINT check_tax_id_format CHECK (
@@ -435,11 +437,14 @@ DECLARE
   v_tax_id text;
   v_legal_name text;
   v_first_name text;
+  v_last_name text;
+  v_company_type text;
+  v_start_date date;
 BEGIN
   -- Extraer rol de metadata ('borrower' o 'investor')
   v_role := COALESCE((new.raw_user_meta_data->>'role')::user_role, 'investor'::user_role);
   
-  -- Extraer tax_id si existe (puede ser NULL para inversores o el CUIT/DNI ingresado)
+  -- Extraer tax_id si existe
   v_tax_id := NULLIF(new.raw_user_meta_data->>'tax_id', '');
 
   -- Extraer Razón Social o Nombre
@@ -449,9 +454,23 @@ BEGIN
   );
 
   v_first_name := COALESCE(
+    NULLIF(new.raw_user_meta_data->>'first_name', ''),
     NULLIF(new.raw_user_meta_data->>'representative_name', ''),
     split_part(v_legal_name, ' ', 1)
   );
+
+  v_last_name := COALESCE(
+    NULLIF(new.raw_user_meta_data->>'last_name', ''),
+    ''
+  );
+
+  v_company_type := NULLIF(new.raw_user_meta_data->>'company_type', '');
+
+  BEGIN
+    v_start_date := NULLIF(new.raw_user_meta_data->>'start_date', '')::date;
+  EXCEPTION WHEN OTHERS THEN
+    v_start_date := NULL;
+  END;
 
   INSERT INTO public.profiles (
     id,
@@ -460,6 +479,8 @@ BEGIN
     legal_name,
     first_name,
     last_name,
+    company_type,
+    start_date,
     email,
     phone,
     kyc_status,
@@ -470,7 +491,9 @@ BEGIN
     v_tax_id,
     v_legal_name,
     v_first_name,
-    '',
+    v_last_name,
+    v_company_type,
+    v_start_date,
     new.email,
     '',
     'pending',
@@ -479,6 +502,10 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     legal_name = EXCLUDED.legal_name,
+    first_name = COALESCE(EXCLUDED.first_name, public.profiles.first_name),
+    last_name = COALESCE(EXCLUDED.last_name, public.profiles.last_name),
+    company_type = COALESCE(EXCLUDED.company_type, public.profiles.company_type),
+    start_date = COALESCE(EXCLUDED.start_date, public.profiles.start_date),
     role = CASE WHEN public.profiles.role = 'admin' THEN 'admin'::user_role ELSE EXCLUDED.role END;
 
   RETURN new;
