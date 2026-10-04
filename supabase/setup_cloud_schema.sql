@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS public.loans (
   base_uva_value NUMERIC(10, 4) NULL,
   category loan_category NOT NULL,
   status loan_status NOT NULL DEFAULT 'in_review',
-  funding_deadline TIMESTAMP WITH TIME ZONE NOT NULL,
+  funding_deadline TIMESTAMP WITH TIME ZONE NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   CONSTRAINT check_amount_requested_positive CHECK (amount_requested > 0),

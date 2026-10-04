@@ -44,7 +44,7 @@ export interface CreditApprovalEmailParams {
   amount: number;
   riskTier: string;
   investorRate: number;
-  fundingDeadline?: string;
+  fundingDeadline?: string | null;
 }
 
 export interface CreditRejectionEmailParams {

@@ -457,10 +457,12 @@ export function AdminConsole({
       }
       setPlatformSpread(2.5);
 
-      const deadlineDate = selectedLoan.funding_deadline
-        ? new Date(selectedLoan.funding_deadline)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      setFundingDeadline(isNaN(deadlineDate.getTime()) ? '' : deadlineDate.toISOString().slice(0, 16));
+      if (selectedLoan.funding_deadline) {
+        const deadlineDate = new Date(selectedLoan.funding_deadline);
+        setFundingDeadline(isNaN(deadlineDate.getTime()) ? '' : deadlineDate.toISOString().slice(0, 16));
+      } else {
+        setFundingDeadline('');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLoanId]);
@@ -491,15 +493,12 @@ export function AdminConsole({
       return;
     }
 
-    if (!fundingDeadline) {
-      setFormError('Debes seleccionar una fecha límite de subasta.');
-      return;
-    }
-
-    const deadlineTimestamp = new Date(fundingDeadline).getTime();
-    if (isNaN(deadlineTimestamp) || deadlineTimestamp <= Date.now()) {
-      setFormError('La fecha límite de subasta debe ser una fecha y hora futura.');
-      return;
+    if (fundingDeadline) {
+      const deadlineTimestamp = new Date(fundingDeadline).getTime();
+      if (isNaN(deadlineTimestamp) || deadlineTimestamp <= Date.now()) {
+        setFormError('La fecha límite de subasta debe ser una fecha y hora futura.');
+        return;
+      }
     }
 
     if (bcraSituation < 1 || bcraSituation > 5) {
@@ -527,7 +526,7 @@ export function AdminConsole({
           }
         })();
 
-      const isoDeadline = new Date(fundingDeadline).toISOString();
+      const isoDeadline = fundingDeadline ? new Date(fundingDeadline).toISOString() : null;
 
       const updatedLoan = await resolvedServices.loans.approveAndPublishLoan({
         loan_id: selectedLoan.id,
@@ -758,6 +757,15 @@ export function AdminConsole({
                     <span className={styles.infoLabel}>Esquema de Tasa</span>
                     <span className={styles.infoValue}>
                       {selectedLoan.rate_type === 'TNA_FIXED' ? 'TNA Fija' : 'CER + Spread'}
+                    </span>
+                  </div>
+
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Vencimiento Subasta</span>
+                    <span className={styles.infoValue} data-testid="detail-funding-deadline">
+                      {selectedLoan.funding_deadline
+                        ? new Date(selectedLoan.funding_deadline).toLocaleDateString('es-AR')
+                        : 'Sin fecha límite (abierta)'}
                     </span>
                   </div>
 
@@ -1114,17 +1122,30 @@ export function AdminConsole({
                   <label htmlFor="funding-deadline-input" className={styles.formLabel}>
                     Fecha límite de subasta (Fijada por PyME solicitante)
                   </label>
-                  <input
-                    id="funding-deadline-input"
-                    type="datetime-local"
-                    value={fundingDeadline}
-                    onChange={(e) => setFundingDeadline(e.target.value)}
-                    readOnly
-                    tabIndex={-1}
-                    className={styles.formInput}
-                    style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' }}
-                    data-testid="input-funding-deadline"
-                  />
+                  {selectedLoan.funding_deadline ? (
+                    <input
+                      id="funding-deadline-input"
+                      type="datetime-local"
+                      value={fundingDeadline}
+                      onChange={(e) => setFundingDeadline(e.target.value)}
+                      readOnly
+                      tabIndex={-1}
+                      className={styles.formInput}
+                      style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' }}
+                      data-testid="input-funding-deadline"
+                    />
+                  ) : (
+                    <input
+                      id="funding-deadline-input"
+                      type="text"
+                      value="Sin fecha límite (subasta abierta)"
+                      readOnly
+                      tabIndex={-1}
+                      className={styles.formInput}
+                      style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b', fontWeight: 500 }}
+                      data-testid="input-funding-deadline"
+                    />
+                  )}
                   <small style={{ color: '#64748b', fontSize: '11px', marginTop: '4px', display: 'block' }}>
                     Solo lectura. La fecha es propuesta por la PyME. Si no es adecuada, rechazar la solicitud indicando el motivo.
                   </small>
@@ -1198,7 +1219,11 @@ export function AdminConsole({
               </div>
               <div className={styles.modalSummaryRow}>
                 <span>Cierre de Subasta:</span>
-                <strong>{new Date(fundingDeadline).toLocaleString('es-AR')}</strong>
+                <strong>
+                  {fundingDeadline
+                    ? new Date(fundingDeadline).toLocaleString('es-AR')
+                    : 'Sin fecha límite (subasta abierta)'}
+                </strong>
               </div>
             </div>
 

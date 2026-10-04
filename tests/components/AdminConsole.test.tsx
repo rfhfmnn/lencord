@@ -907,6 +907,60 @@ describe('AdminConsole Component (Task 15)', () => {
       expect(deadlineInput).toHaveValue('2026-11-01T23:59');
     });
 
+    it('renders "Sin fecha límite (subasta abierta)" when borrower requested open auction without deadline', async () => {
+      const openLoan: Loan = {
+        id: 'loan-open-01',
+        borrower_id: 'sme-test-1',
+        amount_requested: 5_000_000,
+        amount_funded: 0,
+        term_months: 6,
+        rate_type: 'TNA_FIXED',
+        investor_rate: 0,
+        platform_spread: 0,
+        borrower_rate: 0,
+        base_uva_value: null,
+        category: 'working_capital',
+        status: 'in_review',
+        funding_deadline: null,
+        created_at: '2026-09-24T18:00:00.000Z',
+      };
+
+      const customStore = new MockStateStore();
+      customStore.loans = [openLoan];
+      customStore.profiles = Object.values(mockProfiles);
+      customStore.creditProfiles = Object.values(mockCreditProfiles);
+      const services = createServices({ store: customStore, useMocks: true });
+
+      render(
+        <ServiceProvider services={services}>
+          <AdminConsole
+            initialLoans={[openLoan]}
+            initialProfiles={mockProfiles}
+            initialCreditProfiles={mockCreditProfiles}
+          />
+        </ServiceProvider>
+      );
+
+      const deadlineInput = screen.getByTestId('input-funding-deadline');
+      expect(deadlineInput).toHaveAttribute('readonly');
+      expect(deadlineInput).toHaveValue('Sin fecha límite (subasta abierta)');
+      expect(screen.getByTestId('detail-funding-deadline')).toHaveTextContent('Sin fecha límite (abierta)');
+
+      // Admin can approve the open loan without validation error
+      const submitBtn = screen.getByTestId('btn-approve-publish');
+      fireEvent.click(submitBtn);
+
+      expect(screen.getByTestId('approval-confirmation-modal')).toBeInTheDocument();
+      expect(screen.getByText('Sin fecha límite (subasta abierta)')).toBeInTheDocument();
+
+      const confirmBtn = screen.getByTestId('btn-confirm-approve');
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('success-alert')).toBeInTheDocument();
+      });
+    });
+
     it('renders standardized secure PDF links for AFIP and Bank statements', () => {
       render(
         <AdminConsole

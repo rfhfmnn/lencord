@@ -82,6 +82,7 @@ export interface SubmitLoanInput {
   rate_type: RateType;
   category: LoanCategory;
   description?: string | null;
+  funding_deadline?: string | null;
   balance_sheet_url?: string | null;
   f931_url?: string | null;
   afip_url?: string | null;
@@ -93,7 +94,7 @@ export interface ApproveLoanInput {
   risk_tier: RiskTier;
   investor_rate: number;
   platform_spread: number;
-  funding_deadline: string; // ISO 8601 Timestamp
+  funding_deadline: string | null; // ISO 8601 Timestamp or null if open auction
 }
 
 export interface LoanFilters {
@@ -345,7 +346,7 @@ export interface CreditApprovalEmailParams {
   amount: number;
   riskTier: string;
   investorRate: number;
-  fundingDeadline?: string;
+  fundingDeadline?: string | null;
 }
 
 export interface CreditRejectionEmailParams {

@@ -372,6 +372,7 @@ export function LoanWizard({
         rate_type: step2Data.rate_type ?? 'TNA_FIXED',
         category: step2Data.category ?? 'working_capital',
         description: step2Data.description ? step2Data.description.trim() : undefined,
+        funding_deadline: step2Data.funding_deadline !== undefined ? step2Data.funding_deadline : null,
         afip_url:
           step3Data.afip_constancia_url ??
           (step3Data.afip_constancia

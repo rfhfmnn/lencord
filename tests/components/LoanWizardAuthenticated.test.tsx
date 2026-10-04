@@ -250,6 +250,63 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       const createdLoan: Loan = onSubmittedMock.mock.calls[0][0];
       expect(createdLoan.description).toBe('Adquisición de plegadora hidráulica industrial CNC');
     });
+
+    it('persists chosen funding_deadline in submitLoanApplication payload and created loan', async () => {
+      const services = createServices({ useMocks: true });
+      const submitSpy = vi.spyOn(services.loans, 'submitLoanApplication');
+      const onSubmittedMock = vi.fn();
+
+      const authenticatedBorrowerId = 'usr-authenticated-borrower-999';
+      const customDeadline = '2026-12-15T23:59:59.000Z';
+
+      render(
+        <ServiceProvider services={services}>
+          <LoanWizard
+            initialStep={4}
+            borrowerId={authenticatedBorrowerId}
+            initialStep1Data={{
+              legal_name: 'Metalúrgica Quilmes SRL',
+              tax_id: '30-65432109-8',
+              company_type: 'SRL',
+              email: 'contacto@quilmesmetal.ar',
+            }}
+            initialStep2Data={{
+              category: 'machinery',
+              amount_requested: 10000000,
+              term_months: 6,
+              rate_type: 'TNA_FIXED',
+              funding_deadline: customDeadline,
+            }}
+            initialStep3Data={{
+              afip_constancia_url: '/documents/usr-999/afip.pdf',
+              bank_statements_url: '/documents/usr-999/bank.pdf',
+              balance_sheet_url: '/documents/usr-999/balance.pdf',
+              f931_url: '/documents/usr-999/f931.pdf',
+            }}
+            initialStep4Data={{
+              cbu_cvu: '0720123488000012345678',
+            }}
+            onSubmitted={onSubmittedMock}
+            redirectToConfirmationPage={false}
+          />
+        </ServiceProvider>
+      );
+
+      fireEvent.click(screen.getByTestId('checkbox-funds-declaration'));
+      fireEvent.click(screen.getByTestId('checkbox-terms-accepted'));
+      fireEvent.click(screen.getByTestId('step4-submit-button'));
+
+      await waitFor(() => {
+        expect(submitSpy).toHaveBeenCalledTimes(1);
+      });
+
+      const payload: SubmitLoanInput = submitSpy.mock.calls[0][0];
+      expect(payload.funding_deadline).toBe(customDeadline);
+
+      expect(onSubmittedMock).toHaveBeenCalledTimes(1);
+      const createdLoan: Loan = onSubmittedMock.mock.calls[0][0];
+      expect(createdLoan.funding_deadline).toBe(customDeadline);
+    });
   });
 
   describe('Error Handling and Inline Retry Alert without Wiping Steps', () => {

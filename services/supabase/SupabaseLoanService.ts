@@ -179,7 +179,10 @@ export class SupabaseLoanService implements LoanServiceInterface {
     try {
       const client = await this.getClient();
       const now = new Date();
-      const deadline = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const fundingDeadline =
+        input.funding_deadline !== undefined
+          ? input.funding_deadline
+          : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       const newLoanData: Record<string, unknown> = {
         borrower_id: input.borrower_id,
@@ -193,7 +196,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
         base_uva_value: null,
         category: input.category,
         status: 'in_review',
-        funding_deadline: deadline.toISOString(),
+        funding_deadline: fundingDeadline,
       };
 
       if (input.description) {
@@ -206,7 +209,19 @@ export class SupabaseLoanService implements LoanServiceInterface {
         .select()
         .single();
 
-      // Fallback: If table does not yet have 'description' column, retry without description
+      // Fallback 1: If database schema table has NOT NULL constraint on funding_deadline and null was sent
+      if (error && error.message?.includes('funding_deadline') && fundingDeadline === null) {
+        newLoanData.funding_deadline = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        const retryDeadline = await client
+          .from('loans')
+          .insert(newLoanData)
+          .select()
+          .single();
+        data = retryDeadline.data;
+        error = retryDeadline.error;
+      }
+
+      // Fallback 2: If table does not yet have 'description' column, retry without description
       if (error && (error.code === 'PGRST204' || error.message?.includes('description'))) {
         delete newLoanData.description;
         const retryResult = await client
@@ -341,7 +356,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
               amount: updatedLoan.amount_requested,
               riskTier: input.risk_tier,
               investorRate: input.investor_rate,
-              fundingDeadline: input.funding_deadline,
+              fundingDeadline: input.funding_deadline ?? undefined,
             });
           }
         } catch (emailErr) {

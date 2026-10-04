@@ -112,7 +112,10 @@ export class MockLoanService implements LoanServiceInterface {
 
     const id = `loan-${Math.random().toString(36).substring(2, 9)}`;
     const now = new Date();
-    const deadline = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const fundingDeadline =
+      input.funding_deadline !== undefined
+        ? input.funding_deadline
+        : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const newLoan: Loan = {
       id,
@@ -128,7 +131,7 @@ export class MockLoanService implements LoanServiceInterface {
       category: input.category,
       status: 'in_review',
       description: input.description ?? null,
-      funding_deadline: deadline.toISOString(),
+      funding_deadline: fundingDeadline,
       created_at: now.toISOString(),
     };
 
@@ -268,7 +271,7 @@ export class MockLoanService implements LoanServiceInterface {
             amount: loan.amount_requested,
             riskTier: input.risk_tier,
             investorRate: input.investor_rate,
-            fundingDeadline: input.funding_deadline,
+            fundingDeadline: input.funding_deadline ?? undefined,
           })
           .catch((err) => {
             console.warn('[MockLoanService] Failed to send approval email:', err?.message || err);
