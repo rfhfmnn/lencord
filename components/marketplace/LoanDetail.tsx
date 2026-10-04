@@ -77,9 +77,10 @@ export function LoanDetail({
 
   useEffect(() => {
     let isMounted = true;
+    const client = createSupabaseBrowserClient();
+
     async function resolveAuthUser() {
       try {
-        const client = createSupabaseBrowserClient();
         const { data } = await client.auth.getUser();
         if (isMounted && data?.user?.id) {
           if (!investorId || investorId === 'prof-inv-001') {
@@ -90,13 +91,40 @@ export function LoanDetail({
         // mock/offline
       }
     }
+
     if (!investorId || investorId === 'prof-inv-001') {
       resolveAuthUser();
     } else {
       setEffectiveInvestorId(investorId);
     }
+
+    const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      if (!investorId || investorId === 'prof-inv-001') {
+        if (session?.user?.id) {
+          setEffectiveInvestorId(session.user.id);
+        } else {
+          setEffectiveInvestorId('prof-inv-001');
+        }
+      }
+    });
+
+    const handleWindowAuth = () => {
+      if (isMounted && (!investorId || investorId === 'prof-inv-001')) {
+        resolveAuthUser();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-state-change', handleWindowAuth);
+    }
+
     return () => {
       isMounted = false;
+      authListener?.subscription?.unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth-state-change', handleWindowAuth);
+      }
     };
   }, [investorId]);
 

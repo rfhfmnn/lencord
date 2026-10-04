@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { CustodyTransaction, Installment, Investment, Loan, RiskTier, SmeCreditProfile } from '@/types';
 import { useServices } from '@/context/ServiceProvider';
@@ -138,23 +138,65 @@ export function InvestorDashboard({
   const [isActivatingPyme, setIsActivatingPyme] = useState<boolean>(false);
   const [pymeActivationSuccess, setPymeActivationSuccess] = useState<string | null>(null);
 
+  // Reset all state when user switches or logs out to prevent cross-contamination
+  const resetInvestorState = useCallback(() => {
+    if (initialInvestments) return;
+    setInvestments([]);
+    setLoansMap({});
+    setCreditProfilesMap({});
+    setInstallments([]);
+    setCustodyTransactions([]);
+    if (!legalName) setInvestorName('');
+    if (!userEmail) setInvestorEmail('');
+    if (!cbuCvu) setInvestorCbu('');
+    setInvestorAlias('');
+    if (custodyBalanceProp === undefined) setCustodyBalanceState(null);
+    if (initialTaxId === undefined) setTaxId(null);
+    setHasBorrowerRole(false);
+  }, [
+    initialInvestments,
+    legalName,
+    userEmail,
+    cbuCvu,
+    custodyBalanceProp,
+    initialTaxId,
+  ]);
+
   // Sync if prop changes or detect authenticated user
   useEffect(() => {
     let isMounted = true;
-    async function resolveInvestorId() {
-      if (investorIdProp && investorIdProp !== 'prof-inv-001') {
-        setCurrentInvestorId(investorIdProp);
+    const client = createSupabaseBrowserClient();
+
+    async function resolveInvestorId(forceReset = false) {
+      if (initialInvestments) {
+        return;
+      }
+      if (investorIdProp) {
+        setCurrentInvestorId((prev) => {
+          if (forceReset || (prev && prev !== investorIdProp)) {
+            resetInvestorState();
+          }
+          return investorIdProp;
+        });
         return;
       }
       try {
-        const client = createSupabaseBrowserClient();
         const { data } = await client.auth.getUser();
-        if (data?.user?.id && isMounted) {
-          setCurrentInvestorId(data.user.id);
-          return;
-        } else if (investorIdProp && isMounted) {
-          setCurrentInvestorId(investorIdProp);
-          return;
+        if (isMounted) {
+          if (data?.user?.id) {
+            setCurrentInvestorId((prev) => {
+              if (forceReset || (prev && prev !== data.user.id)) {
+                resetInvestorState();
+              }
+              return data.user.id;
+            });
+            return;
+          } else {
+            // Logged out / no session
+            resetInvestorState();
+            setCurrentInvestorId('');
+            return;
+          }
         }
       } catch {
         if (investorIdProp && isMounted) {
@@ -162,16 +204,43 @@ export function InvestorDashboard({
           return;
         }
       }
-      // If no authenticated user and no prop passed, fallback to mock profile in mock/dev mode
+      // If no authenticated user and no prop passed
       if (isMounted) {
-        setCurrentInvestorId((prev) => prev || investorIdProp || 'prof-inv-001');
+        resetInvestorState();
+        setCurrentInvestorId('');
       }
     }
+
     resolveInvestorId();
+
+    const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
+      if (!isMounted || initialInvestments) return;
+      if (event === 'SIGNED_OUT' || !session) {
+        resetInvestorState();
+        setCurrentInvestorId(investorIdProp || '');
+      } else if (session?.user?.id) {
+        resolveInvestorId(true);
+      }
+    });
+
+    const handleWindowAuth = () => {
+      if (isMounted && !initialInvestments) {
+        resolveInvestorId(true);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-state-change', handleWindowAuth);
+    }
+
     return () => {
       isMounted = false;
+      authListener?.subscription?.unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth-state-change', handleWindowAuth);
+      }
     };
-  }, [investorIdProp]);
+  }, [investorIdProp, initialInvestments, resetInvestorState]);
 
   // Reset taxId when currentInvestorId changes if not locked by initialTaxId prop
   useEffect(() => {
@@ -183,7 +252,16 @@ export function InvestorDashboard({
   useEffect(() => {
     let isMounted = true;
     async function loadProfileData() {
-      if (!currentInvestorId) return;
+      if (!currentInvestorId) {
+        if (!legalName) setInvestorName('');
+        if (!userEmail) setInvestorEmail('');
+        if (!cbuCvu) setInvestorCbu('');
+        setInvestorAlias('');
+        if (custodyBalanceProp === undefined) setCustodyBalanceState(null);
+        if (initialTaxId === undefined) setTaxId(null);
+        setHasBorrowerRole(false);
+        return;
+      }
 
       // 1. Check in mockStateStore first
       const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
@@ -560,10 +638,17 @@ export function InvestorDashboard({
 
     async function loadInvestorData() {
       if (!currentInvestorId) {
+        setInvestments([]);
+        setLoansMap({});
+        setCreditProfilesMap({});
+        setInstallments([]);
+        setCustodyTransactions([]);
+        setLoading(false);
         return;
       }
       try {
         setLoading(true);
+        setInvestments([]);
         const resolvedServices =
           servicesFromContext ??
           (() => {

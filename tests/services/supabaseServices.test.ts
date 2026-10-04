@@ -380,6 +380,45 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
       expect(mockPaymentGateway.releaseFunds).toHaveBeenCalledWith('hold-1');
       expect(mockPaymentGateway.releaseFunds).toHaveBeenCalledWith('hold-2');
     });
+
+    it('strictly isolates investments by enforcing the authenticated user id for non-admin investors', async () => {
+      const activeUserUuid = '11111111-2222-3333-4444-555555555555';
+      const otherUserUuid = '99999999-8888-7777-6666-555555555555';
+
+      const { client, builder } = createMockSupabaseClient();
+      client.auth = {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: activeUserUuid } },
+          error: null,
+        }),
+      };
+
+      // Profile is regular investor, not admin
+      const profileBuilder = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'investor' }, error: null }),
+      };
+
+      (client.from as any).mockImplementation((table: string) => {
+        if (table === 'profiles') return profileBuilder;
+        return builder;
+      });
+
+      builder.order.mockResolvedValueOnce({
+        data: [{ id: 'inv-active-user', investor_id: activeUserUuid, amount: 100_000 }],
+        error: null,
+      });
+
+      const investmentService = new SupabaseInvestmentService(client as unknown as SupabaseClient);
+
+      // Caller requests otherUserUuid, but service must enforce activeUserUuid
+      const results = await investmentService.getInvestmentsByInvestor(otherUserUuid);
+
+      expect(builder.eq).toHaveBeenCalledWith('investor_id', activeUserUuid);
+      expect(results).toHaveLength(1);
+      expect(results[0].investor_id).toBe(activeUserUuid);
+    });
   });
 
   describe('SupabaseLegalService', () => {

@@ -93,15 +93,13 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
     }
 
     let targetInvestorId = input.investor_id;
-    if (!targetInvestorId || targetInvestorId === 'prof-inv-001') {
-      try {
-        const { data: authData } = await client.auth.getUser();
-        if (authData?.user?.id) {
-          targetInvestorId = authData.user.id;
-        }
-      } catch {
-        // Fallback
+    try {
+      const { data: authData } = await client.auth.getUser();
+      if (authData?.user?.id) {
+        targetInvestorId = authData.user.id;
       }
+    } catch {
+      // Fallback
     }
 
     try {
@@ -129,7 +127,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
           .from('investments')
           .update({ external_payment_id: holdId })
           .eq('loan_id', input.loan_id)
-          .eq('investor_id', input.investor_id)
+          .eq('investor_id', targetInvestorId)
           .eq('status', 'committed')
           .order('created_at', { ascending: false })
           .limit(1);
@@ -279,15 +277,13 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
     const client = await this.getClient();
 
     let targetInvestorId = input.investor_id;
-    if (!targetInvestorId || targetInvestorId === 'prof-inv-001') {
-      try {
-        const { data: authData } = await client.auth.getUser();
-        if (authData?.user?.id) {
-          targetInvestorId = authData.user.id;
-        }
-      } catch {
-        // Fallback
+    try {
+      const { data: authData } = await client.auth.getUser();
+      if (authData?.user?.id) {
+        targetInvestorId = authData.user.id;
       }
+    } catch {
+      // Fallback
     }
 
     // Check investor tax_id requirement (Issue #53)
@@ -570,16 +566,35 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
 
     try {
       const client = await this.getClient();
+      let targetInvestorId = investorId;
+      try {
+        const { data: authData } = await client.auth.getUser();
+        if (authData?.user?.id) {
+          // If authenticated user is an investor (not admin), enforce querying only their own investments
+          const { data: profile } = await client
+            .from('profiles')
+            .select('role')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+
+          if (profile?.role !== 'admin') {
+            targetInvestorId = authData.user.id;
+          }
+        }
+      } catch {
+        // Fallback to investorId if auth check fails or in tests
+      }
+
       const { data, error } = await client
         .from('investments')
         .select('*')
-        .eq('investor_id', investorId)
+        .eq('investor_id', targetInvestorId)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw mapSupabaseError(
           error,
-          `Error al obtener inversiones del inversor ${investorId}`
+          `Error al obtener inversiones del inversor ${targetInvestorId}`
         );
       }
 

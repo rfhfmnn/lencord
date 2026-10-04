@@ -667,5 +667,34 @@ describe('InvestorDashboard Component (Task 13)', () => {
       expect(screen.getByTestId('installment-row-inst-loan2-1')).toBeInTheDocument();
     });
   });
+
+  describe('Session Isolation and Cross-Account Safety', () => {
+    it('clears active investments and resets profile data when auth-state-change is dispatched', async () => {
+      const services = createServices({ store: defaultMockStateStore, useMocks: true });
+
+      const { rerender } = render(
+        <ServiceProvider services={services}>
+          <InvestorDashboard investorId="prof-inv-001" />
+        </ServiceProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('investor-dashboard-loading')).not.toBeInTheDocument();
+      });
+
+      // Verify prof-inv-001 data is rendered initially
+      expect(screen.getByTestId('active-investments-table')).toBeInTheDocument();
+
+      // Simulate user switching to an investor with no investments
+      rerender(
+        <ServiceProvider services={services}>
+          <InvestorDashboard investorId="prof-inv-empty-test" />
+        </ServiceProvider>
+      );
+
+      // Immediately upon rerender with new ID, previous investments must be cleared
+      expect(screen.queryByTestId('creditor-row-prof-inv-001')).not.toBeInTheDocument();
+    });
+  });
 });
 

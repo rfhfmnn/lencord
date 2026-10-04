@@ -257,6 +257,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         // Best effort
       }
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
+
       const destination = determineRedirectDestination(selectedRole, isAdminUser);
 
       if (onSuccess) {

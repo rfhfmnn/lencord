@@ -235,6 +235,9 @@ export const Header: React.FC<HeaderProps> = ({
       } else if (session?.user) {
         resolveSession();
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
     });
 
     return () => {
@@ -273,6 +276,9 @@ export const Header: React.FC<HeaderProps> = ({
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem('lencord_loan_wizard_draft');
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
       if (typeof document !== 'undefined') {
         if (document.body) {
           document.body.style.overflow = '';
@@ -290,6 +296,9 @@ export const Header: React.FC<HeaderProps> = ({
         }
       }
       try {
+        if (router?.refresh) {
+          router.refresh();
+        }
         if (router?.push) {
           router.push('/');
         } else if (typeof window !== 'undefined') {
