@@ -55,7 +55,7 @@ export default async function ConfirmacionPage({
     base_uva_value: null,
     category,
     status: 'in_review',
-    funding_deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    funding_deadline: null,
     created_at: new Date().toISOString(),
   };
 
