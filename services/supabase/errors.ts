@@ -118,6 +118,18 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
     );
   }
 
+  if (
+    rawMessage.includes('investments_investor_id_fkey') ||
+    rawMessage.includes('custody_transactions_profile_id_fkey') ||
+    (rawMessage.includes('violates foreign key constraint') && rawMessage.includes('profiles'))
+  ) {
+    return new ApplicationError(
+      'Tu perfil de usuario no se encuentra registrado en el sistema. Por favor reingresá a tu cuenta.',
+      'PROFILE_NOT_FOUND',
+      400
+    );
+  }
+
   // RLS or permission denied
   if (rawMessage.includes('row-level security') || rawMessage.includes('permission denied')) {
     return new ApplicationError('Acceso denegado al recurso solicitado', 'PERMISSION_DENIED', 403);

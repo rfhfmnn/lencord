@@ -178,7 +178,7 @@ BEGIN
       now()
     );
 
-    -- Inversores participantes (deduplicados)
+    -- Inversores participantes (deduplicados con cast explícito a notification_type)
     INSERT INTO public.notifications (
       user_id,
       title,
@@ -191,7 +191,7 @@ BEGIN
       investor_id,
       'Subasta finalizada con éxito',
       'La subasta en la que participaste se completó al 100%. La PyME ha sido notificada para firmar el pagaré digital.',
-      'success',
+      'success'::public.notification_type,
       '/dashboard/inversor',
       now()
     FROM public.investments
