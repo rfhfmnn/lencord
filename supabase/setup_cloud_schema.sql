@@ -311,6 +311,18 @@ CREATE POLICY "Public can view borrower company profiles"
     )
   );
 
+DROP POLICY IF EXISTS "Borrowers can view creditor profiles for their loans" ON public.profiles;
+CREATE POLICY "Borrowers can view creditor profiles for their loans"
+  ON public.profiles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.investments
+      JOIN public.loans ON loans.id = investments.loan_id
+      WHERE investments.investor_id = profiles.id
+        AND loans.borrower_id = auth.uid()
+    )
+  );
+
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
@@ -353,6 +365,17 @@ DROP POLICY IF EXISTS "Investors can view their own investments" ON public.inves
 CREATE POLICY "Investors can view their own investments"
   ON public.investments FOR SELECT
   USING (auth.uid() = investor_id);
+
+DROP POLICY IF EXISTS "Borrowers can view investments for their loans" ON public.investments;
+CREATE POLICY "Borrowers can view investments for their loans"
+  ON public.investments FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.loans
+      WHERE loans.id = investments.loan_id
+        AND loans.borrower_id = auth.uid()
+    )
+  );
 
 -- Políticas de Notifications
 DROP POLICY IF EXISTS "Admins have full access to notifications" ON public.notifications;
