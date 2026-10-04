@@ -45,6 +45,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     expect(screen.getByTestId('role-tab-sme')).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByLabelText(/Razón social de la empresa/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/CUIT de la empresa/i)).toBeInTheDocument();
+    expect(screen.getByTestId('select-company-type')).toBeInTheDocument();
+    expect(screen.getByTestId('input-start-date')).toBeInTheDocument();
     expect(screen.getByLabelText(/Nombre del representante/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Apellido del representante/i)).toBeInTheDocument();
     expect(screen.getByTestId('submit-register-btn')).toHaveTextContent('Registrar mi empresa');
@@ -57,6 +59,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     expect(screen.getByLabelText(/Nombre y apellido completo/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/DNI o CUIT tributario/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Razón social de la empresa/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('select-company-type')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('input-start-date')).not.toBeInTheDocument();
     expect(screen.getByTestId('submit-register-btn')).toHaveTextContent('Crear cuenta de inversor');
   });
 
@@ -76,10 +80,32 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
 
     expect(await screen.findByText(/La razón social o nombre de la empresa es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/El CUIT es obligatorio/i)).toBeInTheDocument();
+    expect(screen.getByText(/La fecha de inicio de actividades es obligatoria/i)).toBeInTheDocument();
     expect(screen.getByText(/El nombre del representante es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/El apellido del representante es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/El correo electrónico es obligatorio/i)).toBeInTheDocument();
     expect(screen.getByText(/La contraseña es obligatoria/i)).toBeInTheDocument();
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it('rejects future start_date with accessible error', async () => {
+    render(
+      <RegisterForm
+        supabaseClient={mockSupabaseClient}
+        defaultRole="borrower"
+        defaultTermsAccepted={true}
+      />
+    );
+
+    // Pick a date in year 2099
+    fireEvent.change(screen.getByTestId('input-start-date'), {
+      target: { value: '2099-01-01' },
+    });
+    fireEvent.click(screen.getByTestId('submit-register-btn'));
+
+    expect(
+      await screen.findByText(/La fecha de inicio no puede ser una fecha futura/i)
+    ).toBeInTheDocument();
     expect(mockSignUp).not.toHaveBeenCalled();
   });
 
@@ -95,6 +121,9 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     // Fill valid company and representative
     fireEvent.change(screen.getByLabelText(/Razón social de la empresa/i), {
       target: { value: 'Industrias Andinas S.A.' },
+    });
+    fireEvent.change(screen.getByTestId('input-start-date'), {
+      target: { value: '2020-05-15' },
     });
     fireEvent.change(screen.getByLabelText(/Nombre del representante/i), {
       target: { value: 'Carlos' },
@@ -191,6 +220,12 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
     fireEvent.change(screen.getByLabelText(/CUIT de la empresa/i), {
       target: { value: '30-50001091-2' },
     });
+    fireEvent.change(screen.getByTestId('select-company-type'), {
+      target: { value: 'SAS' },
+    });
+    fireEvent.change(screen.getByTestId('input-start-date'), {
+      target: { value: '2021-06-15' },
+    });
     fireEvent.change(screen.getByLabelText(/Nombre del representante/i), {
       target: { value: 'Mariana' },
     });
@@ -218,6 +253,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
             representative_name: 'Mariana López',
             first_name: 'Mariana',
             last_name: 'López',
+            company_type: 'SAS',
+            start_date: '2021-06-15',
           },
         },
       });
@@ -234,6 +271,8 @@ describe('Dedicated User Registration Page with Role Selection (Issue #27)', () 
           email: 'contacto@techpyme.com.ar',
           first_name: 'Mariana',
           last_name: 'López',
+          company_type: 'SAS',
+          start_date: '2021-06-15',
         })
       );
     });

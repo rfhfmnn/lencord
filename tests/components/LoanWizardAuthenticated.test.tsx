@@ -28,12 +28,14 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
   });
 
   describe('Pre-population and Read-Only Constraints (Step 1)', () => {
-    it('pre-populates CUIT, company name, and email from authenticated userProfile prop and renders verified fields in read-only state', async () => {
+    it('pre-populates CUIT, company name, email, company_type, and start_date from authenticated userProfile prop and renders verified fields in read-only state', async () => {
       const mockUserProfile = {
         id: 'borrower-auth-uuid-123',
         legal_name: 'Soluciones Metalúrgicas Quilmes S.A.',
         tax_id: '30712345671',
         email: 'contacto@quilmes-metal.com.ar',
+        company_type: 'SA',
+        start_date: '2019-04-10',
         phone: '+54 11 5555-9876',
         bank_cbu_cvu: '0720123488000012345678',
         isVerified: true,
@@ -50,15 +52,21 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       const legalNameInput = screen.getByTestId('input-legal-name') as HTMLInputElement;
       const taxIdInput = screen.getByTestId('input-tax-id') as HTMLInputElement;
       const emailInput = screen.getByTestId('input-email') as HTMLInputElement;
+      const companyTypeSelect = screen.getByTestId('select-company-type') as HTMLSelectElement;
+      const startDateInput = screen.getByTestId('input-start-date') as HTMLInputElement;
 
       expect(legalNameInput.value).toBe('Soluciones Metalúrgicas Quilmes S.A.');
       expect(taxIdInput.value).toBe('30-71234567-1');
       expect(emailInput.value).toBe('contacto@quilmes-metal.com.ar');
+      expect(companyTypeSelect.value).toBe('SA');
+      expect(startDateInput.value).toBe('2019-04-10');
 
-      // Verify read-only state to prevent identity spoofing
+      // Verify read-only state to prevent identity spoofing / unverified tampering
       expect(legalNameInput).toHaveAttribute('readonly');
       expect(taxIdInput).toHaveAttribute('readonly');
       expect(emailInput).toHaveAttribute('readonly');
+      expect(companyTypeSelect).toBeDisabled();
+      expect(startDateInput).toHaveAttribute('readonly');
 
       // Notice should be displayed
       expect(screen.getByTestId('verified-company-notice')).toBeInTheDocument();
@@ -67,7 +75,7 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       );
     });
 
-    it('asynchronously loads authenticated profile via Supabase client session and applies read-only protection', async () => {
+    it('asynchronously loads authenticated profile via Supabase client session with company_type and start_date', async () => {
       const mockSupabaseClient = {
         auth: {
           getSession: vi.fn().mockResolvedValue({
@@ -79,6 +87,8 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
                   user_metadata: {
                     legal_name: 'Logística Avellaneda S.R.L.',
                     tax_id: '30500010912',
+                    company_type: 'SRL',
+                    start_date: '2021-02-15',
                   },
                 },
               },
@@ -93,6 +103,8 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
               id: 'supabase-auth-user-999',
               legal_name: 'Logística Avellaneda S.R.L.',
               tax_id: '30500010912',
+              company_type: 'SRL',
+              start_date: '2021-02-15',
               phone: '+54 11 3333-2222',
               bank_cbu_cvu: '0000003100012345678901',
               role: 'sme',
@@ -117,13 +129,45 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
 
       const taxIdInput = screen.getByTestId('input-tax-id') as HTMLInputElement;
       const emailInput = screen.getByTestId('input-email') as HTMLInputElement;
+      const companyTypeSelect = screen.getByTestId('select-company-type') as HTMLSelectElement;
+      const startDateInput = screen.getByTestId('input-start-date') as HTMLInputElement;
 
       expect(taxIdInput.value).toBe('30-50001091-2');
       expect(emailInput.value).toBe('admin@pyme-avellaneda.ar');
+      expect(companyTypeSelect.value).toBe('SRL');
+      expect(startDateInput.value).toBe('2021-02-15');
 
       expect(legalNameInput).toHaveAttribute('readonly');
       expect(taxIdInput).toHaveAttribute('readonly');
       expect(emailInput).toHaveAttribute('readonly');
+      expect(companyTypeSelect).toBeDisabled();
+      expect(startDateInput).toHaveAttribute('readonly');
+    });
+
+    it('keeps company_type and start_date editable when legacy account has no recorded company_type or start_date', async () => {
+      const mockLegacyProfile = {
+        id: 'legacy-borrower-123',
+        legal_name: 'Comercio Antiguo S.A.',
+        tax_id: '30712345671',
+        email: 'contacto@comercio.com.ar',
+        phone: '+54 11 5555-9876',
+        bank_cbu_cvu: '0720123488000012345678',
+        isVerified: true,
+      };
+
+      render(
+        <LoanWizard
+          userProfile={mockLegacyProfile}
+          redirectToConfirmationPage={false}
+        />
+      );
+
+      const companyTypeSelect = screen.getByTestId('select-company-type') as HTMLSelectElement;
+      const startDateInput = screen.getByTestId('input-start-date') as HTMLInputElement;
+
+      // Because legacy profile had no company_type or start_date, these remain editable
+      expect(companyTypeSelect).not.toBeDisabled();
+      expect(startDateInput).not.toHaveAttribute('readonly');
     });
   });
 

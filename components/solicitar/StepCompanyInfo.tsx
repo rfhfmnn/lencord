@@ -205,7 +205,7 @@ export function StepCompanyInfo({
             }}
             data-testid="verified-company-notice"
           >
-            🔒 <strong>Datos fiscales verificados:</strong> La razón social y CUIT corresponden a tu cuenta autenticada y se encuentran protegidos contra modificaciones.
+            🔒 <strong>Datos fiscales verificados:</strong> La información societaria e impositiva corresponde a tu cuenta registrada y se encuentra precargada para confirmar la solicitud.
           </div>
         )}
 
@@ -252,6 +252,7 @@ export function StepCompanyInfo({
                 value={formData.company_type}
                 onChange={(e) => handleFieldChange('company_type', e.target.value as CompanyType)}
                 data-testid="select-company-type"
+                disabled={Boolean(isPrepopulated && initialData?.company_type)}
               >
                 <option value="SRL">S.R.L. (Sociedad de Responsabilidad Limitada)</option>
                 <option value="SA">S.A. (Sociedad Anónima)</option>
@@ -259,6 +260,11 @@ export function StepCompanyInfo({
                 <option value="Responsable Inscripto">Responsable Inscripto (Persona humana)</option>
                 <option value="Monotributo">Monotributo</option>
               </select>
+              {isPrepopulated && initialData?.company_type && (
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                  Tipo societario registrado (solo lectura)
+                </span>
+              )}
             </div>
           </div>
 
@@ -271,6 +277,12 @@ export function StepCompanyInfo({
               value={formData.start_date}
               onChange={(e) => handleFieldChange('start_date', e.target.value)}
               error={errors.start_date}
+              readOnly={Boolean(isPrepopulated && initialData?.start_date)}
+              helperText={
+                isPrepopulated && initialData?.start_date
+                  ? 'Fecha de inicio registrada (solo lectura)'
+                  : undefined
+              }
               data-testid="input-start-date"
             />
 

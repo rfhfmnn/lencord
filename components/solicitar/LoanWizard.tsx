@@ -81,6 +81,8 @@ export function LoanWizard({
         userProfileProp.last_name ||
         (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ').slice(1).join(' ') : '');
       const repName = userProfileProp.representative_name || `${fName} ${lName}`.trim();
+      const compType = (userProfileProp as any).company_type || (userProfileProp as any).companyType;
+      const stDate = (userProfileProp as any).start_date || (userProfileProp as any).startDate;
       return {
         legal_name: userProfileProp.legal_name || '',
         tax_id: userProfileProp.tax_id ? formatCuit(userProfileProp.tax_id) : '',
@@ -89,6 +91,8 @@ export function LoanWizard({
         rep_first_name: fName,
         rep_last_name: lName,
         rep_name: repName,
+        ...(compType ? { company_type: compType } : {}),
+        ...(stDate ? { start_date: stDate } : {}),
       };
     }
     return {};
@@ -167,6 +171,8 @@ export function LoanWizard({
           userProfileProp.last_name ||
           (userProfileProp.representative_name ? userProfileProp.representative_name.split(' ').slice(1).join(' ') : '');
         const repName = userProfileProp.representative_name || `${fName} ${lName}`.trim();
+        const compType = (userProfileProp as any).company_type || (userProfileProp as any).companyType;
+        const stDate = (userProfileProp as any).start_date || (userProfileProp as any).startDate;
 
         setStep1Data((prev) => ({
           ...prev,
@@ -177,6 +183,8 @@ export function LoanWizard({
           rep_first_name: fName || prev.rep_first_name || '',
           rep_last_name: lName || prev.rep_last_name || '',
           rep_name: repName || prev.rep_name || '',
+          ...(compType ? { company_type: compType } : {}),
+          ...(stDate ? { start_date: stDate } : {}),
         }));
         if (userProfileProp.bank_cbu_cvu) {
           setStep4Data((prev) => ({
@@ -237,13 +245,21 @@ export function LoanWizard({
         let firstName = authUser.user_metadata?.first_name || '';
         let lastName = authUser.user_metadata?.last_name || '';
         let repName = authUser.user_metadata?.representative_name || '';
+        let companyType =
+          authUser.user_metadata?.company_type ||
+          authUser.user_metadata?.companyType ||
+          '';
+        let startDate =
+          authUser.user_metadata?.start_date ||
+          authUser.user_metadata?.startDate ||
+          '';
         if (!firstName && repName) firstName = repName.split(' ')[0] || '';
         if (!lastName && repName) lastName = repName.split(' ').slice(1).join(' ') || '';
 
         try {
           const { data: profile } = await client
             .from('profiles')
-            .select('id, tax_id, legal_name, phone, bank_cbu_cvu, role, first_name, last_name')
+            .select('id, tax_id, legal_name, phone, bank_cbu_cvu, role, first_name, last_name, company_type, start_date')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -254,6 +270,8 @@ export function LoanWizard({
             if (profile.bank_cbu_cvu) cbu = profile.bank_cbu_cvu;
             if (profile.first_name) firstName = profile.first_name;
             if (profile.last_name) lastName = profile.last_name;
+            if (profile.company_type) companyType = profile.company_type;
+            if (profile.start_date) startDate = profile.start_date;
           }
         } catch {
           // Keep metadata fallbacks
@@ -272,6 +290,8 @@ export function LoanWizard({
             rep_first_name: firstName || prev.rep_first_name || '',
             rep_last_name: lastName || prev.rep_last_name || '',
             rep_name: fullRepName || prev.rep_name || '',
+            ...(companyType ? { company_type: companyType } : {}),
+            ...(startDate ? { start_date: startDate } : {}),
           }));
           if (cbu) {
             setStep4Data((prev) => ({
@@ -411,6 +431,8 @@ export function LoanWizard({
           if (step1Data.rep_phone) profileUpdates.phone = step1Data.rep_phone;
           if (step1Data.rep_first_name) profileUpdates.first_name = step1Data.rep_first_name;
           if (step1Data.rep_last_name) profileUpdates.last_name = step1Data.rep_last_name;
+          if (step1Data.company_type) profileUpdates.company_type = step1Data.company_type;
+          if (step1Data.start_date) profileUpdates.start_date = step1Data.start_date;
           if (step4Data.cbu_cvu) profileUpdates.bank_cbu_cvu = step4Data.cbu_cvu;
 
           if (Object.keys(profileUpdates).length > 0 && effectiveBorrowerId) {

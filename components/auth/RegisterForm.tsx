@@ -8,6 +8,7 @@ import { useServices } from '@/context/ServiceProvider';
 import { validateCuit, formatCuit, cleanCuit } from '@/components/solicitar/cuitValidator';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import type { CompanyType } from '@/components/solicitar/StepCompanyInfo';
 import styles from './register.module.css';
 
 export type RegisterRole = 'borrower' | 'investor';
@@ -37,6 +38,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   // PyME / Borrower Form State
   const [companyName, setCompanyName] = useState('');
   const [cuit, setCuit] = useState('');
+  const [companyType, setCompanyType] = useState<CompanyType>('SRL');
+  const [startDate, setStartDate] = useState('');
   const [repFirstName, setRepFirstName] = useState('');
   const [repLastName, setRepLastName] = useState('');
 
@@ -128,6 +131,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           'El CUIT ingresado no es válido según el algoritmo de verificación oficial (ARCA/AFIP).';
       }
 
+      if (!companyType) {
+        newErrors.companyType = 'Seleccioná el tipo societario de la empresa.';
+      }
+
+      if (!startDate.trim()) {
+        newErrors.startDate = 'La fecha de inicio de actividades es obligatoria.';
+      } else {
+        const selectedDate = new Date(startDate);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (selectedDate > today) {
+          newErrors.startDate = 'La fecha de inicio no puede ser una fecha futura.';
+        }
+      }
+
       if (!repFirstName.trim()) {
         newErrors.repFirstName = 'El nombre del representante es obligatorio.';
       }
@@ -182,19 +200,25 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       const repLastNameVal = role === 'borrower' ? repLastName.trim() : '';
       const repFullName = `${repFirstNameVal} ${repLastNameVal}`.trim();
 
+      const authMetadata: Record<string, any> = {
+        role: profileRole,
+        legal_name: legalName,
+        tax_id: cleanTaxId || null,
+        representative_name: repFullName,
+        first_name: role === 'borrower' ? repFirstNameVal : fullName.trim().split(' ')[0] || '',
+        last_name: role === 'borrower' ? repLastNameVal : fullName.trim().split(' ').slice(1).join(' ') || '',
+      };
+      if (role === 'borrower') {
+        authMetadata.company_type = companyType;
+        authMetadata.start_date = startDate || null;
+      }
+
       // 1. Supabase Auth Registration
       const { data, error: signUpError } = await client.auth.signUp({
         email: cleanEmail,
         password,
         options: {
-          data: {
-            role: profileRole,
-            legal_name: legalName,
-            tax_id: cleanTaxId || null,
-            representative_name: repFullName,
-            first_name: role === 'borrower' ? repFirstNameVal : fullName.trim().split(' ')[0] || '',
-            last_name: role === 'borrower' ? repLastNameVal : fullName.trim().split(' ').slice(1).join(' ') || '',
-          },
+          data: authMetadata,
         },
       });
 
@@ -217,7 +241,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       // 2. Persist profile record in profiles table
       if (data?.user) {
         try {
-          const { error: profileError } = await client.from('profiles').upsert({
+          const profileUpsertPayload: Record<string, any> = {
             id: data.user.id,
             role: profileRole,
             tax_id: cleanTaxId || null,
@@ -229,7 +253,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             bank_cbu_cvu: '0000000000000000000000',
             kyc_status: 'pending',
             notification_preferences: { email: true, sms: true, whatsapp: true },
-          });
+          };
+          if (role === 'borrower') {
+            profileUpsertPayload.company_type = companyType;
+            profileUpsertPayload.start_date = startDate || null;
+          }
+
+          const { error: profileError } = await client.from('profiles').upsert(profileUpsertPayload);
 
           if (profileError) {
             const errorMsg = profileError.message?.toLowerCase() || '';
@@ -432,6 +462,65 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                   error={errors.cuit}
                   helperText="11 dígitos con dígito verificador oficial"
                   className="font-mono"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="companyType" className={styles.label}>
+                  Tipo societario
+                  <span className={styles.required}>*</span>
+                </label>
+                <select
+                  id="companyType"
+                  name="companyType"
+                  className={`${styles.select} ${errors.companyType ? styles.selectError : ''}`}
+                  value={companyType}
+                  onChange={(e) => {
+                    setCompanyType(e.target.value as CompanyType);
+                    if (errors.companyType) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.companyType;
+                        return next;
+                      });
+                    }
+                  }}
+                  data-testid="select-company-type"
+                  required
+                >
+                  <option value="SRL">S.R.L. (Sociedad de Responsabilidad Limitada)</option>
+                  <option value="SA">S.A. (Sociedad Anónima)</option>
+                  <option value="SAS">S.A.S. (Sociedad por Acciones Simplificada)</option>
+                  <option value="Responsable Inscripto">Responsable Inscripto (Persona humana)</option>
+                  <option value="Monotributo">Monotributo</option>
+                </select>
+                {errors.companyType && (
+                  <span className={styles.fieldError} role="alert">
+                    {errors.companyType}
+                  </span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <Input
+                  label="Fecha de inicio de actividades"
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (errors.startDate) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.startDate;
+                        return next;
+                      });
+                    }
+                  }}
+                  error={errors.startDate}
+                  data-testid="input-start-date"
                   required
                 />
               </div>

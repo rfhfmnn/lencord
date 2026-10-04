@@ -224,3 +224,41 @@ Mostrar claramente la Razón Social de la empresa PyME en todas las oportunidade
 - Obtener la razón social exclusivamente desde la columna `legal_name` de `public.profiles`.
 - Respetar los estilos y tokens definidos en `_docs/design-system.md`.
 
+---
+
+## [Tarea 6: Incorporación de Tipo Societario y Fecha de Inicio en Registro PyME y Modo Confirmación en Paso 1](https://github.com/rfhfmnn/lencord/issues/87)
+
+**Labels:** `auth`, `solicitar`, `ux`, `enhancement`, `user-feedback`
+
+### Goal
+Capturar el tipo societario y la fecha de inicio de actividades directamente en el formulario de registro de cuentas PyME para persistirlos en el perfil de la empresa, permitiendo que el Paso 1 de la solicitud de crédito se autocomplete íntegramente como una pantalla de confirmación de datos societarios ya validados.
+
+### Acceptance criteria
+- [x] **Formulario de Registro PyME (`RegisterForm.tsx`):**
+  - Al seleccionar el rol PyME (`borrower`), se muestran dos campos obligatorios adicionales para la empresa:
+    - Selector "Tipo societario" (`data-testid="select-company-type"` / `id="companyType"`) con opciones: `SRL`, `SA`, `SAS`, `Responsable Inscripto` y `Monotributo`.
+    - Selector de fecha "Fecha de inicio de actividades" (`data-testid="input-start-date"` / `id="startDate"`).
+  - Si se intenta enviar el registro con el tipo societario vacío o sin fecha de inicio, se muestran los mensajes de validación correspondientes ("Seleccioná el tipo societario de la empresa." / "La fecha de inicio de actividades es obligatoria.").
+  - No se permite seleccionar una fecha de inicio de actividades posterior al día actual ("La fecha de inicio no puede ser una fecha futura.").
+  - Al completar el registro, los valores `company_type` y `start_date` se persisten en `auth.users.user_metadata` y en las columnas `company_type` y `start_date` de `public.profiles`.
+- [x] **Precarga y Resolución en Solicitud de Financiamiento (`LoanWizard.tsx`):**
+  - Al resolver el perfil del usuario autenticado (vía `userProfile` prop o sesión Supabase Auth), `company_type` y `start_date` se extraen de `profiles` / `user_metadata` y se inyectan en `step1Data`.
+  - Al completarse la solicitud de crédito, cualquier actualización de estos campos se replica en `profiles`.
+- [x] **Modo Confirmación en Paso 1 (`StepCompanyInfo.tsx`):**
+  - Cuando los datos societarios vienen precargados de la cuenta autenticada (`isPrepopulated` con `company_type` y `start_date`):
+    - El selector de tipo societario y el input de fecha de inicio se muestran en modo solo lectura / bloqueados (`disabled` / `readOnly`), con helper text indicando que provienen del registro de la empresa.
+    - Se visualiza el aviso destacado de confirmación: `"🔒 Datos fiscales verificados: La información de tu empresa corresponde a tu cuenta registrada y se encuentra precargada para confirmar la solicitud."`
+  - Si una cuenta preexistente o legado no posee `company_type` o `start_date` cargados en el perfil, los campos permanecen editables para permitir su ingreso manual.
+- [x] **Pruebas automatizadas:**
+  - Se ejecutan y pasan los tests en:
+    - `tests/components/RegisterForm.test.tsx` (validando campos, validaciones y persistencia de `company_type` y `start_date`).
+    - `tests/components/LoanWizardStep1And2.test.tsx` y `tests/components/LoanWizardAuthenticated.test.tsx` (validando precarga, modo solo lectura de confirmación en paso 1 y compatibilidad).
+
+### Out of scope
+- Validación por API en tiempo real con ARCA/AFIP del certificado de inicio de actividades.
+
+### Constraints
+- Agregar columnas `company_type VARCHAR(50)` y `start_date DATE` en `public.profiles` mediante migración PostgreSQL idempotente.
+- Respetar los tipos `CompanyType` definidos en `@/components/solicitar/StepCompanyInfo`.
+
+

@@ -116,6 +116,8 @@ export interface Profile {
   notification_preferences?: NotificationPreferences;
   custody_balance?: number | null;
   bank_alias?: string | null;
+  company_type?: string | null;
+  start_date?: string | null;
 }
 
 /**
