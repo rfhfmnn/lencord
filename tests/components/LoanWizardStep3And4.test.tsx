@@ -295,5 +295,8 @@ describe('Full LoanWizard Integration & Application Confirmation (Task 12)', () 
     expect(screen.getByTestId('receipt-amount')).toHaveTextContent('$ 8.000.000');
     expect(screen.getByTestId('receipt-term')).toHaveTextContent('6 meses');
     expect(screen.getByTestId('receipt-rate-type')).toHaveTextContent('CER + spread variable');
+    expect(screen.getByRole('link', { name: /ir a mi panel pyme/i })).toHaveAttribute('href', '/dashboard/pyme');
+    expect(screen.getByRole('link', { name: /volver al inicio/i })).toHaveAttribute('href', '/');
+    expect(screen.queryByText(/ver catálogo de préstamos/i)).not.toBeInTheDocument();
   });
 });

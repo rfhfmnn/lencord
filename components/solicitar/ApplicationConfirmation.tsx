@@ -113,14 +113,14 @@ export function ApplicationConfirmation({
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-        <Link href="/marketplace">
-          <Button variant="bordered" size="md">
-            Ver catálogo de préstamos
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+        <Link href="/dashboard/pyme">
+          <Button variant="primary" size="md">
+            Ir a mi panel PyME
           </Button>
         </Link>
         <Link href="/">
-          <Button variant="primary" size="md">
+          <Button variant="bordered" size="md">
             Volver al inicio
           </Button>
         </Link>
