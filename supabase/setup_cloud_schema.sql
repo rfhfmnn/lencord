@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone VARCHAR(50) NOT NULL DEFAULT '',
   kyc_status kyc_status NOT NULL DEFAULT 'pending',
   bank_cbu_cvu VARCHAR(22) NOT NULL DEFAULT '0000000000000000000000',
+  bank_alias VARCHAR(100) NULL,
   is_verified BOOLEAN NOT NULL DEFAULT false,
   company_type VARCHAR(50) NULL,
   start_date DATE NULL,

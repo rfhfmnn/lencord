@@ -82,8 +82,17 @@ export function InvestorDashboard({
 
   const [investorName, setInvestorName] = useState<string>(legalName ?? initialProfile?.legal_name ?? '');
   const [investorEmail, setInvestorEmail] = useState<string>(userEmail ?? initialProfile?.email ?? '');
-  const [investorCbu, setInvestorCbu] = useState<string>(cbuCvu ?? initialProfile?.bank_cbu_cvu ?? '');
+  const [investorCbu, setInvestorCbu] = useState<string>(() => {
+    const val = cbuCvu ?? initialProfile?.bank_cbu_cvu ?? '';
+    return val === '0000000000000000000000' ? '' : val;
+  });
   const [investorAlias, setInvestorAlias] = useState<string>((initialProfile as any)?.bank_alias ?? '');
+  const [isEditingCbu, setIsEditingCbu] = useState<boolean>(false);
+  const [cbuInput, setCbuInput] = useState<string>('');
+  const [aliasInput, setAliasInput] = useState<string>('');
+  const [cbuError, setCbuError] = useState<string | null>(null);
+  const [cbuSuccess, setCbuSuccess] = useState<string | null>(null);
+  const [isSavingCbu, setIsSavingCbu] = useState<boolean>(false);
   const [custodyTransactions, setCustodyTransactions] = useState<CustodyTransaction[]>([]);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState<boolean>(false);
   const [custodyBalanceState, setCustodyBalanceState] = useState<number | null>(
@@ -156,8 +165,14 @@ export function InvestorDashboard({
       SEED_PROFILES.find((p) => p.id === (investorIdProp || ''));
     if (!legalName) setInvestorName(initialProf?.legal_name ?? '');
     if (!userEmail) setInvestorEmail(initialProf?.email ?? '');
-    if (!cbuCvu) setInvestorCbu(initialProf?.bank_cbu_cvu ?? '');
+    if (cbuCvu === undefined) {
+      const val = initialProf?.bank_cbu_cvu ?? '';
+      setInvestorCbu(val === '0000000000000000000000' ? '' : val);
+    }
     setInvestorAlias((initialProf as any)?.bank_alias ?? '');
+    setIsEditingCbu(false);
+    setCbuError(null);
+    setCbuSuccess(null);
     if (custodyBalanceProp === undefined) setCustodyBalanceState(initialProf?.custody_balance ?? null);
     if (initialTaxId === undefined) setTaxId(initialProf?.tax_id ?? null);
     setHasBorrowerRole(false);
@@ -264,8 +279,11 @@ export function InvestorDashboard({
       if (!currentInvestorId) {
         if (!legalName) setInvestorName('');
         if (!userEmail) setInvestorEmail('');
-        if (!cbuCvu) setInvestorCbu('');
+        if (cbuCvu === undefined) setInvestorCbu('');
         setInvestorAlias('');
+        setIsEditingCbu(false);
+        setCbuError(null);
+        setCbuSuccess(null);
         if (custodyBalanceProp === undefined) setCustodyBalanceState(null);
         if (initialTaxId === undefined) setTaxId(null);
         setHasBorrowerRole(false);
@@ -280,7 +298,9 @@ export function InvestorDashboard({
           if (invName && isMounted) setInvestorName(invName);
         }
         if (!userEmail && mockProfile.email && isMounted) setInvestorEmail(mockProfile.email);
-        if (!cbuCvu && mockProfile.bank_cbu_cvu && isMounted) setInvestorCbu(mockProfile.bank_cbu_cvu);
+        if (cbuCvu === undefined && mockProfile.bank_cbu_cvu && isMounted) {
+          setInvestorCbu(mockProfile.bank_cbu_cvu === '0000000000000000000000' ? '' : mockProfile.bank_cbu_cvu);
+        }
         if ((mockProfile as any).bank_alias && isMounted) setInvestorAlias((mockProfile as any).bank_alias);
         if (
           custodyBalanceProp === undefined &&
@@ -331,11 +351,22 @@ export function InvestorDashboard({
             }
           }
 
-          const { data: profile } = await client
-            .from('profiles')
-            .select('id, role, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
-            .eq('id', currentInvestorId)
-            .maybeSingle();
+          let profile: any = null;
+          try {
+            const res = await client
+              .from('profiles')
+              .select('id, role, legal_name, email, bank_cbu_cvu, bank_alias, tax_id, custody_balance')
+              .eq('id', currentInvestorId)
+              .maybeSingle();
+            profile = res.data;
+          } catch {
+            const res = await client
+              .from('profiles')
+              .select('id, role, legal_name, email, bank_cbu_cvu, tax_id, custody_balance')
+              .eq('id', currentInvestorId)
+              .maybeSingle();
+            profile = res.data;
+          }
 
           if (profile && isMounted) {
             if (!legalName) {
@@ -343,7 +374,12 @@ export function InvestorDashboard({
               if (profileInvName) setInvestorName(profileInvName);
             }
             if (!userEmail && profile.email) setInvestorEmail(profile.email);
-            if (!cbuCvu && profile.bank_cbu_cvu) setInvestorCbu(profile.bank_cbu_cvu);
+            if (cbuCvu === undefined && profile.bank_cbu_cvu) {
+              setInvestorCbu(profile.bank_cbu_cvu === '0000000000000000000000' ? '' : profile.bank_cbu_cvu);
+            }
+            if ((profile as any)?.bank_alias) {
+              setInvestorAlias((profile as any).bank_alias);
+            }
             if (
               custodyBalanceProp === undefined &&
               profile.custody_balance !== undefined &&
@@ -584,6 +620,67 @@ export function InvestorDashboard({
   };
 
 
+
+  const hasValidCbu = Boolean(
+    investorCbu &&
+    investorCbu.trim() !== '' &&
+    investorCbu !== '0000000000000000000000'
+  );
+
+  const handleSaveCbu = async () => {
+    setCbuError(null);
+    setCbuSuccess(null);
+    const cleanedCbu = cbuInput.replace(/\D/g, '');
+    const cleanedAlias = aliasInput.trim().toLowerCase();
+
+    if (!cleanedCbu) {
+      setCbuError('El CBU o CVU es obligatorio.');
+      return;
+    }
+
+    if (cleanedCbu.length !== 22 || cleanedCbu === '0000000000000000000000') {
+      setCbuError('El CBU o CVU debe contener exactamente 22 dígitos numéricos.');
+      return;
+    }
+
+    if (cleanedAlias && (cleanedAlias.length < 6 || cleanedAlias.length > 20)) {
+      setCbuError('El alias bancario debe tener entre 6 y 20 caracteres.');
+      return;
+    }
+
+    try {
+      setIsSavingCbu(true);
+      const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === currentInvestorId);
+      if (mockProfile) {
+        mockProfile.bank_cbu_cvu = cleanedCbu;
+        (mockProfile as any).bank_alias = cleanedAlias || null;
+      }
+      try {
+        const client = createSupabaseBrowserClient();
+        const updatePayload: Record<string, any> = { bank_cbu_cvu: cleanedCbu };
+        if (cleanedAlias) {
+          updatePayload.bank_alias = cleanedAlias;
+        }
+        const { error } = await client.from('profiles').update(updatePayload).eq('id', currentInvestorId);
+        if (error && error.message?.includes('bank_alias')) {
+          await client.from('profiles').update({ bank_cbu_cvu: cleanedCbu }).eq('id', currentInvestorId);
+        }
+      } catch {
+        // Ignored in mock/offline mode
+      }
+
+      setInvestorCbu(cleanedCbu);
+      if (cleanedAlias) {
+        setInvestorAlias(cleanedAlias);
+      }
+      setIsEditingCbu(false);
+      setCbuSuccess('CBU/CVU bancario guardado con éxito.');
+    } catch (err: any) {
+      setCbuError(err?.message || 'Error al guardar el CBU/CVU bancario.');
+    } finally {
+      setIsSavingCbu(false);
+    }
+  };
 
   const handleSaveDni = async () => {
     setDniError(null);
@@ -1497,24 +1594,136 @@ export function InvestorDashboard({
         </div>
 
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-            <div>
-              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
-                Correo electrónico registrado
-              </span>
-              <strong style={{ fontSize: '0.9375rem', color: '#0f172a' }} data-testid="profile-email">
-                {investorEmail || 'No informado'}
-              </strong>
+          {/* Correo electrónico */}
+          <div style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+            <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
+              Correo electrónico registrado
+            </span>
+            <strong style={{ fontSize: '0.9375rem', color: '#0f172a' }} data-testid="profile-email">
+              {investorEmail || 'No informado'}
+            </strong>
+          </div>
+
+          {/* Bloque CBU / CVU bancario */}
+          <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#0f172a' }}>
+                  CBU/CVU bancario asociado:
+                </span>
+                <span
+                  data-testid="cbu-badge"
+                  className={`${styles.statusBadge} ${hasValidCbu ? styles.statusSettled : styles.statusPending}`}
+                >
+                  {hasValidCbu ? 'CBU vinculado' : 'CBU pendiente'}
+                </span>
+              </div>
+
+              {!isEditingCbu && (
+                <Button
+                  variant={hasValidCbu ? 'bordered' : 'primary'}
+                  size="sm"
+                  onClick={() => {
+                    setCbuInput(hasValidCbu ? investorCbu : '');
+                    setAliasInput(investorAlias || '');
+                    setIsEditingCbu(true);
+                    setCbuError(null);
+                    setCbuSuccess(null);
+                  }}
+                  data-testid={hasValidCbu ? 'edit-cbu-button' : 'add-cbu-button'}
+                >
+                  {hasValidCbu ? 'Modificar CBU/CVU' : '+ Agregar CBU/CVU'}
+                </Button>
+              )}
             </div>
 
-            <div>
-              <span style={{ fontSize: '0.8125rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
-                CBU/CVU bancario asociado
-              </span>
-              <strong style={{ fontSize: '0.9375rem', color: '#0f172a', fontFamily: 'monospace' }} data-testid="profile-cbu">
-                {investorCbu || 'No vinculado'}
-              </strong>
-            </div>
+            {!isEditingCbu && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#475569' }}>
+                {hasValidCbu ? (
+                  <>
+                    CBU/CVU registrado: <strong className="font-mono" data-testid="profile-cbu">{investorCbu}</strong>
+                    {investorAlias && (
+                      <span style={{ marginLeft: '1rem', color: '#64748b' }}>
+                        Alias: <strong className="font-mono" data-testid="profile-alias">{investorAlias}</strong>
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    Estado: <strong data-testid="profile-cbu">No vinculado</strong>
+                    <p style={{ marginTop: '0.25rem', fontSize: '0.8125rem', color: '#64748b' }}>
+                      No tenés una cuenta bancaria vinculada para cobrar las cuotas de tus préstamos ni retirar tus fondos en custodia.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isEditingCbu && (
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '450px' }}>
+                <Input
+                  label="CBU o CVU (22 dígitos) *"
+                  id="input-profile-cbu"
+                  value={cbuInput}
+                  onChange={(e) => {
+                    setCbuInput(e.target.value.replace(/\D/g, '').slice(0, 22));
+                    if (cbuError) setCbuError(null);
+                  }}
+                  placeholder="Ej: 0720123488000012345678"
+                  error={cbuError ?? undefined}
+                  helperText="22 dígitos numéricos provistos por tu banco o billetera virtual."
+                  className="font-mono"
+                  data-testid="input-cbu"
+                />
+                <Input
+                  label="Alias bancario (opcional)"
+                  id="input-profile-alias"
+                  value={aliasInput}
+                  onChange={(e) => {
+                    setAliasInput(e.target.value.trim().toLowerCase().slice(0, 20));
+                    if (cbuError) setCbuError(null);
+                  }}
+                  placeholder="Ej: inversor.lencord.ars"
+                  helperText="De 6 a 20 caracteres (letras, números, puntos o guiones)."
+                  className="font-mono"
+                  data-testid="input-alias"
+                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Button
+                    type="button"
+                    variant="bordered"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingCbu(false);
+                      setCbuError(null);
+                    }}
+                    data-testid="cancel-cbu-button"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    isLoading={isSavingCbu}
+                    onClick={handleSaveCbu}
+                    data-testid="save-cbu-button"
+                  >
+                    Guardar CBU/CVU
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {cbuSuccess && (
+              <div
+                style={{ marginTop: '0.75rem', color: '#065f46', backgroundColor: '#d1fae5', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.875rem' }}
+                role="status"
+                data-testid="cbu-success-message"
+              >
+                ✓ {cbuSuccess}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>

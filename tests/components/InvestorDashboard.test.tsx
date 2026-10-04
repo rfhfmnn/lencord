@@ -404,6 +404,91 @@ describe('InvestorDashboard Component (Task 13)', () => {
       expect(screen.getByTestId('dni-success-message')).toHaveTextContent(/DNI registrado con éxito/i);
     });
 
+    it('renders "CBU pendiente" badge and "No vinculado" when investor has no CBU, and allows opening form via + Agregar CBU/CVU', () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId="20301234567"
+          cbuCvu=""
+        />
+      );
+
+      expect(screen.getByTestId('cbu-badge')).toHaveTextContent('CBU pendiente');
+      expect(screen.getByTestId('profile-cbu')).toHaveTextContent('No vinculado');
+      expect(screen.getByTestId('add-cbu-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('input-cbu')).toBeNull();
+
+      fireEvent.click(screen.getByTestId('add-cbu-button'));
+      expect(screen.getByTestId('input-cbu')).toBeInTheDocument();
+      expect(screen.getByTestId('input-alias')).toBeInTheDocument();
+      expect(screen.getByTestId('save-cbu-button')).toBeInTheDocument();
+      expect(screen.getByTestId('cancel-cbu-button')).toBeInTheDocument();
+    });
+
+    it('validates 22 digits format and rejects invalid CBU/CVU (empty, too short, all zeroes)', async () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId="20301234567"
+          cbuCvu=""
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('add-cbu-button'));
+      const inputCbu = screen.getByTestId('input-cbu');
+      const saveBtn = screen.getByTestId('save-cbu-button');
+
+      // Empty submission
+      fireEvent.click(saveBtn);
+      expect(await screen.findByText(/El CBU o CVU es obligatorio/i)).toBeInTheDocument();
+
+      // Too short
+      fireEvent.change(inputCbu, { target: { value: '123456' } });
+      fireEvent.click(saveBtn);
+      expect(await screen.findByText(/El CBU o CVU debe contener exactamente 22 dígitos numéricos/i)).toBeInTheDocument();
+
+      // All zeroes
+      fireEvent.change(inputCbu, { target: { value: '0000000000000000000000' } });
+      fireEvent.click(saveBtn);
+      expect(await screen.findByText(/El CBU o CVU debe contener exactamente 22 dígitos numéricos/i)).toBeInTheDocument();
+    });
+
+    it('successfully saves valid CBU and optional Alias, updates badge to "CBU vinculado", and allows modifying', async () => {
+      render(
+        <InvestorDashboard
+          initialInvestments={[]}
+          initialTaxId="20301234567"
+          cbuCvu=""
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('add-cbu-button'));
+      const inputCbu = screen.getByTestId('input-cbu');
+      const inputAlias = screen.getByTestId('input-alias');
+      const saveBtn = screen.getByTestId('save-cbu-button');
+
+      fireEvent.change(inputCbu, { target: { value: '0720123488000012345678' } });
+      fireEvent.change(inputAlias, { target: { value: 'inversor.lencord' } });
+      fireEvent.click(saveBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cbu-badge')).toHaveTextContent('CBU vinculado');
+      });
+      expect(screen.getByTestId('profile-cbu')).toHaveTextContent('0720123488000012345678');
+      expect(screen.getByTestId('profile-alias')).toHaveTextContent('inversor.lencord');
+      expect(screen.getByTestId('cbu-success-message')).toHaveTextContent(/CBU\/CVU bancario guardado con éxito/i);
+      expect(screen.getByTestId('edit-cbu-button')).toHaveTextContent('Modificar CBU/CVU');
+
+      // Modifying and canceling
+      fireEvent.click(screen.getByTestId('edit-cbu-button'));
+      expect(screen.getByTestId('input-cbu')).toHaveValue('0720123488000012345678');
+      expect(screen.getByTestId('input-alias')).toHaveValue('inversor.lencord');
+
+      fireEvent.click(screen.getByTestId('cancel-cbu-button'));
+      expect(screen.queryByTestId('input-cbu')).toBeNull();
+      expect(screen.getByTestId('profile-cbu')).toHaveTextContent('0720123488000012345678');
+    });
+
     it('renders PyME onboarding card, validates official CUIT, and successfully activates PyME role', async () => {
       render(
         <InvestorDashboard
