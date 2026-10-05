@@ -112,6 +112,7 @@ export interface InvestmentModalProps {
   investorId?: string;
   investorTaxId?: string | null;
   defaultCreditRiskAccepted?: boolean;
+  custodyBalance?: number;
 }
 
 export function InvestmentModal({
@@ -122,6 +123,7 @@ export function InvestmentModal({
   investorId = 'prof-inv-001',
   investorTaxId,
   defaultCreditRiskAccepted = false,
+  custodyBalance: custodyBalanceProp,
 }: InvestmentModalProps) {
   let router: any = null;
   try {
@@ -139,6 +141,14 @@ export function InvestmentModal({
 
     async function resolveAuthUser() {
       try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sessionUser = sessionData?.session?.user;
+        if (isMounted && sessionUser?.id) {
+          if (!investorId || investorId === 'prof-inv-001') {
+            setEffectiveInvestorId(sessionUser.id);
+            return;
+          }
+        }
         const { data } = await client.auth.getUser();
         if (isMounted && data?.user?.id) {
           if (!investorId || investorId === 'prof-inv-001') {
@@ -194,6 +204,9 @@ export function InvestmentModal({
 
   // Custody balance state
   const [custodyBalance, setCustodyBalance] = useState<number>(() => {
+    if (typeof custodyBalanceProp === 'number') {
+      return custodyBalanceProp;
+    }
     const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === investorId);
     if (mockProfile && typeof mockProfile.custody_balance === 'number') {
       return mockProfile.custody_balance;
@@ -240,45 +253,145 @@ export function InvestmentModal({
   }
 
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. Resolve tax_id
     if (investorTaxId !== undefined) {
       setHasTaxId(Boolean(investorTaxId && investorTaxId.trim() !== ''));
-      return;
-    }
-
-    const mockProfile = defaultMockStateStore.profiles.find((p) => p.id === effectiveInvestorId || p.id === investorId);
-    if (mockProfile) {
-      setHasTaxId(Boolean(mockProfile.tax_id && mockProfile.tax_id.trim() !== ''));
-      if (typeof mockProfile.custody_balance === 'number') {
-        setCustodyBalance(mockProfile.custody_balance);
-      }
-      return;
-    }
-
-    let isMounted = true;
-    async function checkTaxIdAndBalance() {
-      try {
+    } else {
+      const mockProfile = defaultMockStateStore.profiles.find(
+        (p) => p.id === effectiveInvestorId || p.id === investorId
+      );
+      if (mockProfile) {
+        setHasTaxId(Boolean(mockProfile.tax_id && mockProfile.tax_id.trim() !== ''));
+      } else {
         const client = createSupabaseBrowserClient();
-        const { data } = await client
+        client
           .from('profiles')
-          .select('tax_id, custody_balance')
+          .select('tax_id')
           .eq('id', effectiveInvestorId)
-          .maybeSingle();
-
-        if (isMounted && data) {
-          setHasTaxId(Boolean(data.tax_id && data.tax_id.trim() !== ''));
-          if (typeof data.custody_balance === 'number') {
-            setCustodyBalance(data.custody_balance);
-          }
-        }
-      } catch {
-        // Ignored
+          .maybeSingle()
+          .then(
+            ({ data }) => {
+              if (isMounted && data) {
+                setHasTaxId(Boolean(data.tax_id && data.tax_id.trim() !== ''));
+              }
+            },
+            () => {}
+          );
       }
     }
-    checkTaxIdAndBalance();
+
+    // 2. Resolve custody balance
+    if (typeof custodyBalanceProp === 'number') {
+      setCustodyBalance(custodyBalanceProp);
+      if (custodyBalanceProp >= MIN_INVESTMENT_TICKET) {
+        setPaymentMethod('custody_balance');
+      } else {
+        setPaymentMethod('credit_card');
+      }
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    async function loadCustodyBalance() {
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      let balance: number | undefined = undefined;
+
+      // 2a. Try services.investments.getCustodyBalance
+      if (resolvedServices?.investments?.getCustodyBalance) {
+        try {
+          const res = await resolvedServices.investments.getCustodyBalance(effectiveInvestorId);
+          if (typeof res === 'number') {
+            balance = res;
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      // 2b. Direct Supabase query (checking custody_transactions ledger first, matching Header.tsx)
+      if (balance === undefined) {
+        try {
+          const client = createSupabaseBrowserClient();
+          const { data: lastTx } = await client
+            .from('custody_transactions')
+            .select('balance_after')
+            .eq('profile_id', effectiveInvestorId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastTx && lastTx.balance_after != null && !isNaN(Number(lastTx.balance_after))) {
+            balance = Number(lastTx.balance_after);
+          } else {
+            const { data: prof } = await client
+              .from('profiles')
+              .select('custody_balance')
+              .eq('id', effectiveInvestorId)
+              .maybeSingle();
+
+            if (prof && prof.custody_balance != null && !isNaN(Number(prof.custody_balance))) {
+              balance = Number(prof.custody_balance);
+            }
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      // 2c. Mock store fallback
+      if (balance === undefined) {
+        const mockProfile = defaultMockStateStore.profiles.find(
+          (p) => p.id === effectiveInvestorId || p.id === investorId
+        );
+        if (mockProfile && typeof mockProfile.custody_balance === 'number') {
+          balance = mockProfile.custody_balance;
+        }
+      }
+
+      if (isMounted && balance !== undefined) {
+        setCustodyBalance(balance);
+        setPaymentMethod((prev) => {
+          if (balance! >= MIN_INVESTMENT_TICKET) {
+            // Auto-select custody balance if card form has not been filled
+            if (cardNumber.trim() === '') {
+              return 'custody_balance';
+            }
+            return prev;
+          } else if (prev === 'custody_balance') {
+            return 'credit_card';
+          }
+          return prev;
+        });
+      }
+    }
+
+    if (isOpen) {
+      loadCustodyBalance();
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [effectiveInvestorId, investorId, investorTaxId]);
+  }, [
+    isOpen,
+    effectiveInvestorId,
+    investorId,
+    investorTaxId,
+    custodyBalanceProp,
+    servicesFromContext,
+  ]);
 
   // Auto-preselect alternative payment method when custody balance is insufficient (Issue #81)
   useEffect(() => {
@@ -520,6 +633,12 @@ export function InvestmentModal({
       }
 
       setSuccessResult(result);
+      if (paymentMethod === 'custody_balance') {
+        setCustodyBalance((prev) => Math.max(0, prev - parsedAmount));
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-state-change'));
+      }
       if (onSuccess) {
         onSuccess(result);
       }
@@ -543,7 +662,16 @@ export function InvestmentModal({
 
   const isCustodyAvailable = custodyBalance >= MIN_INVESTMENT_TICKET;
   const formattedCustodyBalance =
-    custodyBalance === 0 ? '$ 0,00' : formatCurrency(custodyBalance);
+    custodyBalance === 0
+      ? '$ 0,00'
+      : custodyBalance % 1 !== 0
+      ? formatCurrency(custodyBalance, { decimals: true })
+      : formatCurrency(custodyBalance);
+
+  const displayCustodyAvailable =
+    custodyBalance % 1 !== 0
+      ? formatCurrency(custodyBalance, { decimals: true })
+      : formatCurrency(custodyBalance);
 
   return (
     <div
@@ -843,7 +971,7 @@ export function InvestmentModal({
                           data-testid="custody-balance-label"
                         >
                           {isCustodyAvailable
-                            ? `${formatCurrency(custodyBalance)} disponible`
+                            ? `${displayCustodyAvailable} disponible`
                             : `Saldo insuficiente (${formattedCustodyBalance})`}
                         </span>
                       </div>

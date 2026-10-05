@@ -444,15 +444,21 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
         .limit(1)
         .maybeSingle();
 
-      if (data && typeof data.balance_after === 'number') {
+      if (data && data.balance_after != null && !isNaN(Number(data.balance_after))) {
         return Number(data.balance_after);
       }
-      const { data: prof } = await client
-        .from('profiles')
-        .select('custody_balance')
-        .eq('id', investorId)
-        .maybeSingle();
-      return prof?.custody_balance ? Number(prof.custody_balance) : 0;
+      try {
+        const { data: prof } = await client
+          .from('profiles')
+          .select('custody_balance')
+          .eq('id', investorId)
+          .maybeSingle();
+        return prof?.custody_balance != null && !isNaN(Number(prof.custody_balance))
+          ? Number(prof.custody_balance)
+          : 0;
+      } catch {
+        return 0;
+      }
     } catch {
       return 0;
     }

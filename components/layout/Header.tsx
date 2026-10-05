@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
-              if (lastTx && typeof lastTx.balance_after === 'number') {
+              if (lastTx && lastTx.balance_after != null && !isNaN(Number(lastTx.balance_after))) {
                 realCustodyBalance = Number(lastTx.balance_after);
               }
             } catch {

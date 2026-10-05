@@ -81,6 +81,14 @@ export function LoanDetail({
 
     async function resolveAuthUser() {
       try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sessionUser = sessionData?.session?.user;
+        if (isMounted && sessionUser?.id) {
+          if (!investorId || investorId === 'prof-inv-001') {
+            setEffectiveInvestorId(sessionUser.id);
+            return;
+          }
+        }
         const { data } = await client.auth.getUser();
         if (isMounted && data?.user?.id) {
           if (!investorId || investorId === 'prof-inv-001') {

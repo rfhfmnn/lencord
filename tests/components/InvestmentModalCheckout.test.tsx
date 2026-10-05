@@ -539,5 +539,60 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
       // Did not transition to success
       expect(screen.queryByTestId('investment-success-view')).not.toBeInTheDocument();
     });
+
+    it('correctly resolves and formats custody balance with exact decimals (e.g. $ 756.848,78)', async () => {
+      const customServices = {
+        ...services,
+        investments: {
+          ...services.investments,
+          getCustodyBalance: vi.fn().mockResolvedValue(756848.78),
+        },
+      };
+
+      render(
+        <ServiceProvider services={customServices as any}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId="custom-inv-decimals"
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      // Verify that custody balance resolves and formats with decimals
+      await waitFor(() => {
+        expect(screen.getByTestId('custody-balance-label')).toHaveTextContent(
+          '$ 756.848,78 disponible'
+        );
+      });
+
+      const custodyRadio = screen.getByTestId('payment-method-custody');
+      expect(custodyRadio).toBeEnabled();
+      expect(custodyRadio).toBeChecked();
+    });
+
+    it('accepts custodyBalance prop directly and preselects custody payment method', async () => {
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId="custom-inv-prop"
+            custodyBalance={756848.78}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      expect(screen.getByTestId('custody-balance-label')).toHaveTextContent(
+        '$ 756.848,78 disponible'
+      );
+      const custodyRadio = screen.getByTestId('payment-method-custody');
+      expect(custodyRadio).toBeEnabled();
+      expect(custodyRadio).toBeChecked();
+    });
   });
 });
