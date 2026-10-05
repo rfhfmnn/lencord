@@ -127,13 +127,41 @@ describe('AdminConsole Component (Task 15)', () => {
     expect(screen.getByTestId('detail-amount')).toHaveTextContent('$ 8.000.000');
     expect(screen.getByTestId('detail-representative')).toHaveTextContent('Esteban Quito');
     expect(screen.getByTestId('detail-phone')).toHaveTextContent('+54 11 4253-8899');
-    expect(screen.getByTestId('detail-description')).toHaveTextContent('Financiamiento para Capital de trabajo');
+    expect(screen.getByTestId('detail-description')).toHaveTextContent('Financiamiento para capital de trabajo');
+    expect(screen.getByTestId('detail-pyme-description')).toHaveTextContent('Sin descripción adicional proporcionada');
 
     // Documents
     expect(screen.getByTestId('link-doc-afip')).toHaveAttribute('href', expect.stringContaining('.pdf'));
     expect(screen.getByTestId('link-doc-bank')).toHaveAttribute('href', expect.stringContaining('.pdf'));
     expect(screen.getByTestId('link-doc-balance')).toHaveAttribute('href', '/documents/balance.pdf');
     expect(screen.getByTestId('link-doc-f931')).toHaveAttribute('href', '/documents/f931.pdf');
+  });
+
+  it('renders PyME description and lowercases destination in Destino y Proyecto section', () => {
+    const loanWithDescriptionAndRefinancing: Loan = {
+      ...mockPendingLoans[0],
+      id: 'loan-review-desc-01',
+      category: 'refinancing',
+      description: 'Reestructuración de pasivos bancarios de corto plazo para aliviar capital de trabajo.',
+    };
+
+    render(
+      <AdminConsole
+        initialLoans={[loanWithDescriptionAndRefinancing]}
+        initialProfiles={mockProfiles}
+        initialCreditProfiles={mockCreditProfiles}
+      />
+    );
+
+    // Automatic text has destination in lowercase ("refinanciación de pasivos")
+    const descriptionBox = screen.getByTestId('detail-description');
+    expect(descriptionBox).toHaveTextContent('Financiamiento para refinanciación de pasivos.');
+    expect(descriptionBox).not.toHaveTextContent('Financiamiento para Refinanciación de pasivos.');
+
+    // Renders the PyME custom description
+    const pymeDescEl = screen.getByTestId('detail-pyme-description');
+    expect(pymeDescEl).toHaveTextContent('Descripción proporcionada por la PyME:');
+    expect(pymeDescEl).toHaveTextContent('Reestructuración de pasivos bancarios de corto plazo para aliviar capital de trabajo.');
   });
 
   it('automatically calculates borrower final rate (investor_rate + platform_spread)', () => {

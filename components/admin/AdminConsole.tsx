@@ -794,11 +794,29 @@ export function AdminConsole({
                 {/* Project Description */}
                 <div>
                   <span className={styles.infoLabel}>Destino y Proyecto</span>
-                  <p className={styles.projectDescription} data-testid="detail-description">
-                    Financiamiento para {LOAN_CATEGORY_LABELS[selectedLoan.category] ?? selectedLoan.category}.
-                    Plazo solicitado de {selectedLoan.term_months} meses bajo modalidad{' '}
-                    {selectedLoan.rate_type === 'TNA_FIXED' ? 'tasa nominal fija' : 'indexada por CER'}.
-                  </p>
+                  <div className={styles.projectDescription} data-testid="detail-description">
+                    <p className={styles.projectAutoText}>
+                      {(() => {
+                        const rawCat = LOAN_CATEGORY_LABELS[selectedLoan.category] ?? selectedLoan.category;
+                        const formattedCat = rawCat ? rawCat.charAt(0).toLowerCase() + rawCat.slice(1) : '';
+                        return `Financiamiento para ${formattedCat}. `;
+                      })()}
+                      Plazo solicitado de {selectedLoan.term_months} meses bajo modalidad{' '}
+                      {selectedLoan.rate_type === 'TNA_FIXED' ? 'tasa nominal fija' : 'indexada por CER'}.
+                    </p>
+                    <div className={styles.pymeDescriptionBlock} data-testid="detail-pyme-description">
+                      <span className={styles.pymeDescriptionLabel}>Descripción proporcionada por la PyME:</span>
+                      {selectedLoan.description && selectedLoan.description.trim() ? (
+                        <p className={styles.pymeDescriptionText}>
+                          {selectedLoan.description.trim()}
+                        </p>
+                      ) : (
+                        <p className={styles.pymeDescriptionPlaceholder}>
+                          Sin descripción adicional proporcionada
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

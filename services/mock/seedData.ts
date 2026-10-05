@@ -318,6 +318,7 @@ export const SEED_LOANS: Loan[] = [
     base_uva_value: null,
     category: 'working_capital',
     status: 'in_review',
+    description: 'Adquisición de bobinas de chapa y perfiles laminados para cumplir con órdenes de producción del próximo trimestre.',
     funding_deadline: '2026-11-01T23:59:59.000Z',
     created_at: '2026-09-24T18:00:00.000Z',
   },
