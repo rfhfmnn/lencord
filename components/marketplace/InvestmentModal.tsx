@@ -82,6 +82,63 @@ export function calculateInvestmentReturn(
   return { profit, totalReturn };
 }
 
+export function parseCurrencyInput(val: string): {
+  raw: string;
+  num: number;
+  formatted: string;
+} {
+  if (!val || !val.trim()) {
+    return { raw: '', num: 0, formatted: '' };
+  }
+
+  const trimmed = val.trim();
+  let integerPartStr = '';
+  let decimalPartStr: string | null = null;
+
+  if (trimmed.includes(',')) {
+    const parts = trimmed.split(',');
+    integerPartStr = parts[0].replace(/\D/g, '');
+    decimalPartStr = parts.slice(1).join('').replace(/\D/g, '').slice(0, 2);
+  } else if (trimmed.includes('.')) {
+    if (trimmed.endsWith('.')) {
+      integerPartStr = trimmed.slice(0, -1).replace(/\D/g, '');
+      decimalPartStr = '';
+    } else {
+      const lastDotIndex = trimmed.lastIndexOf('.');
+      const afterDot = trimmed.slice(lastDotIndex + 1);
+      if (afterDot.length <= 2 && /^\d+$/.test(afterDot)) {
+        integerPartStr = trimmed.slice(0, lastDotIndex).replace(/\D/g, '');
+        decimalPartStr = afterDot;
+      } else {
+        integerPartStr = trimmed.replace(/\D/g, '');
+        decimalPartStr = null;
+      }
+    }
+  } else {
+    integerPartStr = trimmed.replace(/\D/g, '');
+    decimalPartStr = null;
+  }
+
+  const intNum = integerPartStr ? parseInt(integerPartStr, 10) : 0;
+  const intFormatted = integerPartStr ? intNum.toLocaleString('es-AR') : (decimalPartStr !== null ? '0' : '');
+
+  let formatted = intFormatted;
+  let raw = integerPartStr || (decimalPartStr !== null ? '0' : '');
+
+  if (decimalPartStr !== null) {
+    formatted = `${intFormatted},${decimalPartStr}`;
+    raw = `${raw}.${decimalPartStr}`;
+  }
+
+  const num = raw ? parseFloat(raw) : 0;
+
+  return {
+    raw,
+    num: isNaN(num) ? 0 : num,
+    formatted,
+  };
+}
+
 export function detectCardBrand(numberStr: string): 'VISA' | 'Mastercard' | null {
   const clean = numberStr.replace(/\s/g, '');
   if (clean.startsWith('4')) return 'VISA';
@@ -197,6 +254,7 @@ export function InvestmentModal({
   }, [investorId]);
 
   const [amountStr, setAmountStr] = useState<string>('');
+  const [parsedAmount, setParsedAmount] = useState<number>(0);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -424,8 +482,9 @@ export function InvestmentModal({
   );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.replace(/[^0-9]/g, '');
-    setAmountStr(rawVal);
+    const { raw, num, formatted } = parseCurrencyInput(e.target.value);
+    setAmountStr(formatted);
+    setParsedAmount(num);
     setSubmitError(null);
 
     if (isSelfFunding) {
@@ -433,20 +492,18 @@ export function InvestmentModal({
       return;
     }
 
-    if (!rawVal) {
+    if (!raw) {
       setValidationError(null);
       return;
     }
 
-    const numVal = parseInt(rawVal, 10);
-
-    if (numVal <= 0) {
+    if (num <= 0) {
       setValidationError('El monto a invertir debe ser mayor a cero.');
-    } else if (numVal < MIN_INVESTMENT_TICKET) {
+    } else if (num < MIN_INVESTMENT_TICKET) {
       setValidationError(`El ticket mínimo de inversión es de ${formatCurrency(MIN_INVESTMENT_TICKET)}.`);
-    } else if (numVal > remainingCapacity) {
+    } else if (num > remainingCapacity) {
       setValidationError(
-        `El monto ingresado (${formatCurrency(numVal)}) supera el cupo remanente disponible (${formatCurrency(
+        `El monto ingresado (${formatCurrency(num, { decimals: num % 1 !== 0 })}) supera el cupo remanente disponible (${formatCurrency(
           remainingCapacity
         )}).`
       );
@@ -455,7 +512,6 @@ export function InvestmentModal({
     }
   };
 
-  const parsedAmount = amountStr ? parseInt(amountStr, 10) : 0;
   const { tnaDisplay, temDisplay, teaDisplay } = calculateFinancialRates(loan);
   const { profit, totalReturn } = calculateInvestmentReturn(
     parsedAmount,
@@ -652,6 +708,7 @@ export function InvestmentModal({
 
   const handleClose = () => {
     setAmountStr('');
+    setParsedAmount(0);
     setValidationError(null);
     setSubmitError(null);
     setSuccessResult(null);
@@ -699,7 +756,8 @@ export function InvestmentModal({
                 <span className={styles.successDetailLabel}>Monto invertido:</span>
                 <span className={styles.successDetailValue} data-testid="success-amount">
                   {formatCurrency(
-                    successResult.investment?.amount ?? parsedAmount
+                    successResult.investment?.amount ?? parsedAmount,
+                    { decimals: (successResult.investment?.amount ?? parsedAmount) % 1 !== 0 }
                   )}
                 </span>
               </div>
@@ -902,10 +960,10 @@ export function InvestmentModal({
                 label="Monto a invertir (ARS)"
                 id="investment-amount-input"
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 prefix="$"
-                placeholder="10.000"
-                value={amountStr ? parseInt(amountStr, 10).toLocaleString('es-AR') : ''}
+                placeholder="10.000,00"
+                value={amountStr}
                 onChange={handleAmountChange}
                 disabled={isSelfFunding || isSubmitting}
                 error={validationError ?? undefined}
@@ -914,19 +972,49 @@ export function InvestmentModal({
                 autoFocus={!isSelfFunding}
               />
 
+              {paymentMethod === 'custody_balance' && custodyBalance >= MIN_INVESTMENT_TICKET && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.25rem', marginBottom: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fullBal = Math.min(custodyBalance, remainingCapacity);
+                      const fullBalStr = fullBal % 1 !== 0 ? fullBal.toFixed(2).replace('.', ',') : fullBal.toString();
+                      const { raw, num, formatted } = parseCurrencyInput(fullBalStr);
+                      setAmountStr(formatted);
+                      setParsedAmount(num);
+                      setValidationError(null);
+                      setSubmitError(null);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0284c7',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: '0.125rem 0',
+                      textDecoration: 'underline',
+                    }}
+                    data-testid="use-max-custody-balance-button"
+                  >
+                    Invertir saldo total disponible ({displayCustodyAvailable})
+                  </button>
+                </div>
+              )}
+
               {/* Dynamic Estimated Yield / Return (Issue #59) */}
               <div className={styles.yieldContainer} data-testid="investment-returns-summary">
                 <div className={styles.yieldRow}>
                   <span className={styles.yieldLabel}>Importe a ganar</span>
                   <span className={styles.yieldProfit} data-testid="modal-estimated-profit">
-                    {formatCurrency(profit)}
+                    {formatCurrency(profit, { decimals: profit % 1 !== 0 })}
                   </span>
                 </div>
                 <div className={styles.yieldDivider} />
                 <div className={styles.yieldRow}>
                   <span className={styles.yieldTotalLabel}>Monto total a cobrar</span>
                   <span className={styles.yieldTotalValue} data-testid="modal-total-return">
-                    {formatCurrency(totalReturn)}
+                    {formatCurrency(totalReturn, { decimals: totalReturn % 1 !== 0 })}
                   </span>
                 </div>
               </div>

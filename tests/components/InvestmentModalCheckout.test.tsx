@@ -7,6 +7,7 @@ import {
   detectCardBrand,
   formatCardNumber,
   formatExpiry,
+  parseCurrencyInput,
 } from '@/components/marketplace/InvestmentModal';
 import { ServiceProvider } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
@@ -594,5 +595,107 @@ describe('InvestmentModal Checkout & BaaS Sandbox Flow (Issue #66)', () => {
       expect(custodyRadio).toBeEnabled();
       expect(custodyRadio).toBeChecked();
     });
+
+    it('parses currency input with decimal commas or dots correctly', () => {
+      expect(parseCurrencyInput('')).toEqual({ raw: '', num: 0, formatted: '' });
+      expect(parseCurrencyInput('10000')).toEqual({ raw: '10000', num: 10000, formatted: '10.000' });
+      expect(parseCurrencyInput('10000,')).toEqual({ raw: '10000.', num: 10000, formatted: '10.000,' });
+      expect(parseCurrencyInput('10000,5')).toEqual({ raw: '10000.5', num: 10000.5, formatted: '10.000,5' });
+      expect(parseCurrencyInput('10000,50')).toEqual({ raw: '10000.50', num: 10000.5, formatted: '10.000,50' });
+      // Using dot as decimal separator
+      expect(parseCurrencyInput('10000.')).toEqual({ raw: '10000.', num: 10000, formatted: '10.000,' });
+      expect(parseCurrencyInput('10000.75')).toEqual({ raw: '10000.75', num: 10000.75, formatted: '10.000,75' });
+      // Formatted thousands with comma decimal
+      expect(parseCurrencyInput('756.848,78')).toEqual({ raw: '756848.78', num: 756848.78, formatted: '756.848,78' });
+    });
+
+    it('allows typing decimal amounts using comma or dot in the investment input field', async () => {
+      render(
+        <ServiceProvider services={services}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId="inv-decimal-typing"
+            custodyBalance={100_000}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      const amountInput = screen.getByLabelText(/monto a invertir/i);
+
+      // Typing with comma
+      fireEvent.change(amountInput, { target: { value: '50000,50' } });
+      expect(amountInput).toHaveValue('50.000,50');
+
+      // Check yields calculate with decimals without NaN
+      expect(screen.getByTestId('modal-estimated-profit')).toHaveTextContent('$');
+      expect(screen.getByTestId('modal-total-return')).toHaveTextContent('$');
+
+      // Typing with dot
+      fireEvent.change(amountInput, { target: { value: '25000.25' } });
+      expect(amountInput).toHaveValue('25.000,25');
+    });
+
+    it('allows investing the exact total available custody balance with decimals via shortcut button', async () => {
+      const customServices = {
+        ...services,
+        investments: {
+          ...services.investments,
+          getCustodyBalance: vi.fn().mockResolvedValue(756848.78),
+          checkoutInvestment: vi.fn().mockResolvedValue({
+            success: true,
+            investment: {
+              id: 'inv-test-decimal',
+              loan_id: mockLoan.id,
+              investor_id: 'inv-shortcut-custody',
+              amount: 756848.78,
+              status: 'active',
+              created_at: new Date().toISOString(),
+            },
+            transaction: {
+              id: 'ctx-test-decimal',
+              amount: 756848.78,
+              balance_after: 0,
+            },
+          }),
+        },
+      };
+
+      render(
+        <ServiceProvider services={customServices as any}>
+          <InvestmentModal
+            isOpen={true}
+            onClose={vi.fn()}
+            loan={mockLoan}
+            investorId="inv-shortcut-custody"
+            custodyBalance={756848.78}
+            defaultCreditRiskAccepted={true}
+          />
+        </ServiceProvider>
+      );
+
+      const shortcutBtn = screen.getByTestId('use-max-custody-balance-button');
+      expect(shortcutBtn).toBeInTheDocument();
+      expect(shortcutBtn).toHaveTextContent('Invertir saldo total disponible ($ 756.848,78)');
+
+      fireEvent.click(shortcutBtn);
+
+      const amountInput = screen.getByLabelText(/monto a invertir/i);
+      expect(amountInput).toHaveValue('756.848,78');
+
+      const submitBtn = screen.getByTestId('modal-confirm-button');
+      expect(submitBtn).toBeEnabled();
+
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('investment-success-view')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('success-amount')).toHaveTextContent('$ 756.848,78');
+    });
   });
 });
+
