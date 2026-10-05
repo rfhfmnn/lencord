@@ -67,6 +67,26 @@ describe('LoanDetail Component (Task 10)', () => {
     expect(screen.getByTestId('detail-risk-badge')).toHaveTextContent('Tier A');
   });
 
+  it('renders PyME custom project description when present in loan data', () => {
+    const loanWithDescription: Loan = {
+      ...mockLoan,
+      id: 'loan-with-desc-test',
+      description: 'Adquisición de bobinas de chapa de acero y perfiles laminados para producción.',
+    };
+
+    render(
+      <LoanDetail
+        loanId={loanWithDescription.id}
+        initialLoan={loanWithDescription}
+        initialCreditProfile={mockCreditProfile}
+      />
+    );
+
+    expect(screen.getByTestId('detail-destination-desc')).toHaveTextContent(
+      'Adquisición de bobinas de chapa de acero y perfiles laminados para producción.'
+    );
+  });
+
   it('renders live funding progress bar with amount funded, amount requested, and remaining capacity', () => {
     render(
       <LoanDetail

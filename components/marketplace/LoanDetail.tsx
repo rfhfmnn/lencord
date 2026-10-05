@@ -274,6 +274,7 @@ export function LoanDetail({
   const riskTier: RiskTier = creditProfile?.risk_tier ?? 'Tier B';
   const categoryLabel = LOAN_CATEGORY_LABELS[loan.category] ?? loan.category;
   const destinationDesc =
+    (loan.description && loan.description.trim()) ||
     creditProfile?.scoring_notes ||
     CATEGORY_DESTINATION_DESCRIPTIONS[loan.category] ||
     'Financiamiento colectivo para proyecto productivo de PyME argentina.';
