@@ -792,9 +792,9 @@ export function AdminConsole({
                 </div>
 
                 {/* Project Description */}
-                <div>
-                  <span className={styles.infoLabel}>Destino y Proyecto</span>
-                  <div className={styles.projectDescription} data-testid="detail-description">
+                <div className={styles.projectDescription} data-testid="detail-description">
+                  <div>
+                    <span className={styles.pymeDescriptionLabel}>Destino y proyecto:</span>
                     <p className={styles.projectAutoText}>
                       {(() => {
                         const rawCat = LOAN_CATEGORY_LABELS[selectedLoan.category] ?? selectedLoan.category;
@@ -804,18 +804,18 @@ export function AdminConsole({
                       Plazo solicitado de {selectedLoan.term_months} meses bajo modalidad{' '}
                       {selectedLoan.rate_type === 'TNA_FIXED' ? 'tasa nominal fija' : 'indexada por CER'}.
                     </p>
-                    <div className={styles.pymeDescriptionBlock} data-testid="detail-pyme-description">
-                      <span className={styles.pymeDescriptionLabel}>Descripción proporcionada por la PyME:</span>
-                      {selectedLoan.description && selectedLoan.description.trim() ? (
-                        <p className={styles.pymeDescriptionText}>
-                          {selectedLoan.description.trim()}
-                        </p>
-                      ) : (
-                        <p className={styles.pymeDescriptionPlaceholder}>
-                          Sin descripción adicional proporcionada
-                        </p>
-                      )}
-                    </div>
+                  </div>
+                  <div className={styles.pymeDescriptionBlock} data-testid="detail-pyme-description">
+                    <span className={styles.pymeDescriptionLabel}>Descripción proporcionada por la PyME:</span>
+                    {selectedLoan.description && selectedLoan.description.trim() ? (
+                      <p className={styles.pymeDescriptionText}>
+                        {selectedLoan.description.trim()}
+                      </p>
+                    ) : (
+                      <p className={styles.pymeDescriptionPlaceholder}>
+                        Sin descripción adicional proporcionada
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
