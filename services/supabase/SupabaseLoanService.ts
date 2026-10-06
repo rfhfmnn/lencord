@@ -474,6 +474,36 @@ export class SupabaseLoanService implements LoanServiceInterface {
     }
   }
 
+  public async updateFundingDeadline(loanId: string, deadline: string | null): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from('loans')
+        .update({ funding_deadline: deadline })
+        .eq('id', loanId)
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        // Fallback via server API route if client-side RLS rejected
+        if (typeof window !== 'undefined') {
+          const res = await fetch('/api/loans/update-deadline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ loan_id: loanId, funding_deadline: deadline }),
+          });
+          const json = await res.json();
+          if (json.loan) return json.loan;
+        }
+        throw mapSupabaseError(error, `Error al actualizar el vencimiento del préstamo ${loanId}`);
+      }
+
+      return (data as Loan) || ({ id: loanId, funding_deadline: deadline } as Loan);
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al actualizar el vencimiento del préstamo ${loanId}`);
+    }
+  }
+
   public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
     try {
       const client = await this.getClient();

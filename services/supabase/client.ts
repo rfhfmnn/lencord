@@ -60,11 +60,13 @@ export function createSupabaseAdminClient(): SupabaseClient {
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     'https://placeholder-project.supabase.co';
 
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    'placeholder-service-key';
+  const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const isPlaceholder = !rawKey || rawKey.includes('placeholder');
+  const serviceRoleKey = !isPlaceholder
+    ? rawKey
+    : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+       'placeholder-service-key');
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {

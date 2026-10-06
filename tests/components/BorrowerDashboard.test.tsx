@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { Installment, Loan } from '@/types';
-import { BorrowerDashboard } from '@/components/dashboard/BorrowerDashboard';
+import { BorrowerDashboard, computeUpdatedDeadline } from '@/components/dashboard/BorrowerDashboard';
 import { ServiceProvider } from '@/context/ServiceProvider';
 import { createServices } from '@/services/factory';
 import { defaultMockStateStore } from '@/services/mock/mockState';
@@ -375,6 +375,78 @@ describe('BorrowerDashboard Component (Task 14)', () => {
 
     const deadlineCell = screen.getByTestId('loan-deadline-loan-no-dl');
     expect(deadlineCell).not.toHaveTextContent('Sin fecha límite');
+  });
+
+  describe('computeUpdatedDeadline and Auction Deadline Modification', () => {
+    it('correctly extends deadline by 15, 30, 45 days relative to existing future deadline', () => {
+      const fixedBase = new Date('2026-10-10T12:00:00.000Z');
+      const existingFutureDeadline = '2026-11-01T00:00:00.000Z'; // 22 days in future
+      const existingMs = new Date(existingFutureDeadline).getTime();
+
+      // +15 days adds 15 days to the existing deadline
+      const res15 = computeUpdatedDeadline('15_days', undefined, existingFutureDeadline, fixedBase);
+      expect(new Date(res15!).getTime()).toBe(existingMs + 15 * 24 * 60 * 60 * 1000);
+
+      // +30 days adds 30 days to the existing deadline
+      const res30 = computeUpdatedDeadline('30_days', undefined, existingFutureDeadline, fixedBase);
+      expect(new Date(res30!).getTime()).toBe(existingMs + 30 * 24 * 60 * 60 * 1000);
+
+      // +45 days adds 45 days to the existing deadline
+      const res45 = computeUpdatedDeadline('45_days', undefined, existingFutureDeadline, fixedBase);
+      expect(new Date(res45!).getTime()).toBe(existingMs + 45 * 24 * 60 * 60 * 1000);
+
+      // custom date
+      const resCustom = computeUpdatedDeadline('custom', '2026-12-25', existingFutureDeadline, fixedBase);
+      expect(resCustom).toBe('2026-12-25T23:59:59.000Z');
+
+      // no limit
+      expect(computeUpdatedDeadline('no_limit', undefined, existingFutureDeadline, fixedBase)).toBeNull();
+    });
+
+    it('modifies an existing funding deadline in the history table, shows preview, and updates the row', async () => {
+      const existingDeadlineIso = '2026-11-01T12:00:00.000Z';
+      const loanExistingDeadline: Loan = {
+        ...baseLoan,
+        id: 'loan-existing-dl',
+        funding_deadline: existingDeadlineIso,
+        status: 'funding',
+      };
+
+      render(<BorrowerDashboard initialLoans={[loanExistingDeadline]} />);
+
+      // Initial cell should show the existing date
+      const deadlineCell = screen.getByTestId('loan-deadline-loan-existing-dl');
+      expect(deadlineCell).toHaveTextContent('01/11/2026');
+
+      // Click "Modificar vencimiento"
+      const modifyBtn = screen.getByTestId('btn-define-deadline-loan-existing-dl');
+      expect(modifyBtn).toHaveTextContent('Modificar vencimiento');
+      fireEvent.click(modifyBtn);
+
+      // Modal is open with current deadline and preview
+      expect(screen.getByTestId('deadline-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-current-deadline-display')).toHaveTextContent('01/11/2026');
+      expect(screen.getByTestId('modal-new-deadline-preview')).toBeInTheDocument();
+
+      // Select +15 days option
+      const select = screen.getByTestId('modal-deadline-select');
+      fireEvent.change(select, { target: { value: '15_days' } });
+
+      // Preview should show 16/11/2026
+      expect(screen.getByTestId('modal-new-deadline-preview')).toHaveTextContent('16/11/2026');
+
+      // Save
+      fireEvent.click(screen.getByTestId('btn-save-deadline'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('deadline-modal')).not.toBeInTheDocument();
+      });
+
+      // Table cell updates to 16/11/2026
+      expect(screen.getByTestId('loan-deadline-loan-existing-dl')).toHaveTextContent('16/11/2026');
+      // Toast appears
+      expect(screen.getByTestId('deadline-success-toast')).toHaveTextContent('16/11/2026');
+    });
   });
 
   it('renders Investor onboarding section, validates DNI/CUIT, and successfully activates Investor role', async () => {
