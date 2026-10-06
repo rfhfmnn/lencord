@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentación de Base de Datos - Lencord</title>
+    <style>
+        
+@page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0F172A;
+    background-color: #FFFFFF;
+    line-height: 1.55;
+    font-size: 12.5px;
+}
+
+/* Portada */
+.cover {
+    height: 98vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 45px 35px;
+    background: linear-gradient(135deg, #0A2540 0%, #0F3258 50%, #1E40AF 100%);
+    color: #FFFFFF;
+    page-break-after: always;
+    border-radius: 8px;
+}
+
+.cover-top {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.cover-badge {
+    background: rgba(255, 255, 255, 0.15);
+    color: #93C5FD;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.cover-brand {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #FFFFFF;
+    margin-bottom: 30px;
+}
+
+.cover-brand span {
+    color: #60A5FA;
+}
+
+.cover h1 {
+    font-size: 34px;
+    line-height: 1.18;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin-bottom: 15px;
+    max-width: 620px;
+}
+
+.cover .cover-subtitle {
+    font-size: 16px;
+    color: #E2E8F0;
+    line-height: 1.45;
+    max-width: 580px;
+    font-weight: 400;
+}
+
+.cover-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 18px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #CBD5E1;
+}
+
+/* Encabezados y títulos */
+.header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #E2E8F0;
+    padding-bottom: 8px;
+    margin-bottom: 22px;
+}
+
+.header-brand {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0A2540;
+}
+
+.header-brand span {
+    color: #2563EB;
+}
+
+.header-doc-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748B;
+    letter-spacing: 0.5px;
+}
+
+h2 {
+    color: #0A2540;
+    font-size: 19px;
+    font-weight: 800;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid #E2E8F0;
+    padding-bottom: 5px;
+    page-break-after: avoid;
+}
+
+h3 {
+    color: #1E40AF;
+    font-size: 14.5px;
+    font-weight: 700;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+}
+
+h4 {
+    color: #334155;
+    font-size: 12.5px;
+    font-weight: 700;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+}
+
+p {
+    margin-bottom: 9px;
+    color: #334155;
+    text-align: justify;
+}
+
+ul, ol {
+    margin-left: 20px;
+    margin-bottom: 10px;
+    color: #334155;
+}
+
+li {
+    margin-bottom: 4px;
+}
+
+strong {
+    color: #0F172A;
+}
+
+code {
+    background-color: #F1F5F9;
+    color: #0F172A;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #CBD5E1;
+}
+
+pre {
+    background-color: #0F172A;
+    color: #F8FAFC;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 8px 0 12px 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    page-break-inside: avoid;
+    border-left: 4px solid #3B82F6;
+}
+
+pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border: none;
+}
+
+/* Tablas */
+.table-responsive {
+    margin: 12px 0;
+    page-break-inside: avoid;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    background: #FFFFFF;
+}
+
+th, td {
+    padding: 7px 9px;
+    border: 1px solid #CBD5E1;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #F1F5F9;
+    color: #0A2540;
+    font-weight: 700;
+}
+
+tr:nth-child(even) td {
+    background-color: #F8FAFC;
+}
+
+/* Cajas de alerta */
+.alert-box {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    page-break-inside: avoid;
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+.alert-info {
+    background-color: #EFF6FF;
+    border-left: 4px solid #3B82F6;
+    color: #1E40AF;
+}
+
+.alert-success {
+    background-color: #ECFDF5;
+    border-left: 4px solid #10B981;
+    color: #065F46;
+}
+
+.alert-warning {
+    background-color: #FFFBEB;
+    border-left: 4px solid #F59E0B;
+    color: #92400E;
+}
+
+.alert-danger {
+    background-color: #FEF2F2;
+    border-left: 4px solid #EF4444;
+    color: #991B1B;
+}
+
+/* Badges de Riesgo */
+.tier-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.tier-a {
+    background-color: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+}
+
+.tier-b {
+    background-color: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+}
+
+.tier-c {
+    background-color: #FFEDD5;
+    color: #9A3412;
+    border: 1px solid #FED7AA;
+}
+
+/* Grillas y tarjetas */
+.card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+    page-break-inside: avoid;
+}
+
+.card {
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 10px;
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.card h4 {
+    margin-top: 0;
+    color: #0A2540;
+    font-size: 12px;
+    border-bottom: 1px solid #F1F5F9;
+    padding-bottom: 3px;
+}
+
+/* Pasos */
+.step-item {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: flex-start;
+    page-break-inside: avoid;
+}
+
+.step-num {
+    background: #0A2540;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: bold;
+    margin-right: 9px;
+    flex-shrink: 0;
+}
+
+.page-break {
+    page-break-before: always;
+}
+
+
+        /* Ajustes específicos para documentación de base de datos */
+        .erd-box {
+            background: #F8FAFC;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 14px 0;
+            page-break-inside: avoid;
+        }
+
+        .erd-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .erd-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .erd-card-header {
+            font-weight: 800;
+            font-size: 11.5px;
+            color: #0A2540;
+            border-bottom: 2px solid #2563EB;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .erd-col {
+            font-family: Consolas, monospace;
+            font-size: 10px;
+            color: #334155;
+            line-height: 1.45;
+        }
+
+        .pk {
+            color: #D97706;
+            font-weight: bold;
+        }
+
+        .fk {
+            color: #2563EB;
+            font-weight: bold;
+        }
+
+        .tag-pill {
+            display: inline-block;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: #E2E8F0;
+            color: #334155;
+        }
+
+        .tag-rpc {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .tag-trigger {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .tag-rls {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PORTADA -->
+    <div class="cover">
+        <div class="cover-top">
+            <div class="cover-brand">LEN<span>CORD</span></div>
+            <div class="cover-badge">DOCUMENTACIÓN TÉCNICA Y DE ARQUITECTURA</div>
+            <h1>Manual y Diccionario de la Base de Datos</h1>
+            <div class="cover-subtitle">
+                Especificación completa del esquema relacional PostgreSQL / Supabase, Row Level Security (RLS), procedimientos atómicos (RPCs), ledger de saldos en custodia y almacenamiento de legajos.
+            </div>
+        </div>
+        <div class="cover-footer">
+            <div><strong>Plataforma:</strong> Lencord SAS • Motor: PostgreSQL 15+ (Supabase)</div>
+            <div><strong>Versión:</strong> 1.0.0 (Producción / Cloud) • Fecha: Octubre 2026</div>
+        </div>
+    </div>
+
+    <!-- PÁGINA 1: ARQUITECTURA GENERAL Y ENUMS -->
+    <div class="page">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Arquitectura y Tipos de Datos</div>
+        </div>
+
+        <h2>1. Visión general de la arquitectura</h2>
+        <p>
+            La persistencia de <strong>Lencord</strong> está montada sobre <strong>PostgreSQL 15+</strong> gestionado en la infraestructura cloud de <strong>Supabase</strong>. El diseño implementa estrictos criterios de integridad financiera, concurrencia segura y aislamiento multi-tenant a través de:
+        </p>
+        <ul>
+            <li><strong>Row Level Security (RLS) activo al 100%:</strong> Ninguna consulta puede omitir políticas de seguridad basadas en el contexto de autenticación (<code>auth.uid()</code>) del token JWT.</li>
+            <li><strong>Transaccionalidad Atómica (ACID) con bloqueo pesimista:</strong> Procedimientos almacenados PL/pgSQL (RPC) con <code>FOR UPDATE</code> que protegen las subastas contra sobre-fondeo (<em>overfunding</em>) y aseguran el débito/crédito en custodia.</li>
+            <li><strong>Libro Contable Inmutable (Ledger):</strong> Registro auditable de movimientos en custodia a través de <code>custody_transactions</code>.</li>
+            <li><strong>Sincronización Automática de Identidad:</strong> Trigger en <code>auth.users</code> para poblar instantáneamente el perfil en <code>public.profiles</code>.</li>
+            <li><strong>Extensiones:</strong> Extensión criptográfica <code>pgcrypto</code> para generación de UUIDs nativos y funciones de hash seguro.</li>
+        </ul>
+
+        <h2>2. Tipos de datos enumerados (ENUMs)</h2>
+        <p>El esquema define 10 tipos enumerados nativos para tipado estricto e integridad de dominio:</p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Nombre ENUM</th>
+                        <th style="width: 45%;">Valores permitidos</th>
+                        <th style="width: 30%;">Ámbito y descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>user_role</code></td>
+                        <td><code>'investor'</code>, <code>'borrower'</code>, <code>'sme'</code>, <code>'admin'</code></td>
+                        <td>Rol de acceso y capacidades operativas.</td>
+                    </tr>
+                    <tr>
+                        <td><code>kyc_status</code></td>
+                        <td><code>'pending'</code>, <code>'approved'</code>, <code>'rejected'</code></td>
+                        <td>Estado de verificación de identidad.</td>
+                    </tr>
+                    <tr>
+                        <td><code>risk_tier</code></td>
+                        <td><code>'Tier A'</code>, <code>'Tier B'</code>, <code>'Tier C'</code></td>
+                        <td>Scoring crediticio asignado a la PyME solicitante.</td>
+                    </tr>
+                    <tr>
+                        <td><code>rate_type</code></td>
+                        <td><code>'TNA_FIXED'</code>, <code>'CER_VARIABLE'</code></td>
+                        <td>Modalidad de cálculo de interés del préstamo.</td>
+                    </tr>
+                    <tr>
+                        <td><code>loan_category</code></td>
+                        <td><code>'working_capital'</code>, <code>'machinery'</code>, <code>'refinancing'</code>, <code>'expansion'</code>, <code>'new_sme'</code></td>
+                        <td>Destino productivo de los fondos requeridos.</td>
+                    </tr>
+                    <tr>
+                        <td><code>loan_status</code></td>
+                        <td><code>'draft'</code>, <code>'in_review'</code>, <code>'funding'</code>, <code>'funded'</code>, <code>'active'</code>, <code>'repaid'</code>, <code>'cancelled'</code>, <code>'rejected'</code>, <code>'expired'</code></td>
+                        <td>Ciclo de vida completo del préstamo colectivo.</td>
+                    </tr>
+                    <tr>
+                        <td><code>investment_status</code></td>
+                        <td><code>'committed'</code>, <code>'settled'</code>, <code>'refunded'</code></td>
+                        <td>Estado de compromiso monetario del inversor.</td>
+                    </tr>
+                    <tr>
+                        <td><code>installment_status</code></td>
+                        <td><code>'pending'</code>, <code>'paid'</code>, <code>'overdue'</code></td>
+                        <td>Estado de exigibilidad de cada cuota mensual.</td>
+                    </tr>
+                    <tr>
+                        <td><code>contract_document_type</code></td>
+                        <td><code>'mutuo'</code>, <code>'pagare'</code></td>
+                        <td>Instrumentos legales electrónicos emitidos.</td>
+                    </tr>
+                    <tr>
+                        <td><code>notification_type</code></td>
+                        <td><code>'info'</code>, <code>'success'</code>, <code>'warning'</code></td>
+                        <td>Severidad y presentación visual en el frontend.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert-box alert-info">
+            <strong>Arquitectura de Roles:</strong> En la capa de aplicación, <code>borrower</code> y <code>sme</code> representan a las empresas solicitantes de crédito, <code>investor</code> a los aportantes de capital y <code>admin</code> al cuerpo de compliance y auditoría interna.
+        </div>
+    </div>
+
+    <!-- PÁGINA 2: DIAGRAMA RELACIONAL Y TABLAS PRINCIPALES -->
+    <div class="page page-break">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Diagrama y Diccionario de Datos</div>
+        </div>
+
+        <h2>3. Mapa conceptual de entidades y relaciones</h2>
+        
+        <div class="erd-box">
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 8px; color: #0A2540;">ESQUEMA RELACIONAL PRINCIPAL (POSTGRESQL)</div>
+            <div class="erd-grid">
+                <div class="erd-card">
+                    <div class="erd-card-header">profiles <span>[1:1 auth]</span></div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        role (user_role)<br>
+                        tax_id (CUIT/DNI)<br>
+                        legal_name (VARCHAR)<br>
+                        bank_cbu_cvu (VARCHAR)<br>
+                        kyc_status (ENUM)
+                    </div>
+                </div>
+
+                <div class="erd-card">
+                    <div class="erd-card-header">loans <span>[N:1 profile]</span></div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        <span class="fk">FK</span> borrower_id &rarr; profiles<br>
+                        amount_requested (NUM)<br>
+                        amount_funded (NUM)<br>
+                        status (loan_status)<br>
+                        term_months (INT)
+                    </div>
+                </div>
+
+                <div class="erd-card">
+                    <div class="erd-card-header">investments <span>[N:1 loan]</span></div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        <span class="fk">FK</span> loan_id &rarr; loans<br>
+                        <span class="fk">FK</span> investor_id &rarr; profiles<br>
+                        amount (NUMERIC)<br>
+                        status (invest_status)
+                    </div>
+                </div>
+
+                <div class="erd-card">
+                    <div class="erd-card-header">installments <span>[N:1 loan]</span></div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        <span class="fk">FK</span> loan_id &rarr; loans<br>
+                        installment_number (INT)<br>
+                        due_date (DATE)<br>
+                        principal_amount (NUM)<br>
+                        status (inst_status)
+                    </div>
+                </div>
+
+                <div class="erd-card">
+                    <div class="erd-card-header">custody_transactions</div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        <span class="fk">FK</span> profile_id &rarr; profiles<br>
+                        type (VARCHAR)<br>
+                        amount (NUMERIC)<br>
+                        balance_after (NUMERIC)<br>
+                        reference_id (UUID)
+                    </div>
+                </div>
+
+                <div class="erd-card">
+                    <div class="erd-card-header">installment_payouts</div>
+                    <div class="erd-col">
+                        <span class="pk">PK</span> id (UUID)<br>
+                        <span class="fk">FK</span> installment_id<br>
+                        <span class="fk">FK</span> investment_id<br>
+                        <span class="fk">FK</span> investor_id<br>
+                        total_share (NUMERIC)<br>
+                        status ('credited')
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>4. Diccionario de datos detallado</h2>
+
+        <h3>4.1. Tabla <code>public.profiles</code></h3>
+        <p>Almacena la identidad consolidada de los participantes vinculada al motor de autenticación:</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                        <th>Nulo</th>
+                        <th>Defecto / Restricciones</th>
+                        <th>Descripción funcional</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td><code>UUID</code></td>
+                        <td>NO</td>
+                        <td>PK, <code>REFERENCES auth.users(id) ON DELETE CASCADE</code></td>
+                        <td>Identificador unívoco del usuario heredado de Supabase Auth.</td>
+                    </tr>
+                    <tr>
+                        <td><code>role</code></td>
+                        <td><code>user_role</code></td>
+                        <td>NO</td>
+                        <td><code>'investor'</code></td>
+                        <td>Rol de negocio asignado a la cuenta.</td>
+                    </tr>
+                    <tr>
+                        <td><code>tax_id</code></td>
+                        <td><code>VARCHAR(11)</code></td>
+                        <td>SÍ</td>
+                        <td>Regex: DNI (7-8 dígitos) o CUIT/CUIL (11 dígitos)</td>
+                        <td>Clave de identificación tributaria (opcional al registrarse como inversor).</td>
+                    </tr>
+                    <tr>
+                        <td><code>legal_name</code></td>
+                        <td><code>VARCHAR(255)</code></td>
+                        <td>NO</td>
+                        <td>-</td>
+                        <td>Razón social de la PyME o Nombre y Apellido del inversor.</td>
+                    </tr>
+                    <tr>
+                        <td><code>first_name</code> / <code>last_name</code></td>
+                        <td><code>VARCHAR(100)</code></td>
+                        <td>SÍ</td>
+                        <td><code>NULL</code></td>
+                        <td>Datos nominativos de la persona física o representante legal.</td>
+                    </tr>
+                    <tr>
+                        <td><code>email</code> / <code>phone</code></td>
+                        <td><code>VARCHAR</code></td>
+                        <td>SÍ / NO</td>
+                        <td><code>phone DEFAULT ''</code></td>
+                        <td>Canales de comunicación directa y contacto verificado.</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_cbu_cvu</code></td>
+                        <td><code>VARCHAR(22)</code></td>
+                        <td>NO</td>
+                        <td><code>'0000000000000000000000'</code></td>
+                        <td>CBU o CVU para transferencias monetarias.</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_alias</code></td>
+                        <td><code>VARCHAR(100)</code></td>
+                        <td>SÍ</td>
+                        <td><code>NULL</code></td>
+                        <td>Alias bancario amigable (ej. <code>lencord.inversiones</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>company_type</code></td>
+                        <td><code>VARCHAR(50)</code></td>
+                        <td>SÍ</td>
+                        <td><code>NULL</code></td>
+                        <td>Tipo societario (SA, SRL, SAS, Monotributo, Responsable Inscripto).</td>
+                    </tr>
+                    <tr>
+                        <td><code>start_date</code></td>
+                        <td><code>DATE</code></td>
+                        <td>SÍ</td>
+                        <td><code>NULL</code></td>
+                        <td>Fecha de inicio de actividades comerciales informada ante AFIP/ARCA.</td>
+                    </tr>
+                    <tr>
+                        <td><code>notification_preferences</code></td>
+                        <td><code>JSONB</code></td>
+                        <td>NO</td>
+                        <td><code>'{"email": true, "sms": true, "whatsapp": true}'</code></td>
+                        <td>Configuración de canales para notificaciones del sistema.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PÁGINA 3: LEGAJOS Y PRÉSTAMOS -->
+    <div class="page page-break">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Legajos Crediticios y Préstamos</div>
+        </div>
+
+        <h3>4.2. Tabla <code>public.sme_credit_profiles</code></h3>
+        <p>Legajo de evaluación crediticia de la empresa solicitante y referencias de soporte en Supabase Storage:</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                        <th>Nulo</th>
+                        <th>Restricción</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td><code>UUID</code></td>
+                        <td>NO</td>
+                        <td>PK, <code>gen_random_uuid()</code></td>
+                        <td>Identificador interno del legajo.</td>
+                    </tr>
+                    <tr>
+                        <td><code>profile_id</code></td>
+                        <td><code>UUID</code></td>
+                        <td>NO</td>
+                        <td>FK <code>profiles(id) ON DELETE CASCADE</code></td>
+                        <td>Vinculación con la PyME evaluada.</td>
+                    </tr>
+                    <tr>
+                        <td><code>bcra_situation</code></td>
+                        <td><code>SMALLINT</code></td>
+                        <td>SÍ</td>
+                        <td><code>CHECK (1 &le; val &le; 5)</code></td>
+                        <td>Situación reportada en Central de Deudores BCRA (1=Normal a 5=Irrecuperable).</td>
+                    </tr>
+                    <tr>
+                        <td><code>risk_tier</code></td>
+                        <td><code>risk_tier</code></td>
+                        <td>NO</td>
+                        <td><code>'Tier B'</code></td>
+                        <td>Calificación interna: Tier A (Excelente), Tier B (Estable), Tier C (Alto Rendimiento).</td>
+                    </tr>
+                    <tr>
+                        <td><code>afip_url</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Ruta al archivo PDF con la constancia de inscripción AFIP/ARCA.</td>
+                    </tr>
+                    <tr>
+                        <td><code>bank_statements_url</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Ruta a los extractos bancarios de los últimos 3 meses en PDF.</td>
+                    </tr>
+                    <tr>
+                        <td><code>balance_sheet_url</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Ruta al balance general contable en PDF.</td>
+                    </tr>
+                    <tr>
+                        <td><code>f931_url</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Ruta al formulario AFIP 931 (nómina de empleados) en PDF.</td>
+                    </tr>
+                    <tr>
+                        <td><code>scoring_notes</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>NO</td>
+                        <td><code>''</code></td>
+                        <td>Dictamen técnico y observaciones del analista de riesgo.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>4.3. Tabla <code>public.loans</code></h3>
+        <p>Publicación de solicitudes de crédito y subastas colectivas en el marketplace:</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                        <th>Nulo</th>
+                        <th>Restricción</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td><code>UUID</code></td>
+                        <td>NO</td>
+                        <td>PK, <code>gen_random_uuid()</code></td>
+                        <td>Identificador unívoco de la solicitud o subasta.</td>
+                    </tr>
+                    <tr>
+                        <td><code>borrower_id</code></td>
+                        <td><code>UUID</code></td>
+                        <td>NO</td>
+                        <td>FK <code>profiles(id) ON DELETE RESTRICT</code></td>
+                        <td>Empresa solicitante titular del financiamiento.</td>
+                    </tr>
+                    <tr>
+                        <td><code>amount_requested</code></td>
+                        <td><code>NUMERIC(14,2)</code></td>
+                        <td>NO</td>
+                        <td><code>CHECK (> 0)</code></td>
+                        <td>Monto total pretendido en pesos argentinos (ARS).</td>
+                    </tr>
+                    <tr>
+                        <td><code>amount_funded</code></td>
+                        <td><code>NUMERIC(14,2)</code></td>
+                        <td>NO</td>
+                        <td><code>&ge; 0 AND &le; requested</code></td>
+                        <td>Monto efectivamente comprometido por inversores.</td>
+                    </tr>
+                    <tr>
+                        <td><code>term_months</code></td>
+                        <td><code>INT</code></td>
+                        <td>NO</td>
+                        <td><code>CHECK (> 0)</code></td>
+                        <td>Plazo de amortización en meses (ej. 1, 2, 3, 6, 12 meses).</td>
+                    </tr>
+                    <tr>
+                        <td><code>rate_type</code></td>
+                        <td><code>rate_type</code></td>
+                        <td>NO</td>
+                        <td>-</td>
+                        <td>Esquema: <code>TNA_FIXED</code> (tasa fija) o <code>CER_VARIABLE</code> (UVA + spread).</td>
+                    </tr>
+                    <tr>
+                        <td><code>investor_rate</code></td>
+                        <td><code>NUMERIC(5,2)</code></td>
+                        <td>NO</td>
+                        <td><code>DEFAULT 0.00</code></td>
+                        <td>Tasa nominal anual ofrecida a los inversores participantes.</td>
+                    </tr>
+                    <tr>
+                        <td><code>platform_spread</code></td>
+                        <td><code>NUMERIC(5,2)</code></td>
+                        <td>NO</td>
+                        <td><code>DEFAULT 0.00</code></td>
+                        <td>Comisión de estructuración de Lencord.</td>
+                    </tr>
+                    <tr>
+                        <td><code>borrower_rate</code></td>
+                        <td><code>NUMERIC(5,2)</code></td>
+                        <td>NO</td>
+                        <td><code>investor + spread</code></td>
+                        <td>Tasa total pactada con la PyME.</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td><code>loan_status</code></td>
+                        <td>NO</td>
+                        <td><code>'in_review'</code></td>
+                        <td>Estado: <code>draft</code> &rarr; <code>in_review</code> &rarr; <code>funding</code> &rarr; <code>funded</code> &rarr; <code>active</code> &rarr; <code>repaid</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td><code>TEXT</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Memoria descriptiva del proyecto ingresada por la PyME.</td>
+                    </tr>
+                    <tr>
+                        <td><code>funding_deadline</code></td>
+                        <td><code>TIMESTAMPTZ</code></td>
+                        <td>SÍ</td>
+                        <td>-</td>
+                        <td>Plazo límite para completar la subasta «todo o nada».</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PÁGINA 4: INVERSIONES, CUOTAS, LEDGER Y CONTRATOS -->
+    <div class="page page-break">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Inversiones, Cuotas y Ledger Contable</div>
+        </div>
+
+        <h3>4.4. Tablas <code>investments</code> y <code>installments</code></h3>
+        <div class="card-grid">
+            <div class="card">
+                <h4>investments (Aportes de Inversores)</h4>
+                <p>Registra las posturas de capital en cada subasta:</p>
+                <ul>
+                    <li><code>id</code>: UUID (PK).</li>
+                    <li><code>loan_id</code>: FK &rarr; <code>loans(id)</code>.</li>
+                    <li><code>investor_id</code>: FK &rarr; <code>profiles(id)</code>.</li>
+                    <li><code>amount</code>: Monto aportado (ARS, &gt; 0).</li>
+                    <li><code>status</code>: <code>committed</code>, <code>settled</code>, <code>refunded</code>.</li>
+                    <li><code>gateway_hold_id</code> / <code>external_payment_id</code>: Identificadores de conciliación bancaria.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>installments (Cronograma de Cuotas)</h4>
+                <p>Plan de amortización sistema francés:</p>
+                <ul>
+                    <li><code>id</code>: UUID (PK).</li>
+                    <li><code>loan_id</code>: FK &rarr; <code>loans(id) ON DELETE CASCADE</code>.</li>
+                    <li><code>installment_number</code>: Número ordinal de cuota (1..N).</li>
+                    <li><code>due_date</code>: Fecha de vencimiento.</li>
+                    <li><code>principal_amount</code>: Amortización de capital.</li>
+                    <li><code>interest_borrower</code> / <code>interest_investors</code>: Intereses discriminados.</li>
+                    <li><code>status</code>: <code>pending</code>, <code>paid</code>, <code>overdue</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>4.5. Tabla <code>public.custody_transactions</code> (Libro Mayor / Ledger Inmutable)</h3>
+        <p>
+            Mantiene la trazabilidad matemática auditable del saldo en custodia de cada usuario de la plataforma. Ningún saldo se calcula en el cliente; cada modificación requiere un asiento contable formal:
+        </p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Columna</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td><code>UUID PK</code></td>
+                        <td>Identificador unívoco del movimiento contable.</td>
+                    </tr>
+                    <tr>
+                        <td><code>profile_id</code></td>
+                        <td><code>UUID FK</code></td>
+                        <td>Titular de la cuenta en custodia (referencia a <code>profiles.id</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><code>type</code></td>
+                        <td><code>VARCHAR(50)</code></td>
+                        <td>Tipo de operación: <code>deposit</code>, <code>investment_hold</code>, <code>installment_payout</code>, <code>withdrawal</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>amount</code></td>
+                        <td><code>NUMERIC(14,2)</code></td>
+                        <td>Importe bruto del movimiento (siempre mayor a cero).</td>
+                    </tr>
+                    <tr>
+                        <td><code>balance_after</code></td>
+                        <td><code>NUMERIC(14,2)</code></td>
+                        <td>Saldo disponible resultante en cuenta tras asentar el movimiento.</td>
+                    </tr>
+                    <tr>
+                        <td><code>reference_id</code></td>
+                        <td><code>UUID NULL</code></td>
+                        <td>ID externo asociado (ej. <code>loan_id</code> en inversiones o <code>installment_id</code> en cuotas).</td>
+                    </tr>
+                    <tr>
+                        <td><code>payment_metadata</code></td>
+                        <td><code>JSONB NULL</code></td>
+                        <td>Detalle de pasarela, método de pago, últimos 4 dígitos de tarjeta y conciliación.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>4.6. Tablas <code>installment_payouts</code> y <code>legal_contracts</code></h3>
+        <div class="card-grid">
+            <div class="card">
+                <h4>installment_payouts (Distribución Prorrateada)</h4>
+                <p>Desglose de cada cuota cobrada entre los inversores:</p>
+                <ul>
+                    <li><code>installment_id</code> + <code>investment_id</code>: <strong>Restricción UNIQUE</strong> para evitar pagos duplicados.</li>
+                    <li><code>principal_share</code>: Porción de capital correspondiente.</li>
+                    <li><code>interest_share</code>: Porción de rendimiento correspondiente.</li>
+                    <li><code>total_share</code>: Acreditación total en custodia.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>legal_contracts (Pagaré Digital y Mutuo)</h4>
+                <p>Instrumentos jurídicos de ejecución ejecutiva:</p>
+                <ul>
+                    <li><code>document_type</code>: <code>mutuo</code> o <code>pagare</code>.</li>
+                    <li><code>document_url</code>: Enlace al documento en Storage.</li>
+                    <li><code>signature_hash</code>: Hash SHA-256 de la firma electrónica.</li>
+                    <li><code>signer_ip</code> y <code>signer_user_agent</code>: Evidencia forense de la suscripción digital.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA 5: RPCS, TRIGGERS Y RLS -->
+    <div class="page page-break">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Procedimientos Almacenados y Seguridad</div>
+        </div>
+
+        <h2>5. Procedimientos almacenados transaccionales (RPCs)</h2>
+        <p>Toda mutación de saldos y compromisos se ejecuta de forma estrictamente atómica con privilegios <code>SECURITY DEFINER</code>:</p>
+
+        <div class="card" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0; color: #1E40AF;">process_investment_checkout_rpc</h4>
+                <span class="tag-pill tag-rpc">RPC TRANSACCIONAL</span>
+            </div>
+            <p><strong>Firma:</strong> <code>(p_loan_id UUID, p_investor_id UUID, p_amount NUMERIC, p_payment_method TEXT, p_card_last_four TEXT, p_card_brand TEXT) &rarr; JSONB</code></p>
+            <ul>
+                <li>Bloquea la fila del préstamo mediante <code>SELECT * FROM loans WHERE id = p_loan_id FOR UPDATE</code>.</li>
+                <li>Valida que el préstamo esté en estado <code>funding</code> y rechaza intentos de autofinanciamiento (<code>borrower_id == p_investor_id</code>).</li>
+                <li>Verifica que el aporte no supere el cupo restante (protección anti-overfunding).</li>
+                <li>Si el pago se hace con saldo en custodia, valida liquidez inmediata y debita el importe registrando <code>investment_hold</code> en <code>custody_transactions</code>.</li>
+                <li>Actualiza el estado a <code>funded</code> si la subasta alcanza el 100% de fondeo.</li>
+                <li>Emite notificaciones bidireccionales automáticas: PyME (nuevo aporte), Inversor (confirmación) y, si se completó, avisa a la PyME para firmar el pagaré y a los inversores del cierre de subasta.</li>
+            </ul>
+        </div>
+
+        <div class="card" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0; color: #1E40AF;">process_installment_repayment_rpc</h4>
+                <span class="tag-pill tag-rpc">RPC DE COBRANZAS</span>
+            </div>
+            <p><strong>Firma:</strong> <code>(p_installment_id UUID, p_payer_id UUID) &rarr; JSONB</code></p>
+            <ul>
+                <li>Bloquea la cuota con <code>FOR UPDATE</code> y valida que no haya sido cancelada previamente.</li>
+                <li>Recorre todas las inversiones participantes prorrateando capital e intereses proporcionalmente.</li>
+                <li>Aplica <strong>compensación exacta de centavos por redondeo</strong> en la última cuota para evitar descuadres contables.</li>
+                <li>Inserta registros idempotentes en <code>installment_payouts</code> y acredita los fondos en <code>custody_transactions</code> para cada inversor.</li>
+                <li>Comprueba si todas las cuotas del préstamo quedaron pagadas; si es así, conmuta el estado de <code>loans</code> a <code>repaid</code> y felicita a la PyME.</li>
+            </ul>
+        </div>
+
+        <h2>6. Triggers automáticos del sistema</h2>
+        <div class="card-grid">
+            <div class="card">
+                <h4>on_auth_user_created <span class="tag-pill tag-trigger">TRIGGER</span></h4>
+                <p>Se dispara tras <code>INSERT</code> en <code>auth.users</code>. Extrae los metadatos de registro (rol, CUIT, razón social, apoderado, tipo societario) y crea el perfil en <code>public.profiles</code> de manera idempotente.</p>
+            </div>
+            <div class="card">
+                <h4>trg_notify_loan_approval <span class="tag-pill tag-trigger">TRIGGER</span></h4>
+                <p>Se dispara tras <code>UPDATE OF status ON public.loans</code>. Cuando un préstamo es aprobado por compliance y pasa a <code>funding</code>, inserta una notificación en tiempo real para alertar a la empresa solicitante.</p>
+            </div>
+        </div>
+
+        <h2>7. Matriz de políticas Row Level Security (RLS)</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tabla</th>
+                        <th>Acceso Administrador</th>
+                        <th>Acceso PyME (Borrower)</th>
+                        <th>Acceso Inversor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>profiles</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Ver propio + editar propio + ver inversores de su subasta</td>
+                        <td>Ver propio + editar propio + ver empresas públicas</td>
+                    </tr>
+                    <tr>
+                        <td><code>sme_credit_profiles</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Crear y modificar su propio legajo crediticio</td>
+                        <td>Lectura de información financiera autorizada</td>
+                    </tr>
+                    <tr>
+                        <td><code>loans</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Crear y editar solicitudes en borrador / revisión</td>
+                        <td>Lectura de solicitudes públicas en subasta o activas</td>
+                    </tr>
+                    <tr>
+                        <td><code>investments</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Lectura de inversores aportantes a su préstamo</td>
+                        <td>Lectura exclusiva de sus propias inversiones</td>
+                    </tr>
+                    <tr>
+                        <td><code>notifications</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Ver y marcar como leídas sus propias notificaciones</td>
+                        <td>Ver y marcar como leídas sus propias notificaciones</td>
+                    </tr>
+                    <tr>
+                        <td><code>custody_transactions</code></td>
+                        <td>Control Total (ALL)</td>
+                        <td>Lectura estricta de sus propios movimientos</td>
+                        <td>Lectura estricta de sus propios movimientos</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PÁGINA 6: STORAGE, ÍNDICES Y SEMILLAS -->
+    <div class="page page-break">
+        <div class="header-bar">
+            <div class="header-brand">LEN<span>CORD</span></div>
+            <div class="header-doc-title">Base de Datos • Almacenamiento, Rendimiento y Despliegue</div>
+        </div>
+
+        <h2>8. Almacenamiento de archivos (Supabase Storage)</h2>
+        <p>El almacenamiento de legajos de documentación crediticia opera bajo las siguientes directivas:</p>
+        <ul>
+            <li><strong>Bucket oficial:</strong> <code>loan-documents</code> (privado, acceso restringido).</li>
+            <li><strong>Límite por archivo:</strong> 10 MB (10.485.760 bytes).</li>
+            <li><strong>MIME Types permitidos:</strong> Exclusivamente <code>application/pdf</code>.</li>
+            <li><strong>Estructura de aislamiento:</strong> Cada PyME opera dentro de su propio prefijo: <code>loan-documents/{auth.uid()}/nombre_archivo.pdf</code>.</li>
+            <li><strong>Políticas RLS en <code>storage.objects</code>:</strong> Los usuarios solo pueden insertar, leer o eliminar archivos si el path coincide con su <code>auth.uid()</code>. Los administradores disponen de acceso total para descargas y auditoría.</li>
+        </ul>
+
+        <h2>9. Estrategia de indexación y rendimiento</h2>
+        <p>El esquema incluye 17 índices B-Tree para asegurar tiempos de respuesta inferiores a 10 ms en consultas con alta concurrencia:</p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tabla</th>
+                        <th>Índices implementados</th>
+                        <th>Propósito de optimización</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>profiles</code></td>
+                        <td><code>idx_profiles_tax_id</code>, <code>idx_profiles_email</code></td>
+                        <td>Búsqueda rápida por CUIT/DNI e inicio de sesión.</td>
+                    </tr>
+                    <tr>
+                        <td><code>loans</code></td>
+                        <td><code>idx_loans_borrower_id</code>, <code>idx_loans_status</code></td>
+                        <td>Filtrado de subastas en marketplace y dashboard PyME.</td>
+                    </tr>
+                    <tr>
+                        <td><code>investments</code></td>
+                        <td><code>idx_investments_loan_id</code>, <code>idx_investments_investor_id</code></td>
+                        <td>Liquidación ágil de aportes y cálculo de cupos.</td>
+                    </tr>
+                    <tr>
+                        <td><code>installments</code></td>
+                        <td><code>idx_installments_loan_id</code>, <code>idx_installments_due_date</code></td>
+                        <td>Cronogramas de cobranzas y alertas de mora.</td>
+                    </tr>
+                    <tr>
+                        <td><code>custody_transactions</code></td>
+                        <td><code>idx_custody_transactions_profile_id</code>, <code>created_at DESC</code>, <code>reference_id</code></td>
+                        <td>Consulta instantánea del último saldo y conciliación.</td>
+                    </tr>
+                    <tr>
+                        <td><code>installment_payouts</code></td>
+                        <td><code>investor_id</code>, <code>installment_id</code>, <code>investment_id</code></td>
+                        <td>Acreditación masiva y verificación de pagos previos.</td>
+                    </tr>
+                    <tr>
+                        <td><code>notifications</code></td>
+                        <td><code>idx_notifications_user_id</code>, <code>created_at DESC</code></td>
+                        <td>Carga instantánea de la campanita y feed de alertas.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>10. Despliegue y usuario administrador inicial</h2>
+        <p>
+            El script maestro <code>supabase/setup_cloud_schema.sql</code> contiene la totalidad de este esquema en formato idempotente. Puede ejecutarse directamente desde el <strong>SQL Editor</strong> de Supabase o mediante la CLI con <code>npx supabase db push</code>.
+        </p>
+
+        <div class="alert-box alert-success">
+            <strong>Usuario Administrador Semilla (Listo para producción):</strong><br>
+            • <strong>Email:</strong> <code>admin@lencord.ar</code><br>
+            • <strong>Contraseña inicial:</strong> <code>Admin1234!</code><br>
+            • <strong>Rol:</strong> <code>admin</code> (acceso pleno a la consola de administración en <code>/admin</code> y bypass RLS).
+        </div>
+
+        <div class="alert-box alert-info">
+            <strong>Suscripción Realtime:</strong> La tabla <code>public.notifications</code> está incorporada en la publicación <code>supabase_realtime</code>, lo que permite que el componente frontend <code>NotificationBell</code> reciba avisos instantáneos vía WebSockets sin recargar la página.
+        </div>
+    </div>
+
+</body>
+</html>
