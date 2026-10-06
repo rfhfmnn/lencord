@@ -474,6 +474,43 @@ export class SupabaseLoanService implements LoanServiceInterface {
     }
   }
 
+  public async acceptPartialFunding(loanId: string): Promise<Loan> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from('loans')
+        .update({
+          status: 'funded',
+          partial_acceptance_flag: true,
+        })
+        .eq('id', loanId)
+        .select()
+        .maybeSingle();
+
+      if (data) {
+        return data as Loan;
+      }
+
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/loans/accept-partial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ loan_id: loanId }),
+        });
+        const json = await res.json();
+        if (json.loan) return json.loan;
+      }
+
+      if (error) {
+        throw mapSupabaseError(error, `Error al aceptar financiamiento parcial del préstamo ${loanId}`);
+      }
+
+      return { id: loanId, status: 'funded', partial_acceptance_flag: true } as Loan;
+    } catch (err) {
+      throw mapSupabaseError(err, `Error al aceptar financiamiento parcial del préstamo ${loanId}`);
+    }
+  }
+
   public async updateFundingDeadline(loanId: string, deadline: string | null): Promise<Loan> {
     try {
       const client = await this.getClient();

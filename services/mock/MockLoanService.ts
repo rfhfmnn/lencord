@@ -347,6 +347,18 @@ export class MockLoanService implements LoanServiceInterface {
     return JSON.parse(JSON.stringify(loan));
   }
 
+  public async acceptPartialFunding(loanId: string): Promise<Loan> {
+    let loan = this.store.loans.find((l) => l.id === loanId);
+    if (!loan) {
+      loan = { id: loanId, status: 'funded', partial_acceptance_flag: true } as Loan;
+      this.store.loans.push(loan);
+    } else {
+      loan.status = 'funded';
+      loan.partial_acceptance_flag = true;
+    }
+    return JSON.parse(JSON.stringify(loan));
+  }
+
   public async updateFundingDeadline(loanId: string, deadline: string | null): Promise<Loan> {
     let loan = this.store.loans.find((l) => l.id === loanId);
     if (!loan) {

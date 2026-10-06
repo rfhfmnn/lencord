@@ -608,7 +608,37 @@ describe('BorrowerDashboard Component (Task 14)', () => {
       expect(termsCellCer).toHaveTextContent('CER + 14.5%');
     });
   });
+
+  describe('Partial Funding Acceptance Banner (75% Threshold Rule)', () => {
+    it('renders partial acceptance banner when loan reaches >= 75% in funding status and allows accepting funds', async () => {
+      const loan75Percent: Loan = {
+        ...baseLoan,
+        id: 'loan-75-pct',
+        status: 'funding',
+        amount_requested: 10000000,
+        amount_funded: 8000000, // 80%
+      };
+
+      render(<BorrowerDashboard initialLoans={[loan75Percent]} />);
+
+      const banner = screen.getByTestId('partial-acceptance-banner');
+      expect(banner).toBeInTheDocument();
+      expect(banner).toHaveTextContent('Umbral mínimo alcanzado (80% recaudado)');
+      expect(banner).toHaveTextContent('$ 8.000.000');
+
+      const acceptBtn = screen.getByTestId('btn-accept-partial-funding');
+      expect(acceptBtn).toBeInTheDocument();
+
+      fireEvent.click(acceptBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('signing-notification')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('btn-sign-promissory-note')).toBeInTheDocument();
+    });
+  });
 });
+
 
 
 

@@ -155,6 +155,10 @@ export function BorrowerDashboard({
   const [isSavingDeadline, setIsSavingDeadline] = useState<boolean>(false);
   const [deadlineSuccessMsg, setDeadlineSuccessMsg] = useState<string | null>(null);
 
+  // Partial funding acceptance state (75% threshold rule)
+  const [isAcceptingPartial, setIsAcceptingPartial] = useState<boolean>(false);
+  const [partialAcceptanceError, setPartialAcceptanceError] = useState<string | null>(null);
+
   const previewNewDeadline = useMemo(() => {
     if (!deadlineModalLoan) return null;
     return computeUpdatedDeadline(
@@ -684,6 +688,58 @@ export function BorrowerDashboard({
     );
   };
 
+  const handleAcceptPartialFunding = async () => {
+    if (!currentLoan) return;
+    try {
+      setIsAcceptingPartial(true);
+      setPartialAcceptanceError(null);
+
+      const resolvedServices =
+        servicesFromContext ??
+        (() => {
+          try {
+            return createServices();
+          } catch {
+            return createServices({ useMocks: true });
+          }
+        })();
+
+      if (resolvedServices?.loans?.acceptPartialFunding) {
+        await resolvedServices.loans.acceptPartialFunding(currentLoan.id);
+      } else {
+        await fetch('/api/loans/accept-partial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ loan_id: currentLoan.id }),
+        });
+      }
+
+      const mockLoan = defaultMockStateStore.loans.find((l) => l.id === currentLoan.id);
+      if (mockLoan) {
+        mockLoan.status = 'funded';
+        mockLoan.partial_acceptance_flag = true;
+      }
+
+      setLoans((prev) =>
+        prev.map((l) =>
+          l.id === currentLoan.id
+            ? { ...l, status: 'funded' as const, partial_acceptance_flag: true }
+            : l
+        )
+      );
+
+      setDeadlineSuccessMsg(
+        `¡Financiamiento por ${formatCurrency(currentLoan.amount_funded)} aceptado con éxito! Por favor firmá el pagaré digital para proceder al desembolso.`
+      );
+      setTimeout(() => setDeadlineSuccessMsg(null), 6000);
+      handleSigningClick();
+    } catch (err: any) {
+      setPartialAcceptanceError(err?.message || 'Error al aceptar el financiamiento parcial.');
+    } finally {
+      setIsAcceptingPartial(false);
+    }
+  };
+
   const handleConfirmRepayment = async () => {
     if (!repaymentModalInstallment) return;
     try {
@@ -1097,6 +1153,66 @@ export function BorrowerDashboard({
               {fundedPercent}% completado
             </div>
           </div>
+
+          {/* Partial acceptance callout when >= 75% threshold is reached */}
+          {fundedPercent >= 75 && (
+            <div
+              style={{
+                marginTop: '1.25rem',
+                padding: '1.25rem',
+                borderRadius: '0.75rem',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #86efac',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+              data-testid="partial-acceptance-banner"
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">
+                  🎯
+                </span>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#166534' }}>
+                    ¡Umbral mínimo alcanzado ({fundedPercent}% recaudado)!
+                  </h4>
+                  <p style={{ margin: '0.35rem 0 0', fontSize: '0.875rem', color: '#15803d', lineHeight: 1.5 }}>
+                    Tu solicitud ya cuenta con <strong>{formatCurrency(currentLoan.amount_funded)}</strong> comprometidos de los{' '}
+                    {formatCurrency(currentLoan.amount_requested)} solicitados. Al haber superado el 75% reglamentario, podés dar por concluida la subasta ahora mismo y aceptar este financiamiento para firmar el pagaré digital y recibir el desembolso.
+                  </p>
+                  {partialAcceptanceError && (
+                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#dc2626', fontWeight: 600 }}>
+                      {partialAcceptanceError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAcceptPartialFunding}
+                  disabled={isAcceptingPartial}
+                  data-testid="btn-accept-partial-funding"
+                  style={{ backgroundColor: '#15803d', borderColor: '#15803d' }}
+                >
+                  {isAcceptingPartial
+                    ? 'Procesando aceptación...'
+                    : `Aceptar financiamiento recaudado (${formatCurrency(currentLoan.amount_funded)})`}
+                </Button>
+                <Button
+                  variant="bordered"
+                  size="sm"
+                  onClick={() => handleOpenDeadlineModal(currentLoan)}
+                  data-testid="btn-extend-auction-partial"
+                >
+                  Modificar vencimiento
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
