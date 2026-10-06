@@ -674,6 +674,16 @@ export function BorrowerDashboard({
     : 0;
   const daysRemaining = calculateDaysRemaining(currentLoan.funding_deadline, referenceDate);
 
+  const isPartialAccepted = Boolean(
+    currentLoan.partial_acceptance_flag ||
+    (currentLoan.amount_funded > 0 &&
+      currentLoan.amount_funded < currentLoan.amount_requested &&
+      (currentLoan.status === 'funded' || currentLoan.status === 'active' || currentLoan.status === 'repaid'))
+  );
+  const effectivePrincipal = isPartialAccepted && currentLoan.amount_funded > 0
+    ? currentLoan.amount_funded
+    : currentLoan.amount_requested;
+
   const handleSigningClick = () => {
     setIsSigningModalOpen(true);
     if (onSignPromissoryNote) {
@@ -1018,9 +1028,15 @@ export function BorrowerDashboard({
         {/* Key figures */}
         <div className={styles.breakdownGrid}>
           <div className={styles.tierStatItem} style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
-            <span className={styles.metricLabel}>Monto solicitado</span>
-            <div className={styles.tierStatAmount}>{formatCurrency(currentLoan.amount_requested)}</div>
-            <div className={styles.secondaryText}>Plazo: {currentLoan.term_months} meses</div>
+            <span className={styles.metricLabel}>
+              {isPartialAccepted ? 'Capital financiado' : 'Monto solicitado'}
+            </span>
+            <div className={styles.tierStatAmount}>{formatCurrency(effectivePrincipal)}</div>
+            <div className={styles.secondaryText}>
+              {isPartialAccepted
+                ? `${fundedPercent}% de ${formatCurrency(currentLoan.amount_requested)}`
+                : `Plazo: ${currentLoan.term_months} meses`}
+            </div>
           </div>
 
           <div className={styles.tierStatItem} style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
@@ -1231,10 +1247,23 @@ export function BorrowerDashboard({
               </svg>
             </div>
             <div>
-              <h3 className={styles.signingTitle}>¡Subasta financiada al 100%!</h3>
+              <h3 className={styles.signingTitle}>
+                {isPartialAccepted
+                  ? `¡Financiamiento aceptado al ${fundedPercent}%!`
+                  : '¡Subasta financiada al 100%!'}
+              </h3>
               <p className={styles.signingDescription}>
-                Tu proyecto ha alcanzado el fondeo total. Para proceder con el desembolso directo de los fondos
-                en tu CBU/CVU bancario, es necesario firmar el <strong>Pagaré Digital</strong> correspondiente.
+                {isPartialAccepted ? (
+                  <>
+                    Aceptaste los fondos recaudados por un total de{' '}
+                    <strong>{formatCurrency(currentLoan.amount_funded)}</strong> (correspondiente al {fundedPercent}% del monto solicitado). Para proceder con el desembolso directo de los fondos en tu CBU/CVU bancario, es necesario firmar el <strong>Pagaré Digital</strong> correspondiente ajustado a dicho importe.
+                  </>
+                ) : (
+                  <>
+                    Tu proyecto ha alcanzado el fondeo total. Para proceder con el desembolso directo de los fondos
+                    en tu CBU/CVU bancario, es necesario firmar el <strong>Pagaré Digital</strong> correspondiente.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -1260,9 +1289,23 @@ export function BorrowerDashboard({
                 🎉
               </div>
               <div style={{ flex: 1 }}>
-                <h3 className={styles.disbursementTitle}>¡Felicitaciones! Tu solicitud fue 100% financiada.</h3>
+                <h3 className={styles.disbursementTitle}>
+                  {isPartialAccepted
+                    ? `¡Felicitaciones! Financiamiento del ${fundedPercent}% desembolsado.`
+                    : '¡Felicitaciones! Tu solicitud fue 100% financiada.'}
+                </h3>
                 <p className={styles.disbursementText}>
-                  Los fondos por <strong>{formatCurrency(currentLoan.amount_requested, { decimals: true })}</strong> han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
+                  {isPartialAccepted ? (
+                    <>
+                      Los fondos recaudados y aceptados por{' '}
+                      <strong>{formatCurrency(currentLoan.amount_funded, { decimals: true })}</strong>{' '}
+                      (equivalentes al {fundedPercent}% solicitado) han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
+                    </>
+                  ) : (
+                    <>
+                      Los fondos por <strong>{formatCurrency(currentLoan.amount_requested, { decimals: true })}</strong> han sido transferidos a tu cuenta CBU registrada (terminada en {borrowerCbu ? borrowerCbu.slice(-4) : '0001'}).
+                    </>
+                  )}
                 </p>
                 {nextPendingInstallment && (
                   <p className={styles.disbursementNextDue} data-testid="next-due-date-notice">
@@ -1793,7 +1836,7 @@ export function BorrowerDashboard({
           isOpen={isSigningModalOpen}
           onClose={() => setIsSigningModalOpen(false)}
           loan={currentLoan}
-          installments={installments}
+          installments={isPartialAccepted ? undefined : installments}
           onSuccess={handleContractSigned}
         />
       )}

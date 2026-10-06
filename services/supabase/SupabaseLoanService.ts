@@ -650,6 +650,12 @@ export class SupabaseLoanService implements LoanServiceInterface {
         throw mapSupabaseError(updateErr, `Error al activar el préstamo ${loanId}`);
       }
 
+      const isPartial = Boolean(
+        loan.partial_acceptance_flag ||
+        (loan.amount_funded > 0 && loan.amount_funded < loan.amount_requested)
+      );
+      const disburseAmount = isPartial ? loan.amount_funded : loan.amount_requested;
+
       // 3. Trigger loan disbursement via payment gateway
       if (this.paymentGateway) {
         const { data: profile } = await client
@@ -659,7 +665,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
           .maybeSingle();
 
         const cbu = profile?.bank_cbu_cvu || '0000003100010000000001';
-        await this.paymentGateway.disburseLoan(loan.id, cbu, loan.amount_requested).catch(() => {});
+        await this.paymentGateway.disburseLoan(loan.id, cbu, disburseAmount).catch(() => {});
       }
 
       // 4. Generate monthly rows in installments table
@@ -671,7 +677,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
       if (!existingInst || existingInst.length === 0) {
         const generated = generateFrenchInstallments({
           loanId: loan.id,
-          amount: loan.amount_requested,
+          amount: disburseAmount,
           termMonths: loan.term_months || 1,
           borrowerRate: loan.borrower_rate || 45,
           investorRate: loan.investor_rate || 42.5,
@@ -695,7 +701,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
 
       // 5. Notify PyME borrower that promissory note is signed and funds disbursed
       try {
-        const formattedAmount = Number(loan.amount_requested || 0).toLocaleString('es-AR');
+        const formattedAmount = Number(disburseAmount || 0).toLocaleString('es-AR');
         await client.from('notifications').insert({
           user_id: loan.borrower_id,
           type: 'success',

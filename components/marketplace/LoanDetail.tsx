@@ -504,7 +504,9 @@ export function LoanDetail({
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.9375rem', margin: 0 }}>
                 {loan.status === 'funded'
-                  ? 'Subasta 100% financiada. Documento listo para revisión y firma electrónica mediante OTP.'
+                  ? (loan.partial_acceptance_flag || (loan.amount_funded > 0 && loan.amount_funded < loan.amount_requested))
+                    ? `Subasta financiada y aceptada al ${Math.round((loan.amount_funded / loan.amount_requested) * 100)}%. Documento listo para revisión y firma electrónica mediante OTP.`
+                    : 'Subasta 100% financiada. Documento listo para revisión y firma electrónica mediante OTP.'
                   : 'Préstamo activo ratificado legalmente y sellado criptográficamente.'}
               </p>
             </div>

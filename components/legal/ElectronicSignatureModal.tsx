@@ -77,6 +77,17 @@ export function ElectronicSignatureModal({
   const [isSigning, setIsSigning] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const isPartialAccepted = Boolean(
+    loan.partial_acceptance_flag ||
+    (loan.amount_funded > 0 &&
+      loan.amount_funded < loan.amount_requested &&
+      (loan.status === 'funded' || loan.status === 'active' || loan.status === 'repaid'))
+  );
+  const effectivePrincipal =
+    isPartialAccepted && loan.amount_funded > 0
+      ? loan.amount_funded
+      : loan.amount_requested;
+
   useEffect(() => {
     if (initialContract) {
       setContract(initialContract);
@@ -277,8 +288,13 @@ export function ElectronicSignatureModal({
               <div className={styles.summaryItem}>
                 <span className={styles.summaryLabel}>Monto Principal</span>
                 <span className={styles.summaryValue} data-testid="summary-principal-amount">
-                  {formatCurrency(loan.amount_requested)}
+                  {formatCurrency(effectivePrincipal)}
                 </span>
+                {isPartialAccepted && (
+                  <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
+                    ({Math.round((loan.amount_funded / loan.amount_requested) * 100)}% aceptado en subasta)
+                  </span>
+                )}
               </div>
 
               <div className={styles.summaryItem}>

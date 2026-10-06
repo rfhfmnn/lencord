@@ -179,8 +179,29 @@ export function PromissoryNoteModal({
     };
   }, [initialBorrower, loan.borrower_id]);
 
+  // Handle partial acceptance (when loan was funded and accepted below 100%)
+  const isPartialAccepted = Boolean(
+    loan.partial_acceptance_flag ||
+    (loan.amount_funded > 0 &&
+      loan.amount_funded < loan.amount_requested &&
+      (loan.status === 'funded' || loan.status === 'active' || loan.status === 'repaid'))
+  );
+
+  const effectivePrincipal =
+    isPartialAccepted && loan.amount_funded > 0
+      ? loan.amount_funded
+      : loan.amount_requested;
+
+  const fundingPercentage =
+    loan.amount_requested > 0
+      ? Math.round((loan.amount_funded / loan.amount_requested) * 100)
+      : 100;
+
   // Installment schedule
   const schedule = useMemo(() => {
+    if (isPartialAccepted) {
+      return calculateSchedule(effectivePrincipal, loan.term_months, loan.borrower_rate);
+    }
     if (installments && installments.length > 0) {
       return installments.map((inst) => ({
         number: inst.installment_number,
@@ -190,8 +211,8 @@ export function PromissoryNoteModal({
         total: inst.principal_amount + inst.interest_borrower,
       }));
     }
-    return calculateSchedule(loan.amount_requested, loan.term_months, loan.borrower_rate);
-  }, [installments, loan.amount_requested, loan.term_months, loan.borrower_rate]);
+    return calculateSchedule(effectivePrincipal, loan.term_months, loan.borrower_rate);
+  }, [isPartialAccepted, effectivePrincipal, installments, loan.term_months, loan.borrower_rate]);
 
   // Loaded investments state for Anexo I creditors list
   const [loadedInvestments, setLoadedInvestments] = useState<ParticipatingInvestment[]>(() =>
@@ -359,7 +380,7 @@ export function PromissoryNoteModal({
 
       return Array.from(byInvestor.values()).map((inv) => {
         const sharePercent =
-          loan.amount_requested > 0 ? (inv.amount / loan.amount_requested) * 100 : 0;
+          effectivePrincipal > 0 ? (inv.amount / effectivePrincipal) * 100 : 0;
         const monthlyQuota = firstInstallmentTotal * (sharePercent / 100);
         return {
           id: inv.investor_id || inv.id,
@@ -378,7 +399,7 @@ export function PromissoryNoteModal({
     if (fallbackSeedInvestors.length >= 2) {
       const inv1 = fallbackSeedInvestors[1] || fallbackSeedInvestors[0]; // Inversora Austral S.A.
       const inv2 = fallbackSeedInvestors[2] || fallbackSeedInvestors[0]; // Mariana Gómez Valenzuela
-      const totalAmount = loan.amount_funded || loan.amount_requested;
+      const totalAmount = effectivePrincipal;
       const amount1 = Math.round(totalAmount * 0.65);
       const amount2 = totalAmount - amount1;
 
@@ -664,7 +685,7 @@ export function PromissoryNoteModal({
       }
 
       // Generate SHA-256 cryptographic signature hash
-      const signaturePayload = `LENCORD:PAGARE:${loan.id}:${borrower.tax_id}:${loan.amount_requested}:${code}:${new Date().toISOString()}`;
+      const signaturePayload = `LENCORD:PAGARE:${loan.id}:${borrower.tax_id}:${effectivePrincipal}:${code}:${new Date().toISOString()}`;
       const signatureHash = await generateSha256(signaturePayload);
 
       // Record signature via LegalServiceInterface
@@ -766,8 +787,13 @@ export function PromissoryNoteModal({
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>Capital principal</span>
                 <span className={styles.metaValue} data-testid="contract-principal-amount">
-                  {formatCurrency(loan.amount_requested)}
+                  {formatCurrency(effectivePrincipal)}
                 </span>
+                {isPartialAccepted && (
+                  <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
+                    ({fundingPercentage}% aceptado en subasta)
+                  </span>
+                )}
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>Tasa aplicada</span>
@@ -784,8 +810,13 @@ export function PromissoryNoteModal({
                 Por el presente instrumento, <strong>{borrower.legal_name}</strong> (CUIT N°{' '}
                 <strong>{borrower.tax_id}</strong>), en adelante el &quot;Librador&quot;, reconoce adeudar de
                 manera incondicional e irrevocable la suma de{' '}
-                <strong>{formatCurrency(loan.amount_requested)}</strong> a favor de los inversores
-                participantes de la subasta colectiva instrumentada en la plataforma Lencord, actuando Lencord
+                <strong>{formatCurrency(effectivePrincipal)}</strong>
+                {isPartialAccepted && (
+                  <>
+                    {' '}(correspondiente al <strong>{fundingPercentage}%</strong> recaudado y aceptado en subasta sobre el cupo solicitado de {formatCurrency(loan.amount_requested)})
+                  </>
+                )}{' '}
+                a favor de los inversores participantes de la subasta colectiva instrumentada en la plataforma Lencord, actuando Lencord
                 S.A.S. en carácter de mandatario tecnológico y facilitador conforme a la Ley de Financiamiento
                 Productivo.
               </p>

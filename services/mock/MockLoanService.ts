@@ -418,11 +418,17 @@ export class MockLoanService implements LoanServiceInterface {
 
     loan.status = 'active';
 
+    const isPartial = Boolean(
+      loan.partial_acceptance_flag ||
+      (loan.amount_funded > 0 && loan.amount_funded < loan.amount_requested)
+    );
+    const disburseAmount = isPartial ? loan.amount_funded : loan.amount_requested;
+
     // 1. Trigger loan disbursement via payment gateway
     if (this.paymentGateway) {
       const borrower = this.store.profiles.find((p) => p.id === loan.borrower_id);
       const cbu = borrower?.bank_cbu_cvu || '0000003100010000000001';
-      await this.paymentGateway.disburseLoan(loan.id, cbu, loan.amount_requested);
+      await this.paymentGateway.disburseLoan(loan.id, cbu, disburseAmount);
     }
 
     // 2. Generate monthly rows in installments table if not already created
@@ -430,7 +436,7 @@ export class MockLoanService implements LoanServiceInterface {
     if (existing.length === 0) {
       const generated = generateFrenchInstallments({
         loanId: loan.id,
-        amount: loan.amount_requested,
+        amount: disburseAmount,
         termMonths: loan.term_months || 1,
         borrowerRate: loan.borrower_rate || 45,
         investorRate: loan.investor_rate || 42.5,

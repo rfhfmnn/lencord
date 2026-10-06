@@ -456,5 +456,38 @@ describe('PromissoryNoteModal Component & Signing Flow (Issue #16)', () => {
     expect(luciaRow).toHaveTextContent('$ 2.000.000');
     expect(luciaRow).toHaveTextContent('20.00%');
   });
+
+  it('adjusts promissory note principal and text when funded partially (e.g. 99% of requested)', async () => {
+    const partialLoan: Loan = {
+      ...sampleFundedLoan,
+      amount_requested: 10000000,
+      amount_funded: 9900000,
+      status: 'funded',
+      partial_acceptance_flag: true,
+    };
+
+    render(
+      <ServiceProvider>
+        <PromissoryNoteModal
+          isOpen={true}
+          onClose={vi.fn()}
+          loan={partialLoan}
+          onSuccess={vi.fn()}
+        />
+      </ServiceProvider>
+    );
+
+    // Principal metadata shows $9.900.000 and indicates 99% accepted
+    const principalValue = screen.getByTestId('contract-principal-amount');
+    expect(principalValue).toHaveTextContent('9.900.000');
+    expect(screen.getByText(/99% aceptado en subasta/i)).toBeInTheDocument();
+
+    // Clause PRIMERA references the effective principal and partial acceptance
+    const clausePrimera = screen.getByText(/PRIMERA: OBJETO Y RECONOCIMIENTO DE DEUDA/i).parentElement;
+    expect(clausePrimera).toHaveTextContent('9.900.000');
+    expect(clausePrimera).toHaveTextContent('99%');
+    expect(clausePrimera).toHaveTextContent('10.000.000');
+  });
 });
+
 
