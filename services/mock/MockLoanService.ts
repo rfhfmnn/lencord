@@ -348,11 +348,13 @@ export class MockLoanService implements LoanServiceInterface {
   }
 
   public async updateFundingDeadline(loanId: string, deadline: string | null): Promise<Loan> {
-    const loan = this.store.loans.find((l) => l.id === loanId);
+    let loan = this.store.loans.find((l) => l.id === loanId);
     if (!loan) {
-      throw new Error(`Loan not found: ${loanId}`);
+      loan = { id: loanId, funding_deadline: deadline } as Loan;
+      this.store.loans.push(loan);
+    } else {
+      loan.funding_deadline = deadline;
     }
-    loan.funding_deadline = deadline;
     return JSON.parse(JSON.stringify(loan));
   }
 

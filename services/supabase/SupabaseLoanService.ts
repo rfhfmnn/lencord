@@ -484,21 +484,37 @@ export class SupabaseLoanService implements LoanServiceInterface {
         .select()
         .maybeSingle();
 
-      if (error) {
-        // Fallback via server API route if client-side RLS rejected
-        if (typeof window !== 'undefined') {
-          const res = await fetch('/api/loans/update-deadline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ loan_id: loanId, funding_deadline: deadline }),
-          });
-          const json = await res.json();
-          if (json.loan) return json.loan;
+      if (data) {
+        return data as Loan;
+      }
+
+      // If client-side update was blocked (error or 0 rows modified due to RLS)
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/loans/update-deadline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ loan_id: loanId, funding_deadline: deadline }),
+        });
+        const json = await res.json();
+        if (json.success && json.loan && json.dbUpdated) {
+          return json.loan;
         }
+        if (json.rlsBlocked || (!json.dbUpdated && !json.useMocks)) {
+          throw new Error(
+            json.error ||
+              'No se pudo actualizar la fecha en Supabase (0 filas modificadas por políticas RLS). Verificá que la política en Supabase SQL Editor esté aplicada.'
+          );
+        }
+        if (json.loan) return json.loan;
+      }
+
+      if (error) {
         throw mapSupabaseError(error, `Error al actualizar el vencimiento del préstamo ${loanId}`);
       }
 
-      return (data as Loan) || ({ id: loanId, funding_deadline: deadline } as Loan);
+      throw new Error(
+        `No se pudo actualizar el vencimiento del préstamo ${loanId} (0 filas modificadas por permisos RLS en Supabase).`
+      );
     } catch (err) {
       throw mapSupabaseError(err, `Error al actualizar el vencimiento del préstamo ${loanId}`);
     }

@@ -358,6 +358,13 @@ CREATE POLICY "Borrowers can create draft or in_review loans"
   ON public.loans FOR INSERT
   WITH CHECK (auth.uid() = borrower_id AND status IN ('draft', 'in_review'));
 
+DROP POLICY IF EXISTS "Borrowers can update own loans" ON public.loans;
+CREATE POLICY "Borrowers can update own loans"
+  ON public.loans FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = borrower_id)
+  WITH CHECK (auth.uid() = borrower_id);
+
 -- Políticas de Investments
 DROP POLICY IF EXISTS "Admins have full access to investments" ON public.investments;
 CREATE POLICY "Admins have full access to investments"

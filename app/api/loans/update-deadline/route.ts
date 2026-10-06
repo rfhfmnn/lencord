@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/services/supabase/client';
 import { defaultMockStateStore } from '@/services/mock/mockState';
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Update in Supabase
     try {
+      // 2a. Try admin client (bypasses RLS if SUPABASE_SERVICE_ROLE_KEY is set)
       const adminClient = createSupabaseAdminClient();
       const { data, error } = await adminClient
         .from('loans')
@@ -31,10 +33,18 @@ export async function POST(req: NextRequest) {
         .select()
         .maybeSingle();
 
+      if (data) {
+        return NextResponse.json({ success: true, dbUpdated: true, loan: data });
+      }
+
       if (error) {
         console.warn('[update-deadline] adminClient update error:', error.message);
-        // Fallback to server client
-        const serverClient = createSupabaseServerClient();
+      }
+
+      // 2b. Try server client with user session cookies
+      try {
+        const cookieStore = await cookies();
+        const serverClient = createSupabaseServerClient({ cookies: cookieStore });
         const fallbackRes = await serverClient
           .from('loans')
           .update({ funding_deadline: funding_deadline ?? null })
@@ -43,17 +53,33 @@ export async function POST(req: NextRequest) {
           .maybeSingle();
 
         if (fallbackRes.data) {
-          return NextResponse.json({ success: true, loan: fallbackRes.data });
+          return NextResponse.json({ success: true, dbUpdated: true, loan: fallbackRes.data });
         }
-      } else if (data) {
-        return NextResponse.json({ success: true, loan: data });
+      } catch (cookieErr: any) {
+        console.warn('[update-deadline] serverClient cookie note:', cookieErr?.message);
       }
     } catch (dbErr: any) {
       console.warn('[update-deadline] DB update note:', dbErr?.message);
     }
 
+    // If live Supabase is used and 0 rows were updated, signal RLS block
+    if (process.env.NEXT_PUBLIC_USE_MOCKS !== 'true' && process.env.NODE_ENV !== 'test') {
+      return NextResponse.json(
+        {
+          success: false,
+          dbUpdated: false,
+          rlsBlocked: true,
+          error:
+            'No se pudo actualizar el registro en Supabase (0 filas modificadas). Falta la política RLS en Supabase o configurar SUPABASE_SERVICE_ROLE_KEY.',
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
+      dbUpdated: true,
+      useMocks: true,
       loan: mockLoan ?? { id: loan_id, funding_deadline: funding_deadline ?? null },
     });
   } catch (err: any) {

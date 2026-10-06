@@ -850,23 +850,19 @@ export function BorrowerDashboard({
         })();
 
       if (resolvedServices?.loans?.updateFundingDeadline) {
-        try {
-          await resolvedServices.loans.updateFundingDeadline(targetLoanId, computed);
-        } catch (svcErr) {
-          console.warn('[handleSaveDeadline] Service update note:', svcErr);
-        }
+        await resolvedServices.loans.updateFundingDeadline(targetLoanId, computed);
       } else if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
-        try {
-          await fetch('/api/loans/update-deadline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              loan_id: targetLoanId,
-              funding_deadline: computed,
-            }),
-          });
-        } catch (apiErr) {
-          console.warn('[handleSaveDeadline] API route warning:', apiErr);
+        const res = await fetch('/api/loans/update-deadline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            loan_id: targetLoanId,
+            funding_deadline: computed,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.error || json.rlsBlocked) {
+          throw new Error(json.error || 'Error al actualizar el vencimiento en el servidor.');
         }
       }
 
