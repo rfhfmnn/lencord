@@ -68,6 +68,7 @@ npm run seed:admin
 - [Backlog de Tareas y GitHub Issues - Fase 2](_docs/next_tasks.md)
 
 ### Lineamientos y Proceso
+- [Documentación de Base de Datos (Supabase / PostgreSQL)](_docs/database.md)
 - [Flujo de Trabajo y Ciclo de Issues](_docs/process.md)
 - [Guía de Pruebas Automatizadas](_docs/testing-guidelines.md)
 - [Sistema de Diseño e Interfaz](_docs/design-system.md)
