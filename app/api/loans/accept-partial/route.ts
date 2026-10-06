@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     // 2. Update Supabase
     try {
       const adminClient = createSupabaseAdminClient();
-      const { data, error } = await adminClient
+      let { data, error } = await adminClient
         .from('loans')
         .update({
           status: 'funded',
@@ -34,6 +34,17 @@ export async function POST(req: NextRequest) {
         .eq('id', loan_id)
         .select()
         .maybeSingle();
+
+      if (error && error.message?.includes('partial_acceptance_flag')) {
+        const retryRes = await adminClient
+          .from('loans')
+          .update({ status: 'funded' })
+          .eq('id', loan_id)
+          .select()
+          .maybeSingle();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
 
       if (data) {
         return NextResponse.json({ success: true, loan: data });

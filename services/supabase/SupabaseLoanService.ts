@@ -477,7 +477,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
   public async acceptPartialFunding(loanId: string): Promise<Loan> {
     try {
       const client = await this.getClient();
-      const { data, error } = await client
+      let { data, error } = await client
         .from('loans')
         .update({
           status: 'funded',
@@ -486,6 +486,17 @@ export class SupabaseLoanService implements LoanServiceInterface {
         .eq('id', loanId)
         .select()
         .maybeSingle();
+
+      if (error && error.message?.includes('partial_acceptance_flag')) {
+        const retryRes = await client
+          .from('loans')
+          .update({ status: 'funded' })
+          .eq('id', loanId)
+          .select()
+          .maybeSingle();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
 
       if (data) {
         return data as Loan;
