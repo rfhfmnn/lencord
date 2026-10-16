@@ -244,7 +244,7 @@ export function LoanWizard({
         let cbu = authUser.user_metadata?.bank_cbu_cvu || '';
         let firstName = authUser.user_metadata?.first_name || '';
         let lastName = authUser.user_metadata?.last_name || '';
-        let repName = authUser.user_metadata?.representative_name || '';
+        const repName = authUser.user_metadata?.representative_name || '';
         let companyType =
           authUser.user_metadata?.company_type ||
           authUser.user_metadata?.companyType ||

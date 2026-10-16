@@ -571,7 +571,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
   public async rejectLoan(loanId: string, reason: string): Promise<Loan> {
     try {
       const client = await this.getClient();
-      let updatePayload: Record<string, any> = { status: 'rejected' };
+      const updatePayload: Record<string, any> = { status: 'rejected' };
       if (reason) {
         updatePayload.rejection_reason = reason;
       }

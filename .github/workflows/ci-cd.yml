@@ -1,0 +1,71 @@
+name: CI/CD Pipeline - Lencord
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # 1. Integración Continua (CI): Lint, Tests y Validación de Compilación
+  # ----------------------------------------------------------------------------
+  validate:
+    name: Test & Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar Linter
+        run: npm run lint
+
+      - name: Ejecutar Suite de Pruebas (Vitest)
+        run: npm run test
+
+      - name: Validar Build de Producción
+        env:
+          NEXT_PUBLIC_USE_MOCKS: 'true'
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # 2. Despliegue Continuo (CD): Disparo a Render
+  #    Solo se ejecuta en commits directos a 'main' si 'validate' pasó al 100%
+  # ----------------------------------------------------------------------------
+  deploy:
+    name: Trigger Render Deploy
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notificar a Render para desplegar
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            echo "Disparando Deploy Hook en Render..."
+            response=$(curl -s -w "\n%{http_code}" -X POST "$RENDER_DEPLOY_HOOK")
+            http_code=$(echo "$response" | tail -n1)
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              echo "Despliegue iniciado correctamente en Render (HTTP $http_code)."
+            else
+              echo "Error al invocar el webhook de Render (HTTP $http_code): $response"
+              exit 1
+            fi
+          else
+            echo "Aviso: No se configuró el secreto RENDER_DEPLOY_HOOK_URL en GitHub Secrets."
+            echo "El despliegue continuará mediante el auto-deploy nativo de Render si está habilitado."
+          fi

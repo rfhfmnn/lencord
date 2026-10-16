@@ -132,10 +132,7 @@ export function ElectronicSignatureModal({
 
   // Derived signed state
   const isSigned = Boolean(contract?.signature_hash && contract?.signed_at);
-  const hashPrefix = useMemo(() => {
-    if (!contract?.signature_hash) return '';
-    return contract.signature_hash.slice(0, 16);
-  }, [contract?.signature_hash]);
+  const hashPrefix = contract?.signature_hash ? contract.signature_hash.slice(0, 16) : '';
 
   const documentUrl = contract?.document_url || `/contracts/${loan.id}/contrato-mutuo-pagare.pdf`;
 

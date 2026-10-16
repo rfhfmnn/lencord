@@ -26,12 +26,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   defaultTermsAccepted = false,
   onSuccess,
 }) => {
-  let servicesFromContext: ReturnType<typeof useServices> | null = null;
-  try {
-    servicesFromContext = useServices({ fallback: true });
-  } catch {
-    servicesFromContext = null;
-  }
+  const servicesFromContext = useServices({ fallback: true });
 
   const [role, setRole] = useState<RegisterRole>(defaultRole);
 
