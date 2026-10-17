@@ -235,7 +235,9 @@ describe('SME Loan Application Pre-population and Authenticated Submission (Issu
       expect(createdLoan.status).toBe('in_review');
 
       // Verify receipt rendered
-      expect(screen.getByTestId('receipt-status')).toHaveTextContent('En revisión (in_review)');
+      await waitFor(() => {
+        expect(screen.getByTestId('receipt-status')).toHaveTextContent('En revisión (in_review)');
+      });
     });
 
     it('trims and persists step2Data.description in submitLoanApplication payload (Issue #78)', async () => {
