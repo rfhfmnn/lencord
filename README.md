@@ -72,7 +72,7 @@ npm run seed:admin
 - [Flujo de Trabajo y Ciclo de Issues](_docs/process.md)
 - [Guía de Pruebas Automatizadas](_docs/testing-guidelines.md)
 - [Sistema de Diseño e Interfaz](_docs/design-system.md)
-- [Roles de Equipo](_docs/team/pm.md) (`pm.md`, `software-engineer.md`, `qa-engineer.md`)
+- [Roles de Equipo](.agents/subagents/pm.md) (`pm.md`, `software-engineer.md`, `qa-engineer.md`)
 
 ### Manuales del Sistema
 - [Manual y Diccionario de Base de Datos (PDF)](Documentacion_Base_de_Datos_Lencord.pdf)

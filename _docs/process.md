@@ -4,9 +4,9 @@ Task Execution
 - Follow the Issue Lifecycle below from grooming through verification and closure.
 
 Issue Lifecycle & Role Handoff
-1. Grooming (PM): Formulates Goal, Acceptance Criteria (checkable), Out of Scope, and Constraints following `_docs/team/pm.md`.
-2. Implementation (Engineer): Implements code and automated tests against acceptance criteria, commits regularly, and posts a comment on the open issue detailing changes following `_docs/team/software-engineer.md`.
-3. Verification (QA): Evaluates code, executes test suite (`npm run test`) and type-check (`npm run build`), and posts structured `## QA: PASS` or `## QA: FAIL` comment following `_docs/team/qa-engineer.md`.
+1. Grooming (PM): Formulates Goal, Acceptance Criteria (checkable), Out of Scope, and Constraints following `.agents/subagents/pm.md`.
+2. Implementation (Engineer): Implements code and automated tests against acceptance criteria, commits regularly, and posts a comment on the open issue detailing changes following `.agents/subagents/software-engineer.md`.
+3. Verification (QA): Evaluates code, executes test suite (`npm run test`) and type-check (`npm run build`), and posts structured `## QA: PASS` or `## QA: FAIL` comment following `.agents/subagents/qa-engineer.md`.
 4. Resolution:
    - On QA PASS: The issue is closed (`gh issue close <number> --comment "Verified by QA"`).
    - On QA FAIL: The issue stays open and returns to the Engineer with the specific failure details to be addressed before re-submitting to QA.
@@ -23,6 +23,6 @@ Architecture Guidelines
 
 Roles
 
-- PM - grooms a task before anyone implements it, follows _docs/team/pm.md
-- Engineer - implements one groomed task, follows _docs/team/software-engineer.md
-- QA - checks the result against acceptance criteria and closes on PASS, follows _docs/team/qa-engineer.md
+- PM - grooms a task before anyone implements it, follows .agents/subagents/pm.md
+- Engineer - implements one groomed task, follows .agents/subagents/software-engineer.md
+- QA - checks the result against acceptance criteria and closes on PASS, follows .agents/subagents/qa-engineer.md
