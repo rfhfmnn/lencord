@@ -10,7 +10,31 @@ describe('Server-Side BCRA Central de Deudores Route Handler (Issue #37)', () =>
     vi.restoreAllMocks();
   });
 
-  it('queries official BCRA API from server-side context with sanitized CUIT and returns parsed report', async () => {
+  it('rejects unauthenticated requests with 401 Unauthorized', async () => {
+    const request = new NextRequest('http://localhost:3000/api/bcra/30712345678');
+    const response = await GET(request, {
+      params: Promise.resolve({ cuit: '30712345678' }),
+    });
+
+    expect(response.status).toBe(401);
+    const data = await response.json();
+    expect(data.error).toContain('Unauthorized');
+  });
+
+  it('rejects requests with invalid CUIT format with 400 Bad Request', async () => {
+    const request = new NextRequest('http://localhost:3000/api/bcra/12345', {
+      headers: { 'x-user-id': 'user-auth-1' },
+    });
+    const response = await GET(request, {
+      params: Promise.resolve({ cuit: '12345' }),
+    });
+
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toContain('Bad Request');
+  });
+
+  it('queries official BCRA API from server-side context with sanitized CUIT and returns parsed report when authenticated', async () => {
     const mockBcraResponse = {
       status: 200,
       results: {
@@ -38,7 +62,9 @@ describe('Server-Side BCRA Central de Deudores Route Handler (Issue #37)', () =>
       json: vi.fn().mockResolvedValue(mockBcraResponse),
     }) as any;
 
-    const request = new NextRequest('http://localhost:3000/api/bcra/30712345678');
+    const request = new NextRequest('http://localhost:3000/api/bcra/30712345678', {
+      headers: { 'x-user-id': 'user-auth-1' },
+    });
     const response = await GET(request, {
       params: Promise.resolve({ cuit: '30712345678' }),
     });
@@ -59,7 +85,9 @@ describe('Server-Side BCRA Central de Deudores Route Handler (Issue #37)', () =>
       json: vi.fn().mockResolvedValue({ status: 404 }),
     }) as any;
 
-    const request = new NextRequest('http://localhost:3000/api/bcra/20334455667');
+    const request = new NextRequest('http://localhost:3000/api/bcra/20334455667', {
+      headers: { 'x-user-id': 'user-auth-1' },
+    });
     const response = await GET(request, {
       params: Promise.resolve({ cuit: '20334455667' }),
     });
@@ -76,7 +104,9 @@ describe('Server-Side BCRA Central de Deudores Route Handler (Issue #37)', () =>
   it('handles timeout or network failure gracefully returning fallback payload without crashing', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) as any;
 
-    const request = new NextRequest('http://localhost:3000/api/bcra/20112233445');
+    const request = new NextRequest('http://localhost:3000/api/bcra/20112233445', {
+      headers: { 'x-user-id': 'user-auth-1' },
+    });
     const response = await GET(request, {
       params: Promise.resolve({ cuit: '20112233445' }),
     });
