@@ -216,7 +216,7 @@ describe('Domain Models and Enums (@/types)', () => {
       id: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
       user_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       title: 'Solicitud aprobada',
-      message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta.',
+      message: 'Tu solicitud de crédito ha sido aprobada y publicada para fondeo.',
       type: 'success',
       read: false,
       action_url: '/dashboard/pyme',

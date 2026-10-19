@@ -60,10 +60,11 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
 
   if (
     rawMessage.includes('El monto excede el cupo disponible de la subasta') ||
+    rawMessage.includes('El monto excede el cupo disponible del fondeo') ||
     rawMessage.includes('El monto excede el cupo disponible')
   ) {
     return new ApplicationError(
-      'El monto excede el cupo disponible de la subasta.',
+      'El monto excede el cupo disponible del fondeo.',
       'OVERFUNDING_REJECTED',
       400
     );
@@ -75,7 +76,7 @@ export function mapSupabaseError(error: unknown, defaultMessage = 'No se pudo co
     rawMessage.includes('check_amount_funded_limit')
   ) {
     return new ApplicationError(
-      'El monto ingresado excede el cupo remanente de la subasta.',
+      'El monto ingresado excede el cupo remanente del fondeo.',
       'OVERFUNDING_REJECTED',
       400
     );

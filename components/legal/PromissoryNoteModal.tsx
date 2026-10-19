@@ -791,7 +791,7 @@ export function PromissoryNoteModal({
                 </span>
                 {isPartialAccepted && (
                   <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
-                    ({fundingPercentage}% aceptado en subasta)
+                    ({fundingPercentage}% aceptado en fondeo)
                   </span>
                 )}
               </div>
@@ -813,10 +813,10 @@ export function PromissoryNoteModal({
                 <strong>{formatCurrency(effectivePrincipal)}</strong>
                 {isPartialAccepted && (
                   <>
-                    {' '}(correspondiente al <strong>{fundingPercentage}%</strong> recaudado y aceptado en subasta sobre el cupo solicitado de {formatCurrency(loan.amount_requested)})
+                    {' '}(correspondiente al <strong>{fundingPercentage}%</strong> recaudado y aceptado en fondeo sobre el cupo solicitado de {formatCurrency(loan.amount_requested)})
                   </>
                 )}{' '}
-                a favor de los inversores participantes de la subasta colectiva instrumentada en la plataforma Lencord, actuando Lencord
+                a favor de los inversores participantes del fondeo colectivo instrumentado en la plataforma Lencord, actuando Lencord
                 S.A.S. en carácter de mandatario tecnológico y facilitador conforme a la Ley de Financiamiento
                 Productivo.
               </p>
@@ -879,7 +879,7 @@ export function PromissoryNoteModal({
               <p className={styles.annexNotice}>
                 {currentUserRole === 'investor'
                   ? 'Por estrictas razones de confidencialidad y protección de datos financieros de la comunidad inversora, en esta copia de instrumento usted visualiza exclusivamente su participación individual y los datos de la PyME libradora.'
-                  : 'Nómina consolidada de acreedores e individualización de cuotas de amortización e interés devengadas en la subasta.'}
+                  : 'Nómina consolidada de acreedores e individualización de cuotas de amortización e interés devengadas en el fondeo.'}
               </p>
 
               <table className={styles.scheduleTable} aria-label="Nómina de acreedores del pagaré">

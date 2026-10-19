@@ -22,7 +22,7 @@ describe('NotificationBell Component (Issue #46)', () => {
     {
       id: 'notif-2',
       user_id: 'user-123',
-      title: 'Subasta completada al 100%',
+      title: 'Fondeo completado al 100%',
       message: '¡Tu proyecto alcanzó el fondeo total! Firma tu pagaré digital para proceder al desembolso.',
       type: 'warning',
       read: false,
@@ -33,7 +33,7 @@ describe('NotificationBell Component (Issue #46)', () => {
       id: 'notif-3',
       user_id: 'user-123',
       title: 'Inversión confirmada',
-      message: 'Has comprometido $2.000.000 en una subasta con éxito.',
+      message: 'Has comprometido $2.000.000 en un fondeo con éxito.',
       type: 'info',
       read: true,
       action_url: '/dashboard/inversor',
@@ -97,7 +97,7 @@ describe('NotificationBell Component (Issue #46)', () => {
     expect(screen.getByTestId('notification-link-notif-1')).toHaveAttribute('href', '/dashboard/pyme');
 
     // Details for notif-2
-    expect(screen.getByTestId('notification-title-notif-2')).toHaveTextContent('Subasta completada al 100%');
+    expect(screen.getByTestId('notification-title-notif-2')).toHaveTextContent('Fondeo completado al 100%');
   });
 
   it('renders empty state "No tienes notificaciones pendientes" when notification list is empty', () => {

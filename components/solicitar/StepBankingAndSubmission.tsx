@@ -88,7 +88,7 @@ export function StepBankingAndSubmission({
       <div className={styles.formCard}>
         <h2 className={styles.stepTitle}>Datos bancarios y conformidad</h2>
         <p className={styles.stepDescription}>
-          Indicá la cuenta bancaria donde se acreditarán los fondos una vez adjudicada la subasta y confirmá
+          Indicá la cuenta bancaria donde se acreditarán los fondos una vez completado el fondeo y confirmá
           las declaraciones regulatorias (BCRA/UIF).
         </p>
 
@@ -180,7 +180,7 @@ export function StepBankingAndSubmission({
                 <span className={styles.checkboxText}>
                   Acepto el contrato marco de financiamiento colaborativo de Lencord y presto conformidad para la
                   emisión del pagaré digital garantizado (Ley 27.444 y art. 1820 del CCyC) a suscribirse una vez
-                  finalizada la subasta colectiva.
+                  finalizado el fondeo colectivo.
                 </span>
               </div>
             </label>

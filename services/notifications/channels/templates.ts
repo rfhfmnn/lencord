@@ -82,7 +82,7 @@ export function renderLoanFundingCompletedWhatsApp(
   params: LoanFundingCompletedAlertParams
 ): string {
   const formattedAmount = formatArgentineCurrency(params.amount);
-  return `🎉 *Lencord - ¡Subasta Fondeada al 100%! 🎉*\n\n¡Excelentes noticias, *${params.recipientName}*!\n\nTu solicitud de financiamiento *#${params.loanId}* ha completado el 100% de su subasta por un monto total de *${formattedAmount}*.\n\n📝 *Próximo paso obligatorio:*\nIngresá a tu Panel PyME en Lencord para revisar las condiciones finales y ratificar el pagaré digital con tu código OTP para coordinar el desembolso bancario inmediato.`;
+  return `🎉 *Lencord - ¡Fondeo al 100%! 🎉*\n\n¡Excelentes noticias, *${params.recipientName}*!\n\nTu solicitud de financiamiento *#${params.loanId}* ha completado el 100% de su fondeo por un monto total de *${formattedAmount}*.\n\n📝 *Próximo paso obligatorio:*\nIngresá a tu Panel PyME en Lencord para revisar las condiciones finales y ratificar el pagaré digital con tu código OTP para coordinar el desembolso bancario inmediato.`;
 }
 
 // ---------------------------------------------------------------------------

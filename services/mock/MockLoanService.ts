@@ -229,7 +229,7 @@ export class MockLoanService implements LoanServiceInterface {
       id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       user_id: loan.borrower_id,
       title: 'Préstamo aprobado',
-      message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace.',
+      message: 'Tu solicitud de crédito ha sido aprobada y publicada para fondeo en el marketplace.',
       type: 'success',
       read: false,
       action_url: '/dashboard/pyme',
@@ -296,7 +296,7 @@ export class MockLoanService implements LoanServiceInterface {
       this.store.notifications.unshift({
         id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         user_id: loan.borrower_id,
-        title: 'Subasta completada al 100%',
+        title: 'Fondeo completado al 100%',
         message: '¡Tu proyecto alcanzó el 100% de fondeo! Firma el Pagaré Digital para proceder con el desembolso.',
         type: 'warning',
         read: false,

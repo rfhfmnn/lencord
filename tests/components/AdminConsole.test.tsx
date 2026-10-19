@@ -216,7 +216,7 @@ describe('AdminConsole Component (Task 15)', () => {
     fireEvent.click(submitBtn);
 
     expect(screen.getByTestId('form-error-alert')).toHaveTextContent(
-      'La fecha límite de subasta debe ser una fecha y hora futura.'
+      'La fecha límite de fondeo debe ser una fecha y hora futura.'
     );
   });
 
@@ -935,7 +935,7 @@ describe('AdminConsole Component (Task 15)', () => {
       expect(deadlineInput).toHaveValue('2026-11-01T23:59');
     });
 
-    it('renders "Sin fecha límite (subasta abierta)" when borrower requested open auction without deadline', async () => {
+    it('renders "Sin fecha límite (fondeo abierto)" when borrower requested open auction without deadline', async () => {
       const openLoan: Loan = {
         id: 'loan-open-01',
         borrower_id: 'sme-test-1',
@@ -971,7 +971,7 @@ describe('AdminConsole Component (Task 15)', () => {
 
       const deadlineInput = screen.getByTestId('input-funding-deadline');
       expect(deadlineInput).toHaveAttribute('readonly');
-      expect(deadlineInput).toHaveValue('Sin fecha límite (subasta abierta)');
+      expect(deadlineInput).toHaveValue('Sin fecha límite (fondeo abierto)');
       expect(screen.getByTestId('detail-funding-deadline')).toHaveTextContent('Sin fecha límite (abierta)');
 
       // Admin can approve the open loan without validation error
@@ -979,7 +979,7 @@ describe('AdminConsole Component (Task 15)', () => {
       fireEvent.click(submitBtn);
 
       expect(screen.getByTestId('approval-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByText('Sin fecha límite (subasta abierta)')).toBeInTheDocument();
+      expect(screen.getByText('Sin fecha límite (fondeo abierto)')).toBeInTheDocument();
 
       const confirmBtn = screen.getByTestId('btn-confirm-approve');
       fireEvent.click(confirmBtn);

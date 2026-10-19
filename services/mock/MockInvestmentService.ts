@@ -172,7 +172,7 @@ export class MockInvestmentService implements InvestmentServiceInterface {
       id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       user_id: input.investor_id,
       title: 'Inversión confirmada',
-      message: `Has comprometido $${input.amount.toLocaleString('es-AR')} en la subasta del préstamo ${loan.id}.`,
+      message: `Has comprometido $${input.amount.toLocaleString('es-AR')} en el fondeo del préstamo ${loan.id}.`,
       type: 'success',
       read: false,
       action_url: '/dashboard/inversor',

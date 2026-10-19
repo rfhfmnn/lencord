@@ -1125,7 +1125,7 @@ export function InvestorDashboard({
           </div>
           <h2 className={styles.emptyStateTitle}>No poseés inversiones activas</h2>
           <p className={styles.emptyStateDescription}>
-            Aún no has participado en ninguna subasta de financiamiento. Explorá las oportunidades
+            Aún no has participado en ninguna oportunidad de fondeo. Explorá las oportunidades
             disponibles en el marketplace y comenzá a rentabilizar tu capital.
           </p>
           <Link href="/marketplace">
@@ -1141,7 +1141,7 @@ export function InvestorDashboard({
             <div className={styles.metricCard} data-testid="metric-total-capital">
               <span className={styles.metricLabel}>Capital invertido</span>
               <span className={styles.metricValue}>{formatCurrency(totalCapitalInvertido, { decimals: true })}</span>
-              <span className={styles.metricSubtextNeutral}>Capital activo en subastas y préstamos</span>
+              <span className={styles.metricSubtextNeutral}>Capital activo en fondeo y préstamos</span>
             </div>
 
             <div className={styles.metricCard} data-testid="metric-estimated-returns">
@@ -1473,7 +1473,7 @@ export function InvestorDashboard({
                 No registrás movimientos en tu cuenta
               </h3>
               <p style={{ fontSize: '0.875rem', color: '#64748b', margin: 0, maxWidth: '420px' }}>
-                Aún no has participado en subastas, percibido cobros ni solicitado retiros a tu CBU.
+                Aún no has participado en oportunidades de fondeo, percibido cobros ni solicitado retiros a tu CBU.
               </p>
               <Link href="/marketplace">
                 <Button variant="bordered" size="sm" data-testid="explore-marketplace-from-empty-transactions">

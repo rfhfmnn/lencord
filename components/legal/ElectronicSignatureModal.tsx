@@ -289,7 +289,7 @@ export function ElectronicSignatureModal({
                 </span>
                 {isPartialAccepted && (
                   <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>
-                    ({Math.round((loan.amount_funded / loan.amount_requested) * 100)}% aceptado en subasta)
+                    ({Math.round((loan.amount_funded / loan.amount_requested) * 100)}% aceptado en fondeo)
                   </span>
                 )}
               </div>

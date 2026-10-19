@@ -247,7 +247,7 @@ export function StepProjectConditions({
               value={amountStr ? parseInt(amountStr, 10).toLocaleString('es-AR') : ''}
               onChange={handleAmountChange}
               error={errors.amount_requested}
-              helperText="Monto total en pesos a financiar en la subasta"
+              helperText="Monto total en pesos a recaudar en la ronda de fondeo"
               data-testid="input-amount-requested"
             />
 
@@ -343,15 +343,15 @@ export function StepProjectConditions({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className={styles.disclaimerText}>
-                <strong>Nota informativa:</strong> Cuota mensual estimada bajo sistema de amortización francés según tasa de referencia base de la plataforma. El valor final dependerá del resultado de la subasta colectiva y la tasa efectivamente ofertada por los inversores. No constituye oferta vinculante.
+                <strong>Nota informativa:</strong> Cuota mensual estimada bajo sistema de amortización francés según tasa de referencia base de la plataforma. El valor final dependerá del resultado del fondeo colectivo y las condiciones acordadas. No constituye oferta vinculante.
               </p>
             </div>
           </div>
 
-          {/* Vencimiento de subasta (Issue #56) */}
+          {/* Cierre de fondeo (Issue #56) */}
           <div className={styles.fieldGroup}>
             <label htmlFor="deadline_option" className={styles.fieldLabel}>
-              Vencimiento de subasta (opcional)
+              Cierre de fondeo (opcional)
             </label>
             <select
               id="deadline_option"
@@ -392,7 +392,7 @@ export function StepProjectConditions({
                     }
                   }}
                   error={errors.custom_deadline}
-                  helperText="Seleccioná la fecha límite en la que concluirá la subasta."
+                  helperText="Seleccioná la fecha límite en la que concluirá el fondeo."
                   data-testid="input-custom-deadline"
                 />
               </div>

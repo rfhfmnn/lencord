@@ -31,18 +31,18 @@ export default function TerminosPage() {
     },
     {
       number: 'Cláusula 2',
-      title: 'Mecanismo de subasta colaborativa y perfección de contratos',
+      title: 'Mecanismo de fondeo colaborativo y perfección de contratos',
       content: (
         <>
           <p>
-            Las solicitudes de crédito cargadas por las empresas pasan por un proceso de precalificación de riesgo crediticio conforme a información objetiva (BCRA Central de Deudores, AFIP y estados contables). Una vez aprobada la solicitud, se publica en el Marketplace durante un período determinado de subasta (plazo máximo de financiamiento).
+            Las solicitudes de crédito cargadas por las empresas pasan por un proceso de precalificación de riesgo crediticio conforme a información objetiva (BCRA Central de Deudores, AFIP y estados contables). Una vez aprobada la solicitud, se publica en el Marketplace durante un período determinado de fondeo (plazo máximo de financiamiento).
           </p>
           <ul>
             <li>
-              <strong>Fondeo exitoso al 100%:</strong> Si la subasta alcanza el 100% del monto solicitado antes de la fecha límite, se produce el cierre atómico de la subasta, se emite el Pagaré Digital con firma electrónica/digital (Ley 25.506) y se perfecciona el Contrato de Mutuo correspondiente, procediéndose al desembolso de los fondos a la cuenta bancaria (CBU/CVU) de la PyME.
+              <strong>Fondeo exitoso al 100%:</strong> Si la ronda de fondeo alcanza el 100% del monto solicitado antes de la fecha límite, se produce el cierre atómico del fondeo, se emite el Pagaré Digital con firma electrónica/digital (Ley 25.506) y se perfecciona el Contrato de Mutuo correspondiente, procediéndose al desembolso de los fondos a la cuenta bancaria (CBU/CVU) de la PyME.
             </li>
             <li>
-              <strong>Vencimiento sin fondeo total:</strong> Si la subasta no alcanza el 100% al expirar el plazo establecido, los compromisos de inversión quedan cancelados automáticamente y los saldos retenidos en custodia son liberados a los inversores sin comisión ni costo alguno.
+              <strong>Vencimiento sin fondeo total:</strong> Si la solicitud no alcanza el 100% de fondeo al expirar el plazo establecido, los compromisos de inversión quedan cancelados automáticamente y los saldos retenidos en custodia son liberados a los inversores sin comisión ni costo alguno.
             </li>
           </ul>
         </>
@@ -94,7 +94,7 @@ export default function TerminosPage() {
           </p>
           <ul>
             <li>
-              <strong>Spread de plataforma:</strong> Un diferencial de tasa (spread) acordado en la subasta entre la tasa que abona la PyME (TNA PyME) y la tasa que perciben los inversores (TNA Inversor), cobrado pro-rata en cada cuota recaudada.
+              <strong>Spread de plataforma:</strong> Un diferencial de tasa (spread) acordado en el fondeo entre la tasa que abona la PyME (TNA PyME) y la tasa que perciben los inversores (TNA Inversor), cobrado pro-rata en cada cuota recaudada.
             </li>
             <li>
               <strong>Comisión de estructuración:</strong> Un porcentaje único deducido al momento del desembolso de los fondos a la PyME prestataria para cubrir costos de originación, verificación crediticia y emisión documental.

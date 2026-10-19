@@ -330,7 +330,7 @@ export class SupabaseLoanService implements LoanServiceInterface {
         await client.from('notifications').insert({
           user_id: updatedLoan.borrower_id,
           title: 'Préstamo aprobado',
-          message: 'Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace.',
+          message: 'Tu solicitud de crédito ha sido aprobada y publicada para fondeo en el marketplace.',
           type: 'success',
           read: false,
           action_url: '/dashboard/pyme',

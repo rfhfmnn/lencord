@@ -167,7 +167,7 @@ describe('Loan Funding Completion & Disbursement Activation (Issue #68)', () => 
     // Verify investor notification
     const notifications = await services.notifications!.getNotifications('usr-investor-002');
     const completionNotif = notifications.find(
-      (n) => n.title.includes('Subasta') || n.message.includes('completó exitosamente')
+      (n) => n.title.includes('Fondeo') || n.title.includes('Subasta') || n.message.includes('completó exitosamente')
     );
     expect(completionNotif).toBeDefined();
     expect(completionNotif?.read).toBe(false);

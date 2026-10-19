@@ -177,7 +177,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon}>✓</span>
-              <span>Subastas transparentes con pagaré digital</span>
+              <span>Fondeo transparente con pagaré digital</span>
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon}>✓</span>

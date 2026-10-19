@@ -216,7 +216,7 @@ export function renderLoanSubmissionTemplate(params: LoanSubmissionEmailParams):
         </tr>
       </table>
     </div>
-    <p>Te notificaremos apenas se complete la verificación de situación crediticia en BCRA y la aprobación de la tasa de subasta.</p>
+    <p>Te notificaremos apenas se complete la verificación de situación crediticia en BCRA y la aprobación de la tasa de fondeo.</p>
   `;
 
   const html = renderLencordBaseTemplate({
@@ -242,7 +242,7 @@ export function renderCreditApprovalTemplate(params: CreditApprovalEmailParams):
 } {
   const formattedAmount = formatCurrency(params.amount);
   const subject = `¡Tu solicitud de crédito ha sido aprobada! (${params.loanId})`;
-  const previewText = `Tu solicitud por ${formattedAmount} fue aprobada y publicada en la subasta del marketplace.`;
+  const previewText = `Tu solicitud por ${formattedAmount} fue aprobada y publicada para fondeo en el marketplace.`;
 
   const contentHtml = `
     <p>¡Excelentes noticias, <strong>${params.recipientName}</strong>!</p>
@@ -267,7 +267,7 @@ export function renderCreditApprovalTemplate(params: CreditApprovalEmailParams):
         </tr>
         <tr>
           <td style="color: #065f46;">Estado:</td>
-          <td style="font-weight: 700; color: #059669;">Subasta Activa en Marketplace</td>
+          <td style="font-weight: 700; color: #059669;">Fondeo Activo en Marketplace</td>
         </tr>
       </table>
     </div>
@@ -278,11 +278,11 @@ export function renderCreditApprovalTemplate(params: CreditApprovalEmailParams):
     title: '¡Solicitud de Crédito Aprobada!',
     previewText,
     contentHtml,
-    actionText: 'Seguir subasta en vivo',
+    actionText: 'Seguir fondeo en vivo',
     actionUrl: 'https://lencord.com.ar/dashboard/pyme',
   });
 
-  const text = `¡Buenas noticias, ${params.recipientName}!\n\nTu solicitud de crédito ${params.loanId} por ${formattedAmount} fue aprobada con calificación ${params.riskTier} a una tasa del ${params.investorRate}% TNA.\nLa subasta ya está abierta en el marketplace: https://lencord.com.ar/dashboard/pyme`;
+  const text = `¡Buenas noticias, ${params.recipientName}!\n\nTu solicitud de crédito ${params.loanId} por ${formattedAmount} fue aprobada con calificación ${params.riskTier} a una tasa del ${params.investorRate}% TNA.\nEl fondeo ya está abierto en el marketplace: https://lencord.com.ar/dashboard/pyme`;
 
   return { subject, html, text };
 }
@@ -301,7 +301,7 @@ export function renderCreditRejectionTemplate(params: CreditRejectionEmailParams
   const contentHtml = `
     <p>Estimado/a <strong>${params.recipientName}</strong>,</p>
     <p>Te contactamos para informarte sobre el resultado de la evaluación de riesgo de tu solicitud de crédito <strong>${params.loanId}</strong>.</p>
-    <p>Lamentamos comunicarte que, conforme a las políticas crediticias actuales de la plataforma, en esta oportunidad no ha sido posible publicar la solicitud en la subasta.</p>
+    <p>Lamentamos comunicarte que, conforme a las políticas crediticias actuales de la plataforma, en esta oportunidad no ha sido posible publicar la solicitud para fondeo.</p>
     <div style="background-color: #fef2f2; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #dc2626;">
       <p style="margin: 0 0 6px 0; font-size: 13px; color: #991b1b; font-weight: 600; text-transform: uppercase;">Motivo informado por el comité</p>
       <p style="margin: 0; color: #7f1d1d; font-size: 14px;">${params.reason}</p>
@@ -331,16 +331,16 @@ export function renderInvestmentConfirmationTemplate(params: InvestmentConfirmat
   text: string;
 } {
   const formattedAmount = formatCurrency(params.amount);
-  const subject = `Confirmación de inversión en subasta (${params.loanId})`;
+  const subject = `Confirmación de inversión en fondeo (${params.loanId})`;
   const previewText = `Tu compromiso de inversión por ${formattedAmount} ha sido registrado con éxito.`;
 
   const contentHtml = `
     <p>Hola <strong>${params.recipientName}</strong>,</p>
-    <p>Te confirmamos que tu orden de inversión ha sido registrada exitosamente en el libro de posturas de la subasta.</p>
+    <p>Te confirmamos que tu orden de inversión ha sido registrada exitosamente en el libro de posturas del fondeo.</p>
     <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #e2e8f0;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
         <tr>
-          <td style="color: #64748b; width: 45%;">Subasta / Préstamo:</td>
+          <td style="color: #64748b; width: 45%;">Fondeo / Préstamo:</td>
           <td style="font-weight: 600; color: #0f172a;">${params.loanId}</td>
         </tr>
         <tr>
@@ -357,7 +357,7 @@ export function renderInvestmentConfirmationTemplate(params: InvestmentConfirmat
         </tr>
       </table>
     </div>
-    <p>Cuando la subasta alcance el 100% y se perfeccione el pagaré digital con la PyME, los fondos serán desembolsados y comenzará a devengarse el plan de amortización mensual.</p>
+    <p>Cuando el fondeo alcance el 100% y se perfeccione el pagaré digital con la PyME, los fondos serán desembolsados y comenzará a devengarse el plan de amortización mensual.</p>
   `;
 
   const html = renderLencordBaseTemplate({
@@ -440,7 +440,7 @@ export function renderNewInvestmentReceivedTemplate(params: NewInvestmentReceive
 
   const contentHtml = `
     <p>Hola <strong>${params.recipientName}</strong>,</p>
-    <p>¡Buenas noticias! Se ha registrado un nuevo aporte de capital por parte de un inversor en tu subasta de financiamiento.</p>
+    <p>¡Buenas noticias! Se ha registrado un nuevo aporte de capital por parte de un inversor en tu ronda de fondeo.</p>
     <div style="background-color: #f0fdf4; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #bbf7d0;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
         <tr>
@@ -456,7 +456,7 @@ export function renderNewInvestmentReceivedTemplate(params: NewInvestmentReceive
           <td style="font-weight: 700; color: #0f172a;">${formattedTotalFunded} de ${formattedRequested}</td>
         </tr>
         <tr>
-          <td style="color: #166534;">Progreso de la subasta:</td>
+          <td style="color: #166534;">Progreso del fondeo:</td>
           <td style="font-weight: 700; color: #059669;">${params.percentage.toFixed(1)}% financiado</td>
         </tr>
       </table>
@@ -486,7 +486,7 @@ export function renderLoanFundingCompletedBorrowerTemplate(params: LoanFundingCo
   text: string;
 } {
   const formattedAmount = formatCurrency(params.amount);
-  const subject = `¡Subasta 100% financiada! Pagaré listo para tu firma digital (${params.loanId})`;
+  const subject = `¡Fondeo 100% financiado! Pagaré listo para tu firma digital (${params.loanId})`;
   const previewText = `¡Felicitaciones! Tu solicitud por ${formattedAmount} alcanzó el 100%. Firmá el pagaré digital para la liberación de los fondos.`;
 
   const contentHtml = `
@@ -508,7 +508,7 @@ export function renderLoanFundingCompletedBorrowerTemplate(params: LoanFundingCo
   `;
 
   const html = renderLencordBaseTemplate({
-    title: '¡Subasta 100% Financiada!',
+    title: '¡Fondeo 100% Financiado!',
     previewText,
     contentHtml,
     actionText: 'Firmar pagaré digital',
@@ -529,12 +529,12 @@ export function renderLoanFundingCompletedInvestorTemplate(params: LoanFundingCo
   text: string;
 } {
   const formattedTicket = formatCurrency(params.amountInvested);
-  const subject = `Subasta finalizada con éxito (${params.loanId})`;
-  const previewText = `La subasta de ${params.borrowerName} alcanzó el 100% de su objetivo. Tu inversión por ${formattedTicket} quedó perfeccionada.`;
+  const subject = `Fondeo finalizado con éxito (${params.loanId})`;
+  const previewText = `El fondeo de ${params.borrowerName} alcanzó el 100% de su objetivo. Tu inversión por ${formattedTicket} quedó perfeccionada.`;
 
   const contentHtml = `
     <p>Hola <strong>${params.recipientName}</strong>,</p>
-    <p>Te informamos que la subasta de financiamiento para la empresa <strong>${params.borrowerName}</strong> (Préstamo <strong>${params.loanId}</strong>) ha finalizado exitosamente al alcanzar el 100% del capital solicitado.</p>
+    <p>Te informamos que el fondeo de financiamiento para la empresa <strong>${params.borrowerName}</strong> (Préstamo <strong>${params.loanId}</strong>) ha finalizado exitosamente al alcanzar el 100% del capital solicitado.</p>
     <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #059669; border: 1px solid #e2e8f0;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
         <tr>
@@ -555,14 +555,14 @@ export function renderLoanFundingCompletedInvestorTemplate(params: LoanFundingCo
   `;
 
   const html = renderLencordBaseTemplate({
-    title: 'Subasta Finalizada con Éxito',
+    title: 'Fondeo Finalizado con Éxito',
     previewText,
     contentHtml,
     actionText: 'Ver mi portafolio',
     actionUrl: 'https://lencord.com.ar/dashboard/inversor',
   });
 
-  const text = `Hola ${params.recipientName},\n\nLa subasta de ${params.borrowerName} (${params.loanId}) completó el 100% de financiamiento.\nTu participación de ${formattedTicket} quedó asignada. Podés hacer seguimiento en: https://lencord.com.ar/dashboard/inversor`;
+  const text = `Hola ${params.recipientName},\n\nEl fondeo de ${params.borrowerName} (${params.loanId}) completó el 100% de financiamiento.\nTu participación de ${formattedTicket} quedó asignada. Podés hacer seguimiento en: https://lencord.com.ar/dashboard/inversor`;
 
   return { subject, html, text };
 }
@@ -651,7 +651,7 @@ export function renderInstallmentPayoutCreditedTemplate(params: InstallmentPayou
         </tr>
       </table>
     </div>
-    <p>Los fondos ya se encuentran disponibles en tu saldo en custodia para reinvertir en nuevas subastas o retirar a tu cuenta bancaria (CBU/CVU).</p>
+    <p>Los fondos ya se encuentran disponibles en tu saldo en custodia para reinvertir en nuevos fondeos o retirar a tu cuenta bancaria (CBU/CVU).</p>
   `;
 
   const html = renderLencordBaseTemplate({

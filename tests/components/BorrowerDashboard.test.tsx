@@ -147,7 +147,7 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     // Signing notification banner
     const signingSection = screen.getByTestId('signing-notification');
     expect(signingSection).toBeInTheDocument();
-    expect(signingSection).toHaveTextContent('¡Subasta financiada al 100%!');
+    expect(signingSection).toHaveTextContent('¡Fondeo completado al 100%!');
     expect(signingSection).toHaveTextContent('Pagaré Digital');
 
     // Action button
@@ -320,7 +320,7 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     expect(screen.getAllByText('Monto solicitado').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Plazo y Tasa')).toBeInTheDocument();
     expect(screen.getByText('Fecha de solicitud')).toBeInTheDocument();
-    expect(screen.getByText('Vencimiento de subasta')).toBeInTheDocument();
+    expect(screen.getByText('Cierre de fondeo')).toBeInTheDocument();
     expect(screen.getByText('Estado')).toBeInTheDocument();
     expect(screen.getByText('Acciones')).toBeInTheDocument();
 
@@ -358,7 +358,7 @@ describe('BorrowerDashboard Component (Task 14)', () => {
     // Modal should be open
     const modal = screen.getByTestId('deadline-modal');
     expect(modal).toBeInTheDocument();
-    expect(screen.getByText('Definir vencimiento de subasta')).toBeInTheDocument();
+    expect(screen.getByText('Definir cierre de fondeo')).toBeInTheDocument();
 
     // Select 15 days option
     const select = screen.getByTestId('modal-deadline-select');

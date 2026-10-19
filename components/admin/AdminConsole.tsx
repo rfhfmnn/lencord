@@ -496,7 +496,7 @@ export function AdminConsole({
     if (fundingDeadline) {
       const deadlineTimestamp = new Date(fundingDeadline).getTime();
       if (isNaN(deadlineTimestamp) || deadlineTimestamp <= Date.now()) {
-        setFormError('La fecha límite de subasta debe ser una fecha y hora futura.');
+        setFormError('La fecha límite de fondeo debe ser una fecha y hora futura.');
         return;
       }
     }
@@ -539,7 +539,7 @@ export function AdminConsole({
       // Update state
       setLoans((prev) => prev.map((l) => (l.id === updatedLoan.id ? updatedLoan : l)));
       setSuccessMessage(
-        `¡Préstamo ${selectedLoan.id} aprobado con éxito! La subasta ha sido publicada y ya está activa en el marketplace.`
+        `¡Préstamo ${selectedLoan.id} aprobado con éxito! La solicitud ha sido publicada y el fondeo ya está activo en el marketplace.`
       );
       setIsConfirmApprovalOpen(false);
 
@@ -622,7 +622,7 @@ export function AdminConsole({
         <div>
           <h1 className={styles.title}>Mesa de Crédito y Aprobaciones</h1>
           <p className={styles.subtitle}>
-            Evaluación crediticia de PyMEs solicitantes, scoring de riesgo y publicación en subasta.
+            Evaluación crediticia de PyMEs solicitantes, scoring de riesgo y publicación para fondeo.
           </p>
         </div>
         <div>
@@ -718,7 +718,7 @@ export function AdminConsole({
         <section className={styles.panelCard} aria-labelledby="scoring-console-title">
           {!selectedLoan ? (
             <div className={styles.noSelectionPlaceholder} data-testid="no-loan-selected">
-              <p>Seleccioná una solicitud para evaluar la documentación y parametrizar la subasta.</p>
+              <p>Seleccioná una solicitud para evaluar la documentación y parametrizar el fondeo.</p>
             </div>
           ) : (
             <div data-testid="loan-detail-view">
@@ -761,7 +761,7 @@ export function AdminConsole({
                   </div>
 
                   <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Vencimiento Subasta</span>
+                    <span className={styles.infoLabel}>Cierre de Fondeo</span>
                     <span className={styles.infoValue} data-testid="detail-funding-deadline">
                       {selectedLoan.funding_deadline
                         ? new Date(selectedLoan.funding_deadline).toLocaleDateString('es-AR')
@@ -1138,7 +1138,7 @@ export function AdminConsole({
                 {/* Auction Deadline (Read-only, chosen by borrower) */}
                 <div className={styles.formGroup}>
                   <label htmlFor="funding-deadline-input" className={styles.formLabel}>
-                    Fecha límite de subasta (Fijada por PyME solicitante)
+                    Fecha límite de fondeo (Fijada por PyME solicitante)
                   </label>
                   {selectedLoan.funding_deadline ? (
                     <input
@@ -1156,7 +1156,7 @@ export function AdminConsole({
                     <input
                       id="funding-deadline-input"
                       type="text"
-                      value="Sin fecha límite (subasta abierta)"
+                      value="Sin fecha límite (fondeo abierto)"
                       readOnly
                       tabIndex={-1}
                       className={styles.formInput}
@@ -1180,7 +1180,7 @@ export function AdminConsole({
                     onClick={handleInitiateApproval}
                     data-testid="btn-approve-publish"
                   >
-                    {submitting ? 'Aprobando y publicando...' : 'Aprobar y publicar en subasta'}
+                    {submitting ? 'Aprobando y publicando...' : 'Aprobar y publicar para fondeo'}
                   </Button>
                   <Button
                     type="button"
@@ -1207,7 +1207,7 @@ export function AdminConsole({
               Confirmar Aprobación y Publicación
             </h3>
             <p className={styles.modalDescription}>
-              ¿Estás seguro de que deseas aprobar esta solicitud y publicarla inmediatamente en la subasta del marketplace?
+              ¿Estás seguro de que deseas aprobar esta solicitud y publicarla inmediatamente para fondeo en el marketplace?
             </p>
 
             <div className={styles.modalSummaryTable}>
@@ -1236,11 +1236,11 @@ export function AdminConsole({
                 <strong>{calculatedBorrowerRate.toFixed(2)}%</strong>
               </div>
               <div className={styles.modalSummaryRow}>
-                <span>Cierre de Subasta:</span>
+                <span>Cierre de Fondeo:</span>
                 <strong>
                   {fundingDeadline
                     ? new Date(fundingDeadline).toLocaleString('es-AR')
-                    : 'Sin fecha límite (subasta abierta)'}
+                    : 'Sin fecha límite (fondeo abierto)'}
                 </strong>
               </div>
             </div>

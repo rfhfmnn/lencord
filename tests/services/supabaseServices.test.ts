@@ -50,10 +50,10 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
 
   describe('Error Mapping & Sanitization (mapSupabaseError)', () => {
     it('maps overfunding RPC error to user-friendly message', () => {
-      const err = new Error('RAISE EXCEPTION: El monto excede el cupo disponible de la subasta');
+      const err = new Error('RAISE EXCEPTION: El monto excede el cupo disponible del fondeo');
       const mapped = mapSupabaseError(err);
       expect(mapped).toBeInstanceOf(ApplicationError);
-      expect(mapped.message).toBe('El monto excede el cupo disponible de la subasta.');
+      expect(mapped.message).toBe('El monto excede el cupo disponible del fondeo.');
       expect(mapped.code).toBe('OVERFUNDING_REJECTED');
       expect(mapped.statusCode).toBe(400);
     });
@@ -80,7 +80,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
     it('maps overfunding and uuid syntax errors gracefully', () => {
       const errOverfund = new Error('RAISE EXCEPTION: check_amount_funded_limit cupo remanente');
       const mappedOverfund = mapSupabaseError(errOverfund);
-      expect(mappedOverfund.message).toBe('El monto ingresado excede el cupo remanente de la subasta.');
+      expect(mappedOverfund.message).toBe('El monto ingresado excede el cupo remanente del fondeo.');
 
       const errUuid = new Error('invalid input syntax for type uuid: "prof-inv-001"');
       const mappedUuid = mapSupabaseError(errUuid);
@@ -327,7 +327,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
       const { client } = createMockSupabaseClient();
       client.rpc.mockResolvedValueOnce({
         data: null,
-        error: { message: 'El monto excede el cupo disponible de la subasta' },
+        error: { message: 'El monto excede el cupo disponible del fondeo' },
       });
 
       const investmentService = new SupabaseInvestmentService(
@@ -341,7 +341,7 @@ describe('Live Supabase Backend Service Implementations (Issue #19)', () => {
           investor_id: 'investor-1',
           amount: 50_000_000,
         })
-      ).rejects.toThrow('El monto excede el cupo disponible de la subasta');
+      ).rejects.toThrow('El monto excede el cupo disponible del fondeo');
 
       expect(mockPaymentGateway.releaseFunds).toHaveBeenCalledWith('hold-456');
     });

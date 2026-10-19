@@ -82,7 +82,7 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
   });
 
   // -------------------------------------------------------------------------
-  // Evento 1: Nueva Inversión en Subasta (PyME)
+  // Evento 1: Nueva Inversión en Fondeo (PyME)
   // -------------------------------------------------------------------------
   it('Event 1: notifies borrower in-app and via email when new investment is received', async () => {
     const investment: Investment = {
@@ -122,7 +122,7 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
   });
 
   // -------------------------------------------------------------------------
-  // Evento 2: Subasta 100% financiada (PyME e Inversores)
+  // Evento 2: Fondeo 100% financiado (PyME e Inversores)
   // -------------------------------------------------------------------------
   it('Event 2: notifies borrower and deduplicated investors when loan reaches 100% funding', async () => {
     const fullyFundedLoan: Loan = {
@@ -148,21 +148,21 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
     const borrowerNotifs = await notificationService.getNotifications(mockBorrower.id);
     expect(borrowerNotifs).toHaveLength(1);
     expect(borrowerNotifs[0].type).toBe('success');
-    expect(borrowerNotifs[0].title).toBe('¡Subasta 100% financiada! Pagaré listo para firma');
+    expect(borrowerNotifs[0].title).toBe('¡Fondeo 100% financiado! Pagaré listo para firma');
     expect(borrowerNotifs[0].action_url).toBe('/dashboard/pyme');
 
     // 2. Investor 1 In-App Notification (exactly 1 notification despite 2 contributions)
     const inv1Notifs = await notificationService.getNotifications(mockInvestor1.id);
     expect(inv1Notifs).toHaveLength(1);
     expect(inv1Notifs[0].type).toBe('success');
-    expect(inv1Notifs[0].title).toBe('Subasta finalizada con éxito');
+    expect(inv1Notifs[0].title).toBe('Fondeo finalizado con éxito');
     expect(inv1Notifs[0].action_url).toBe('/dashboard/inversor');
 
     // 3. Investor 2 In-App Notification
     const inv2Notifs = await notificationService.getNotifications(mockInvestor2.id);
     expect(inv2Notifs).toHaveLength(1);
     expect(inv2Notifs[0].type).toBe('success');
-    expect(inv2Notifs[0].title).toBe('Subasta finalizada con éxito');
+    expect(inv2Notifs[0].title).toBe('Fondeo finalizado con éxito');
 
     // 4. Emails: 1 to borrower + 2 to unique investors = 3 total
     const emails = emailService.getSentEmails();
@@ -170,15 +170,15 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
 
     const borrowerEmail = emails.find((e) => e.to === mockBorrower.email);
     expect(borrowerEmail).toBeDefined();
-    expect(borrowerEmail?.subject).toContain('¡Subasta 100% financiada! Pagaré listo para tu firma digital');
+    expect(borrowerEmail?.subject).toContain('¡Fondeo 100% financiado! Pagaré listo para tu firma digital');
 
     const inv1Email = emails.find((e) => e.to === mockInvestor1.email);
     expect(inv1Email).toBeDefined();
-    expect(inv1Email?.subject).toContain('Subasta finalizada con éxito');
+    expect(inv1Email?.subject).toContain('Fondeo finalizado con éxito');
 
     const inv2Email = emails.find((e) => e.to === mockInvestor2.email);
     expect(inv2Email).toBeDefined();
-    expect(inv2Email?.subject).toContain('Subasta finalizada con éxito');
+    expect(inv2Email?.subject).toContain('Fondeo finalizado con éxito');
   });
 
   // -------------------------------------------------------------------------
@@ -402,10 +402,10 @@ describe('MultiChannelNotificationService - Bidirectional Lifecycle Notification
     });
 
     const pymeNotifs2 = await services.notifications!.getNotifications(mockBorrower.id);
-    expect(pymeNotifs2.some((n) => n.title === '¡Subasta 100% financiada! Pagaré listo para firma')).toBe(true);
+    expect(pymeNotifs2.some((n) => n.title === '¡Fondeo 100% financiado! Pagaré listo para firma')).toBe(true);
 
     const inv1Notifs2 = await services.notifications!.getNotifications(mockInvestor1.id);
-    expect(inv1Notifs2.some((n) => n.title === 'Subasta finalizada con éxito')).toBe(true);
+    expect(inv1Notifs2.some((n) => n.title === 'Fondeo finalizado con éxito')).toBe(true);
 
     // 3. PyME signs note and activates loan -> triggers Event 3
     await services.loans.activateLoan!(testLoan.id);

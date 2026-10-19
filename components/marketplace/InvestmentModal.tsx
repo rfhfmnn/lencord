@@ -819,7 +819,7 @@ export function InvestmentModal({
                   }}
                   data-testid="success-fully-funded-banner"
                 >
-                  ¡Subasta completada al 100%!
+                  ¡Fondeo completado al 100%!
                 </div>
               )}
             </div>
@@ -872,7 +872,7 @@ export function InvestmentModal({
                       </>
                     ) : null;
                   })()}
-                  Ingresá el monto en pesos que deseas aportar a esta subasta.
+                  Ingresá el monto en pesos que deseas aportar a este fondeo.
                 </p>
               </div>
               <button
@@ -1353,7 +1353,7 @@ export function InvestmentModal({
 
               <div className={styles.rulesList}>
                 <span>• El ticket mínimo para participar es de {formatCurrency(MIN_INVESTMENT_TICKET)}.</span>
-                <span>• No se admiten inversiones que superen el cupo restante de la subasta.</span>
+                <span>• No se admiten inversiones que superen el cupo restante del fondeo.</span>
                 <span>• Podrás seguir los pagos de capital e intereses en tu panel de inversor.</span>
               </div>
             </div>

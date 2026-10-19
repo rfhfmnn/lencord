@@ -47,7 +47,7 @@ describe('Legal Pages, Terms and Risk Consent (Issue #72)', () => {
       expect(screen.getAllByText(/no realiza captación masiva ni intermediación financiera/i).length).toBeGreaterThan(0);
 
       // Clause 2: Auction rules
-      expect(screen.getByText(/Mecanismo de subasta colaborativa y perfección de contratos/i)).toBeInTheDocument();
+      expect(screen.getByText(/Mecanismo de fondeo colaborativo y perfección de contratos/i)).toBeInTheDocument();
       expect(screen.getByText(/Fondeo exitoso al 100%/i)).toBeInTheDocument();
 
       // Clause 3: Rights and obligations of Parties

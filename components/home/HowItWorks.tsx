@@ -24,13 +24,13 @@ export const PYME_STEPS: WorkflowStep[] = [
   },
   {
     stepNumber: 3,
-    title: 'Publicación en subasta',
+    title: 'Publicación para fondeo',
     description: 'Tu solicitud calificada se publica en el marketplace para ser fondeada colectivamente.',
   },
   {
     stepNumber: 4,
     title: 'Desembolso directo',
-    description: 'Recibí el capital directo en tu CBU/CVU bancario al completarse la subasta y firmar el pagaré digital.',
+    description: 'Recibí el capital directo en tu CBU/CVU bancario al completarse el fondeo y firmar el pagaré digital.',
   },
 ];
 
@@ -48,7 +48,7 @@ export const INVESTOR_STEPS: WorkflowStep[] = [
   {
     stepNumber: 3,
     title: 'Invertí en cuotas',
-    description: 'Participá en subastas transparentes con tickets accesibles desde $10.000.',
+    description: 'Participá en rondas de fondeo transparentes con tickets accesibles desde $10.000.',
   },
   {
     stepNumber: 4,

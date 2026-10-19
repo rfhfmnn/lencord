@@ -67,12 +67,12 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
       expect(screen.queryByTestId('steps-panel-pymes')).not.toBeInTheDocument();
     });
 
-    it('displays the 4 PyME steps: Solicitud online, Evaluación, Publicación en subasta, Desembolso', () => {
+    it('displays the 4 PyME steps: Solicitud online, Evaluación, Publicación para fondeo, Desembolso', () => {
       render(<HowItWorks initialAudience="pymes" />);
 
       expect(screen.getByText('Solicitud online')).toBeInTheDocument();
       expect(screen.getByText('Evaluación')).toBeInTheDocument();
-      expect(screen.getByText('Publicación en subasta')).toBeInTheDocument();
+      expect(screen.getByText('Publicación para fondeo')).toBeInTheDocument();
       expect(screen.getByText('Desembolso directo')).toBeInTheDocument();
 
       expect(

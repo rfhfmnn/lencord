@@ -7,7 +7,7 @@ import { AdminConsole } from '@/components/admin/AdminConsole';
 export const metadata: Metadata = {
   title: 'Mesa de crédito y aprobaciones',
   description:
-    'Panel de administración para evaluación de riesgo crediticio, scoring y publicación de subastas.',
+    'Panel de administración para evaluación de riesgo crediticio, scoring y publicación para fondeo.',
 };
 
 export default function AdminPage() {

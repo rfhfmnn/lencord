@@ -117,7 +117,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
         }
         throw mapSupabaseError(
           error,
-          'Error al procesar la inversión en la subasta'
+          'Error al procesar la inversión en el fondeo'
         );
       }
 
@@ -188,7 +188,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
           await client.from('notifications').insert({
             user_id: updatedLoan.borrower_id,
             type: 'success',
-            title: '¡Subasta 100% financiada! Pagaré listo para firma',
+            title: '¡Fondeo 100% financiado! Pagaré listo para firma',
             action_url: '/dashboard/pyme',
             message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.`,
             read: false,
@@ -260,7 +260,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
       }
       throw mapSupabaseError(
         err,
-        'Error al procesar la inversión en la subasta'
+        'Error al procesar la inversión en el fondeo'
       );
     }
   }
@@ -346,7 +346,7 @@ export class SupabaseInvestmentService implements InvestmentServiceInterface {
           await client.from('notifications').insert({
             user_id: updatedLoan.borrower_id,
             type: 'success',
-            title: '¡Subasta 100% financiada! Pagaré listo para firma',
+            title: '¡Fondeo 100% financiado! Pagaré listo para firma',
             action_url: '/dashboard/pyme',
             message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.`,
             read: false,

@@ -176,7 +176,7 @@ describe('LoanDetail Component (Task 10)', () => {
     expect(screen.getByTestId('detail-percentage')).toHaveTextContent('25% financiado');
   });
 
-  it('visually updates status to "Subasta completada" and blocks further bids if 100% funded', () => {
+  it('visually updates status to "Fondeo completado" and blocks further bids if 100% funded', () => {
     const fullyFundedLoan: Loan = {
       ...mockLoan,
       amount_funded: 10_000_000,
@@ -191,9 +191,9 @@ describe('LoanDetail Component (Task 10)', () => {
       />
     );
 
-    expect(screen.getByTestId('detail-status-badge')).toHaveTextContent('Subasta completada');
+    expect(screen.getByTestId('detail-status-badge')).toHaveTextContent('Fondeo completado');
     const investBtn = screen.getByTestId('detail-invest-button');
-    expect(investBtn).toHaveTextContent('Subasta completada');
+    expect(investBtn).toHaveTextContent('Fondeo completado');
     expect(investBtn).toBeDisabled();
     expect(screen.getByTestId('detail-percentage')).toHaveTextContent('100% financiado');
     expect(screen.getByTestId('detail-remaining-capacity')).toHaveTextContent('$ 0');

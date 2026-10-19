@@ -350,7 +350,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span>
-              Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta subasta.
+              Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta oportunidad de fondeo.
             </span>
           </div>
         )}

@@ -32,8 +32,8 @@ export interface BorrowerDashboardProps {
 export const LOAN_STATUS_LABELS: Record<LoanStatus, { label: string; className: string }> = {
   draft: { label: 'Borrador', className: styles.statusPending },
   in_review: { label: 'En revisión', className: styles.badgeInReview },
-  funding: { label: 'En subasta', className: styles.badgeFunding },
-  funded: { label: 'Subasta completada', className: styles.badgeFunded },
+  funding: { label: 'En fondeo', className: styles.badgeFunding },
+  funded: { label: 'Fondeo completado', className: styles.badgeFunded },
   active: { label: 'Préstamo activo', className: styles.badgeActive },
   repaid: { label: 'Cancelado / Pagado', className: styles.statusSettled },
   cancelled: { label: 'Cancelado', className: styles.statusRefunded },
@@ -502,7 +502,7 @@ export function BorrowerDashboard({
                 ✓ Perfil inversor activo
               </span>
               <p style={{ margin: 0, fontSize: '0.875rem', color: '#334155' }}>
-                Tu cuenta dispone de permisos como inversor. Podés participar en subastas de crédito y rentabilizar excedentes de liquidez.
+                Tu cuenta dispone de permisos como inversor. Podés participar en rondas de fondeo y rentabilizar excedentes de liquidez.
               </p>
             </div>
             <Link href="/dashboard/inversor">
@@ -959,7 +959,7 @@ export function BorrowerDashboard({
         : 'Sin fecha límite';
 
       setDeadlineModalLoan(null);
-      setDeadlineSuccessMsg(`Vencimiento de subasta actualizado con éxito a ${formattedNewDate}.`);
+      setDeadlineSuccessMsg(`Cierre de fondeo actualizado con éxito a ${formattedNewDate}.`);
       setTimeout(() => setDeadlineSuccessMsg(null), 5000);
     } catch (err: any) {
       setDeadlineModalError(err?.message || 'Error al guardar el vencimiento.');
@@ -977,10 +977,10 @@ export function BorrowerDashboard({
           <p className={styles.subtitle}>
             {borrowerName ? (
               <>
-                Bienvenido, <strong data-testid="borrower-company-name">{borrowerName}</strong>. Estado de tu solicitud de crédito, progreso de subasta y cronograma de amortización.
+                Bienvenido, <strong data-testid="borrower-company-name">{borrowerName}</strong>. Estado de tu solicitud de crédito, progreso de fondeo y cronograma de amortización.
               </>
             ) : (
-              'Estado de tu solicitud de crédito, progreso de subasta y cronograma de amortización.'
+              'Estado de tu solicitud de crédito, progreso de fondeo y cronograma de amortización.'
             )}
           </p>
         </div>
@@ -1127,7 +1127,7 @@ export function BorrowerDashboard({
         <section className={styles.auctionMonitorCard} data-testid="auction-monitor-card">
           <div className={styles.auctionHeader}>
             <div>
-              <h3 className={styles.sectionTitle}>Monitor de subasta en vivo</h3>
+              <h3 className={styles.sectionTitle}>Monitor de fondeo en vivo</h3>
               <p className={styles.sectionDescription}>
                 Tu oportunidad está visible para inversores individuales e institucionales en el marketplace.
               </p>
@@ -1148,7 +1148,7 @@ export function BorrowerDashboard({
             aria-valuenow={fundedPercent}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Progreso de fondeo de la subasta"
+            aria-label="Progreso de fondeo del préstamo"
           >
             <div
               className={styles.auctionProgressBar}
@@ -1195,7 +1195,7 @@ export function BorrowerDashboard({
                   </h4>
                   <p style={{ margin: '0.35rem 0 0', fontSize: '0.875rem', color: '#15803d', lineHeight: 1.5 }}>
                     Tu solicitud ya cuenta con <strong>{formatCurrency(currentLoan.amount_funded)}</strong> comprometidos de los{' '}
-                    {formatCurrency(currentLoan.amount_requested)} solicitados. Al haber superado el 75% reglamentario, podés dar por concluida la subasta ahora mismo y aceptar este financiamiento para firmar el pagaré digital y recibir el desembolso.
+                    {formatCurrency(currentLoan.amount_requested)} solicitados. Al haber superado el 75% reglamentario, podés dar por concluido el fondeo ahora mismo y aceptar este financiamiento para firmar el pagaré digital y recibir el desembolso.
                   </p>
                   {partialAcceptanceError && (
                     <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#dc2626', fontWeight: 600 }}>
@@ -1250,7 +1250,7 @@ export function BorrowerDashboard({
               <h3 className={styles.signingTitle}>
                 {isPartialAccepted
                   ? `¡Financiamiento aceptado al ${fundedPercent}%!`
-                  : '¡Subasta financiada al 100%!'}
+                  : '¡Fondeo completado al 100%!'}
               </h3>
               <p className={styles.signingDescription}>
                 {isPartialAccepted ? (
@@ -1494,7 +1494,7 @@ export function BorrowerDashboard({
                   <th scope="col">Monto solicitado</th>
                   <th scope="col">Plazo y Tasa</th>
                   <th scope="col">Fecha de solicitud</th>
-                  <th scope="col">Vencimiento de subasta</th>
+                  <th scope="col">Cierre de fondeo</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Acciones</th>
                 </tr>
@@ -1560,7 +1560,7 @@ export function BorrowerDashboard({
                       {/* 4. Fecha de solicitud */}
                       <td data-testid={`loan-date-${loan.id}`}>{formattedRequestedDate}</td>
 
-                      {/* 5. Vencimiento de subasta */}
+                      {/* 5. Cierre de fondeo */}
                       <td data-testid={`loan-deadline-${loan.id}`}>
                         {loan.funding_deadline ? (
                           formattedDeadline
@@ -1631,7 +1631,7 @@ export function BorrowerDashboard({
         </section>
       )}
 
-      {/* Modal para Definir o Modificar Vencimiento de Subasta (Issue #56) */}
+      {/* Modal para Definir o Modificar Vencimiento de Fondeo (Issue #56) */}
       {deadlineModalLoan && (
         <div
           role="dialog"
@@ -1643,7 +1643,7 @@ export function BorrowerDashboard({
           <div className={styles.modalCard}>
             <div className={styles.modalHeader}>
               <h3 id="deadline-modal-title" className={styles.modalTitle}>
-                Definir vencimiento de subasta
+                Definir cierre de fondeo
               </h3>
               <button
                 type="button"
@@ -1681,7 +1681,7 @@ export function BorrowerDashboard({
                     marginBottom: '0.25rem',
                   }}
                 >
-                  Vencimiento actual de la subasta
+                  Cierre actual de fondeo
                 </div>
                 <div
                   style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1e293b' }}
@@ -1765,7 +1765,7 @@ export function BorrowerDashboard({
                           month: '2-digit',
                           year: 'numeric',
                         })
-                      : 'Sin fecha límite (subasta abierta indefinidamente)'}
+                      : 'Sin fecha límite (fondeo abierto indefinidamente)'}
                   </div>
                 </div>
 

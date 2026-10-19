@@ -342,7 +342,7 @@ export class MultiChannelNotificationService
   }
 
   /**
-   * Event 1: Nueva Inversión en Subasta (Notifica a la PyME)
+   * Event 1: Nueva Inversión en Fondeo (Notifica a la PyME)
    */
   public async notifyNewInvestmentReceived(params: NotifyNewInvestmentParams): Promise<void> {
     const funded = params.loan.amount_funded;
@@ -378,7 +378,7 @@ export class MultiChannelNotificationService
   }
 
   /**
-   * Event 2: Subasta 100% financiada (Notifica a la PyME y a todos los inversores participantes)
+   * Event 2: Fondeo 100% financiado (Notifica a la PyME y a todos los inversores participantes)
    */
   public async notifyLoanFundingCompleted(params: NotifyLoanFundingCompletedParams): Promise<void> {
     const formattedAmount = Number(params.loan.amount_requested || 0).toLocaleString('es-AR');
@@ -387,7 +387,7 @@ export class MultiChannelNotificationService
     await this.createInAppNotification({
       user_id: params.loan.borrower_id,
       type: 'success',
-      title: '¡Subasta 100% financiada! Pagaré listo para firma',
+      title: '¡Fondeo 100% financiado! Pagaré listo para firma',
       action_url: '/dashboard/pyme',
       message: `¡Felicitaciones! Tu solicitud fue 100% financiada. Ya podés ingresar a firmar el pagaré digital para la liberación y desembolso de los fondos.`,
     });
@@ -424,9 +424,9 @@ export class MultiChannelNotificationService
         await this.createInAppNotification({
           user_id: invId,
           type: 'success',
-          title: 'Subasta finalizada con éxito',
+          title: 'Fondeo finalizado con éxito',
           action_url: '/dashboard/inversor',
-          message: `La subasta del préstamo ${params.loan.id} alcanzó el 100% de su objetivo. Te notificaremos cuando la PyME firme el pagaré.`,
+          message: `El fondeo del préstamo ${params.loan.id} alcanzó el 100% de su objetivo. Te notificaremos cuando la PyME firme el pagaré.`,
         });
 
         if (inv.profile.email && this.emailService?.sendLoanFundingCompletedInvestorEmail) {

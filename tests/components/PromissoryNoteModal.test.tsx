@@ -383,7 +383,7 @@ describe('PromissoryNoteModal Component & Signing Flow (Issue #16)', () => {
     expect(screen.getByTestId('contract-annex-creditors')).toBeInTheDocument();
 
     // Verify neither anonymous nor single collective fallback row is rendered
-    expect(screen.queryByText(/Inversores Adjudicatarios de la Subasta Lencord/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Inversores Adjudicatarios del Fondeo Lencord/i)).not.toBeInTheDocument();
 
     // In sampleFundedLoan (loan-seed-004), two investors participated:
     // 1. Inversora Austral S.A. ($ 20.000.000)
@@ -480,7 +480,7 @@ describe('PromissoryNoteModal Component & Signing Flow (Issue #16)', () => {
     // Principal metadata shows $9.900.000 and indicates 99% accepted
     const principalValue = screen.getByTestId('contract-principal-amount');
     expect(principalValue).toHaveTextContent('9.900.000');
-    expect(screen.getByText(/99% aceptado en subasta/i)).toBeInTheDocument();
+    expect(screen.getByText(/99% aceptado en fondeo/i)).toBeInTheDocument();
 
     // Clause PRIMERA references the effective principal and partial acceptance
     const clausePrimera = screen.getByText(/PRIMERA: OBJETO Y RECONOCIMIENTO DE DEUDA/i).parentElement;

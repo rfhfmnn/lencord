@@ -577,7 +577,7 @@ describe('Login with Role Selector and Unified Account Architecture (Issue #54)'
       const banner = screen.getByTestId('auth-required-banner');
       expect(banner).toBeInTheDocument();
       expect(banner).toHaveTextContent(
-        'Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta subasta.'
+        'Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta oportunidad de fondeo.'
       );
     });
 

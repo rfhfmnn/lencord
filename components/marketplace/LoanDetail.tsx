@@ -336,7 +336,7 @@ export function LoanDetail({
               }`}
             data-testid="detail-status-badge"
           >
-            {isCompleted ? 'Subasta completada' : 'En subasta pública'}
+            {isCompleted ? 'Fondeo completado' : 'En fondeo'}
           </span>
         </div>
 
@@ -372,9 +372,9 @@ export function LoanDetail({
           </div>
 
           <div className={styles.metricItem}>
-            <span className={styles.metricLabel}>Cierre de subasta</span>
+            <span className={styles.metricLabel}>Cierre de fondeo</span>
             <span className={styles.metricValue} data-testid="detail-deadline">
-              {isCompleted ? 'Finalizada' : daysRemaining === 0 ? 'Cierra hoy' : `${daysRemaining} días restantes`}
+              {isCompleted ? 'Finalizado' : daysRemaining === 0 ? 'Cierra hoy' : `${daysRemaining} días restantes`}
             </span>
           </div>
 
@@ -434,7 +434,7 @@ export function LoanDetail({
                 size="lg"
                 data-testid="detail-invest-button"
               >
-                Subasta completada
+                Fondeo completado
               </Button>
             ) : isBorrowerSelf ? (
               <Button
@@ -505,8 +505,8 @@ export function LoanDetail({
               <p style={{ color: '#64748b', fontSize: '0.9375rem', margin: 0 }}>
                 {loan.status === 'funded'
                   ? (loan.partial_acceptance_flag || (loan.amount_funded > 0 && loan.amount_funded < loan.amount_requested))
-                    ? `Subasta financiada y aceptada al ${Math.round((loan.amount_funded / loan.amount_requested) * 100)}%. Documento listo para revisión y firma electrónica mediante OTP.`
-                    : 'Subasta 100% financiada. Documento listo para revisión y firma electrónica mediante OTP.'
+                    ? `Fondeo financiado y aceptado al ${Math.round((loan.amount_funded / loan.amount_requested) * 100)}%. Documento listo para revisión y firma electrónica mediante OTP.`
+                    : 'Fondeo 100% completado. Documento listo para revisión y firma electrónica mediante OTP.'
                   : 'Préstamo activo ratificado legalmente y sellado criptográficamente.'}
               </p>
             </div>

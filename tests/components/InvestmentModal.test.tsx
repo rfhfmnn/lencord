@@ -198,7 +198,7 @@ describe('InvestmentModal Component (Task 10)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('success-fully-funded-banner')).toBeInTheDocument();
     });
-    expect(screen.getByText(/¡Subasta completada al 100%!/i)).toBeInTheDocument();
+    expect(screen.getByText(/¡Fondeo completado al 100%!/i)).toBeInTheDocument();
   });
 
   it('prevents borrower from committing investments into their own loan listing', async () => {

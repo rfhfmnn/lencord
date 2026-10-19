@@ -267,7 +267,7 @@ export function MarketplaceCatalog({
       <div className={styles.catalogHeader}>
         <h1 className={styles.pageTitle}>Oportunidades de Inversión</h1>
         <p className={styles.pageSubtitle}>
-          Financiá proyectos de PyMEs argentinas en subastas colectivas. Cobrá capital e interés mes a mes con la seguridad de pagarés digitales.
+          Financiá proyectos de PyMEs argentinas en rondas de fondeo colectivo. Cobrá capital e interés mes a mes con la seguridad de pagarés digitales.
         </p>
       </div>
 

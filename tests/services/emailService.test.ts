@@ -70,7 +70,7 @@ describe('Transactional Email Notification Service (Issue #47)', () => {
       expect(template.html).toContain('loan-app-202');
       expect(template.html).toContain('Tier A');
       expect(template.html).toContain('42.5% TNA');
-      expect(template.html).toContain('Subasta Activa en Marketplace');
+      expect(template.html).toContain('Fondeo Activo en Marketplace');
     });
 
     it('renders credit rejection notice template with clear explanation', () => {

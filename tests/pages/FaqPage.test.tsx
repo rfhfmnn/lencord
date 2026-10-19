@@ -66,7 +66,7 @@ describe('FaqPage and FaqView (Issue #63)', () => {
     expect(
       screen.getByRole('heading', { name: /inversión y rendimientos para inversores/i, level: 2 })
     ).toBeInTheDocument();
-    expect(screen.getByText(/cómo participar en subastas de crédito/i)).toBeInTheDocument();
+    expect(screen.getByText(/cómo participar en el fondeo de créditos/i)).toBeInTheDocument();
 
     // 3. Click back to General
     fireEvent.click(generalTab);

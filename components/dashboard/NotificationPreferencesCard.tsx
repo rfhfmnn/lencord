@@ -153,7 +153,7 @@ export function NotificationPreferencesCard({
               Alertas urgentes por SMS
             </div>
             <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '0.25rem' }}>
-              Códigos OTP de seguridad 2FA, aviso de subasta 100% fondeada y avisos de mora.
+              Códigos OTP de seguridad 2FA, aviso de préstamo 100% fondeado y avisos de mora.
             </div>
           </div>
         </label>
