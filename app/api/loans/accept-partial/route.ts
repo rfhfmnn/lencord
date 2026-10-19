@@ -33,9 +33,26 @@ export async function POST(req: NextRequest) {
       mockLoan.partial_acceptance_flag = true;
     }
 
-    // 3. Update Supabase
+    // 3. Update Supabase (Prefer secure atomic RPC accept_partial_funding_secure)
     try {
       const adminClient = createSupabaseAdminClient();
+      const rpcRes = await adminClient.rpc('accept_partial_funding_secure', {
+        p_loan_id: loan_id,
+      });
+
+      if (!rpcRes.error && rpcRes.data?.success) {
+        return NextResponse.json({
+          success: true,
+          loan: {
+            id: loan_id,
+            status: 'funded',
+            partial_acceptance_flag: true,
+            amount_funded: rpcRes.data.amount_funded,
+          },
+        });
+      }
+
+      // Fallback to table update if RPC is not yet deployed in database
       let { data, error } = await adminClient
         .from('loans')
         .update({
