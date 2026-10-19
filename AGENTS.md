@@ -21,7 +21,7 @@ Documents
 - `_docs/process.md` - How work is organized and task workflow guidelines.
 - `_docs/testing-guidelines.md` - Before writing tests, read this guide.
 - `_docs/design-system.md` - For anything touching the UI, read this guide.
-- `.agents/subagents/pm.md` - Instructions for Product Manager role.
+- `.agent/agents/pm.md` - Instructions for Product Manager role.
 - `_docs/task-template.md` - Template for defining product tasks.
 
 <!-- BEGIN:nextjs-agent-rules -->

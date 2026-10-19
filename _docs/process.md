@@ -23,10 +23,10 @@ Architecture Guidelines
 
 Roles
 
-- PM - grooms a task before anyone implements it, follows .agents/subagents/pm.md
-- Engineer - implements one groomed task, follows .agents/subagents/software-engineer.md
-- QA - checks the result against acceptance criteria and closes on PASS, follows .agents/subagents/qa-engineer.md
-- Security Engineer - audits code, database policies, and APIs for vulnerabilities and compliance, follows .agents/subagents/security-engineer.md
+- PM - grooms a task before anyone implements it, follows .agent/agents/pm.md
+- Engineer - implements one groomed task, follows .agent/agents/software-engineer.md
+- QA - checks the result against acceptance criteria and closes on PASS, follows .agent/agents/qa-engineer.md
+- Security Engineer - audits code, database policies, and APIs for vulnerabilities and compliance, follows .agent/agents/security-engineer.md
 
 Work in isolated git worktrees and run up to five agents in parallel.
 
