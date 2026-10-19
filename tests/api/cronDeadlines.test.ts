@@ -28,6 +28,17 @@ describe('Automated Loan Deadline Check and Settlement Routine (Issue #22)', () 
     });
   }
 
+  it('returns 500 Server Misconfiguration when CRON_SECRET_KEY is not configured', async () => {
+    delete process.env.CRON_SECRET;
+    delete process.env.CRON_SECRET_KEY;
+
+    const req = createCronRequest('Bearer test-cron-secret');
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toContain('Server Misconfiguration');
+  });
+
   it('rejects unauthorized requests without bearer token or with wrong secret with 401', async () => {
     // Missing header
     const reqNoAuth = createCronRequest();

@@ -22,9 +22,23 @@ async function handleCheckDeadlines(req: NextRequest) {
   const providedToken = match ? match[1].trim() : null;
 
   const expectedSecret =
-    process.env.CRON_SECRET_KEY || process.env.CRON_SECRET || 'test-cron-secret';
+    process.env.CRON_SECRET_KEY || process.env.CRON_SECRET;
 
-  // 1. Verify Bearer token authorization
+  // 1. Verify environment configuration
+  if (!expectedSecret) {
+    if (process.env.NODE_ENV === 'test') {
+      // In isolated tests allow test secret if explicitly needed, otherwise 500
+    }
+    return NextResponse.json(
+      {
+        error:
+          'Server Misconfiguration: CRON_SECRET_KEY environment variable is not configured',
+      },
+      { status: 500 }
+    );
+  }
+
+  // 2. Verify Bearer token authorization
   if (!providedToken || providedToken !== expectedSecret) {
     return NextResponse.json(
       { error: 'Unauthorized: Invalid or missing bearer token' },
