@@ -40,7 +40,29 @@ describe('FaqPage and FaqView (Issue #63)', () => {
     const panel = screen.getByRole('tabpanel');
     expect(panel).toHaveAttribute('aria-labelledby', 'tab-general');
     expect(screen.getByRole('heading', { name: /preguntas generales sobre lencord/i, level: 2 })).toBeInTheDocument();
-    expect(screen.getByTestId('faq-empty-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('faq-accordion-list')).toBeInTheDocument();
+    expect(screen.getByText('¿Qué es Lencord?')).toBeInTheDocument();
+    expect(
+      screen.getByText('¿Qué diferencia existe entre un préstamo en Lencord y en un banco comercial?')
+    ).toBeInTheDocument();
+  });
+
+  it('allows expanding and collapsing FAQ accordion questions in General tab', () => {
+    render(<FaqView />);
+
+    const questionBtn = screen.getByRole('button', { name: /¿qué es lencord\?/i });
+    expect(questionBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('faq-answer-que-es-lencord')).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(questionBtn);
+    expect(questionBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('faq-answer-que-es-lencord')).toBeInTheDocument();
+
+    // Click to collapse
+    fireEvent.click(questionBtn);
+    expect(questionBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('faq-answer-que-es-lencord')).not.toBeInTheDocument();
   });
 
   it('switches tabs and displays corresponding section content on click', () => {
@@ -58,6 +80,7 @@ describe('FaqPage and FaqView (Issue #63)', () => {
       screen.getByRole('heading', { name: /financiamiento colectivo para pymes/i, level: 2 })
     ).toBeInTheDocument();
     expect(screen.getByText(/requisitos para solicitar crédito/i)).toBeInTheDocument();
+    expect(screen.getByTestId('faq-empty-placeholder')).toBeInTheDocument();
 
     // 2. Click Para inversores
     fireEvent.click(inversoresTab);

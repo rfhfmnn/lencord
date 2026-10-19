@@ -3,76 +3,48 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui';
+import { FAQ_CATEGORIES, FaqTabId } from './faqData';
 import styles from './faq.module.css';
 
-export type FaqTabId = 'general' | 'pymes' | 'inversores';
-
-interface FaqTabConfig {
-  id: FaqTabId;
-  label: string;
-  sectionTitle: string;
-  sectionDescription: string;
-  placeholderText: string;
-}
-
-const FAQ_TABS: FaqTabConfig[] = [
-  {
-    id: 'general',
-    label: 'General',
-    sectionTitle: 'Preguntas generales sobre Lencord',
-    sectionDescription:
-      'Información institucional sobre cómo funciona la plataforma, marco normativo, modelo tecnológico y custodia segura de fondos.',
-    placeholderText:
-      'Estamos compilando las preguntas más frecuentes sobre el funcionamiento general de la plataforma. Muy pronto vas a encontrar aquí las respuestas a todas tus consultas.',
-  },
-  {
-    id: 'pymes',
-    label: 'Para PyMEs',
-    sectionTitle: 'Financiamiento colectivo para PyMEs',
-    sectionDescription:
-      'Requisitos para solicitar crédito, documentación contable solicitada, evaluación de scoring crediticio, proceso de fondeo y pagos mensuales.',
-    placeholderText:
-      'Las preguntas frecuentes para empresas y PyMEs que buscan financiamiento están en proceso de redacción y estarán publicadas en breve.',
-  },
-  {
-    id: 'inversores',
-    label: 'Para inversores',
-    sectionTitle: 'Inversión y rendimientos para inversores',
-    sectionDescription:
-      'Cómo participar en el fondeo de créditos, esquemas de tasas (fija TNA o UVA+spread), custodia de saldos bancarios y acreditación automática de cobranzas.',
-    placeholderText:
-      'El apartado de preguntas frecuentes para inversores individuales e institucionales está siendo preparado y estará disponible próximamente.',
-  },
-];
+export { type FaqTabId };
 
 export function FaqView() {
   const [activeTab, setActiveTab] = useState<FaqTabId>('general');
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     let nextIndex = index;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      nextIndex = (index + 1) % FAQ_TABS.length;
+      nextIndex = (index + 1) % FAQ_CATEGORIES.length;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      nextIndex = (index - 1 + FAQ_TABS.length) % FAQ_TABS.length;
+      nextIndex = (index - 1 + FAQ_CATEGORIES.length) % FAQ_CATEGORIES.length;
     } else if (e.key === 'Home') {
       e.preventDefault();
       nextIndex = 0;
     } else if (e.key === 'End') {
       e.preventDefault();
-      nextIndex = FAQ_TABS.length - 1;
+      nextIndex = FAQ_CATEGORIES.length - 1;
     }
 
     if (nextIndex !== index) {
-      const nextTab = FAQ_TABS[nextIndex];
+      const nextTab = FAQ_CATEGORIES[nextIndex];
       setActiveTab(nextTab.id);
       tabRefs.current[nextIndex]?.focus();
     }
   };
 
-  const currentTab = FAQ_TABS.find((t) => t.id === activeTab) || FAQ_TABS[0];
+  const toggleItem = (id: string) => {
+    setOpenItems((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const currentTab = FAQ_CATEGORIES.find((t) => t.id === activeTab) || FAQ_CATEGORIES[0];
+  const hasItems = currentTab.items && currentTab.items.length > 0;
 
   return (
     <div className={styles.faqWrapper} data-testid="faq-view">
@@ -92,7 +64,7 @@ export function FaqView() {
         aria-label="Apartados de preguntas frecuentes"
         className={styles.tabList}
       >
-        {FAQ_TABS.map((tab, index) => {
+        {FAQ_CATEGORIES.map((tab, index) => {
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -131,21 +103,78 @@ export function FaqView() {
             <p className={styles.sectionDescription}>{currentTab.sectionDescription}</p>
           </div>
 
-          {/* Placeholder ready for upcoming Q&As */}
-          <div className={styles.emptyPlaceholder} data-testid="faq-empty-placeholder">
-            <div className={styles.placeholderIcon} aria-hidden="true">
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+          {hasItems ? (
+            <div className={styles.accordionList} data-testid="faq-accordion-list">
+              {currentTab.items.map((item) => {
+                const isOpen = !!openItems[item.id];
+                return (
+                  <div
+                    key={item.id}
+                    className={styles.accordionItem}
+                    data-testid={`faq-item-${item.id}`}
+                  >
+                    <button
+                      type="button"
+                      id={`faq-trigger-${item.id}`}
+                      aria-expanded={isOpen}
+                      aria-controls={`faq-answer-${item.id}`}
+                      className={styles.accordionTrigger}
+                      onClick={() => toggleItem(item.id)}
+                      data-testid={`faq-question-${item.id}`}
+                    >
+                      <span className={styles.questionText}>{item.question}</span>
+                      <span
+                        className={`${styles.chevronIcon} ${isOpen ? styles.chevronIconOpen : ''}`}
+                        aria-hidden="true"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div
+                        id={`faq-answer-${item.id}`}
+                        role="region"
+                        aria-labelledby={`faq-trigger-${item.id}`}
+                        className={styles.accordionBody}
+                        data-testid={`faq-answer-${item.id}`}
+                      >
+                        <p className={styles.answerText}>{item.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <h3 className={styles.placeholderTitle}>Apartado en preparación</h3>
-            <p className={styles.placeholderText}>{currentTab.placeholderText}</p>
-          </div>
+          ) : (
+            /* Placeholder ready for upcoming Q&As */
+            <div className={styles.emptyPlaceholder} data-testid="faq-empty-placeholder">
+              <div className={styles.placeholderIcon} aria-hidden="true">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className={styles.placeholderTitle}>Apartado en preparación</h3>
+              <p className={styles.placeholderText}>{currentTab.placeholderText}</p>
+            </div>
+          )}
         </section>
       </div>
 
