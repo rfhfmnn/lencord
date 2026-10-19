@@ -10,6 +10,8 @@ import {
   TwilioChannelAdapter,
   type DeliveryStatusWebhookPayload,
 } from '@/services/notifications/channels';
+import { verifyWebhookSignature } from '@/services/payments/crypto';
+import { getAuthenticatedUser } from '@/app/api/loans/auth';
 
 // In-memory global channel adapter instance for webhooks
 let activeWebhookAdapter: TwilioChannelAdapter | typeof defaultMockChannelAdapter =
@@ -28,9 +30,42 @@ export function getWebhookChannelAdapter() {
 /**
  * POST /api/webhooks/notifications
  * Processes incoming provider delivery status callbacks (Twilio SMS / WhatsApp).
+ * Verifies webhook signature in production/non-mock environments to prevent tampering.
  */
 export async function POST(req: NextRequest) {
   try {
+    const rawBody = await req.clone().text();
+    const signature =
+      req.headers.get('x-twilio-signature') ||
+      req.headers.get('x-webhook-signature') ||
+      req.headers.get('x-signature') ||
+      req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+
+    const secret =
+      process.env.TWILIO_AUTH_TOKEN ||
+      process.env.NOTIFICATIONS_WEBHOOK_SECRET ||
+      process.env.BAAS_WEBHOOK_SECRET;
+
+    // Verify signature in production or whenever a webhook secret is configured
+    if (process.env.NODE_ENV === 'production' || (secret && !process.env.NEXT_PUBLIC_USE_MOCKS)) {
+      if (!signature) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Missing webhook signature' },
+          { status: 401 }
+        );
+      }
+
+      if (secret) {
+        const isValid = verifyWebhookSignature(rawBody, signature, secret);
+        if (!isValid) {
+          return NextResponse.json(
+            { error: 'Unauthorized: Invalid webhook signature' },
+            { status: 401 }
+          );
+        }
+      }
+    }
+
     const contentType = req.headers.get('content-type') || '';
     let payload: DeliveryStatusWebhookPayload;
 
@@ -104,8 +139,28 @@ export async function POST(req: NextRequest) {
 /**
  * GET /api/webhooks/notifications
  * Returns current delivery statistics, failure rates, and optical bounce rates.
+ * Restricted to administrators or authorized system monitors.
  */
-export async function GET() {
+export async function GET(req?: NextRequest) {
+  if (req) {
+    const user = await getAuthenticatedUser(req);
+    const isAuthorized = user && (user.isAdmin || user.role === 'admin');
+
+    // Also check for service bearer token
+    const authHeader = req.headers.get('authorization') || '';
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    const token = match ? match[1].trim() : null;
+    const adminToken = process.env.ADMIN_API_KEY || process.env.CRON_SECRET_KEY || process.env.CRON_SECRET;
+    const isTokenAuthorized = adminToken && token === adminToken;
+
+    if (!isAuthorized && !isTokenAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Requiere permisos de administrador para consultar métricas de entrega' },
+        { status: 401 }
+      );
+    }
+  }
+
   const stats = activeWebhookAdapter.getDeliveryStats();
   const records = activeWebhookAdapter.getDeliveryRecords();
 
