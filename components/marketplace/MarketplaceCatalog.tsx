@@ -109,7 +109,7 @@ export function MarketplaceCatalog({
         try {
           const client = createSupabaseBrowserClient();
           const { data: borrowerProfiles } = await client
-            .from('profiles')
+            .from('borrower_public_profiles')
             .select('id, legal_name')
             .in('id', missingBorrowerIds);
           if (borrowerProfiles) {

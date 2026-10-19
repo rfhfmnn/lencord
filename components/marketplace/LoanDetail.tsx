@@ -219,7 +219,7 @@ export function LoanDetail({
           try {
             const client = createSupabaseBrowserClient();
             const { data: prof } = await client
-              .from('profiles')
+              .from('borrower_public_profiles')
               .select('legal_name')
               .eq('id', fetchedLoan.borrower_id)
               .maybeSingle();
