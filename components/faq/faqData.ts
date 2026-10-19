@@ -29,13 +29,13 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: 'que-es-lencord',
         question: '¿Qué es Lencord?',
         answer:
-          'Escribí acá la descripción de qué es Lencord. Podés usar saltos de línea para separar párrafos.',
+          'Lencord es una solución tecnológica que facilita la originación y gestión de préstamos colectivos (crowdlending o peer-to-peer lending), conectando online a inversores con PyMEs. Al eliminar la intermediación bancaria, las empresas acceden a financiamiento en mejores condiciones y los inversores obtienen un mayor rendimiento por su capital, todo bajo un esquema de total transparencia y flexibilidad en plazos y montos.',
       },
       {
         id: 'diferencia-prestamo-banco-comercial',
         question: '¿Qué diferencia existe entre un préstamo en Lencord y en un banco comercial?',
         answer:
-          'Escribí acá la descripción de la diferencia entre un préstamo en Lencord y en un banco comercial. Podés usar saltos de línea para separar párrafos.',
+          'En Lencord no prestamos capital propio, por lo que no buscamos encarecer el crédito con tasas elevadas. Al conectar directamente a inversores y prestatarios mediante tecnología, eliminamos costos operativos e intermediarios para distribuir ese ahorro: ofreciendo financiamiento más accesible para quienes lo necesitan y mejores rendimientos para quienes invierten.',
       },
     ],
   },
