@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/services/supabase/client';
 import { defaultMockStateStore } from '@/services/mock/mockState';
+import { authorizeLoanModification } from '../auth';
 
 /**
  * Route handler for borrower partial funding acceptance (75% threshold rule).
  * Transitions loan to 'funded' and marks partial_acceptance_flag.
+ * Requires authenticated session of loan owner (borrower_id) or admin.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -15,14 +17,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'loan_id es requerido' }, { status: 400 });
     }
 
-    // 1. Update mock store
+    // 1. Authorization check: Require authenticated borrower (owner) or admin
+    const authResult = await authorizeLoanModification(req, loan_id);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
+    // 2. Update mock store
     const mockLoan = defaultMockStateStore.loans.find((l) => l.id === loan_id);
     if (mockLoan) {
       mockLoan.status = 'funded';
       mockLoan.partial_acceptance_flag = true;
     }
 
-    // 2. Update Supabase
+    // 3. Update Supabase
     try {
       const adminClient = createSupabaseAdminClient();
       let { data, error } = await adminClient
@@ -67,3 +78,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

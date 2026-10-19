@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/services/supabase/client';
 import { defaultMockStateStore } from '@/services/mock/mockState';
+import { authorizeLoanModification } from '../auth';
 
 /**
  * Route handler for updating loan auction funding deadline.
  * Allows borrowers and admins to adjust funding_deadline for active funding loans.
+ * Requires authenticated session of loan owner (borrower_id) or admin.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -16,15 +18,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'loan_id es requerido' }, { status: 400 });
     }
 
-    // 1. Update in mock store
+    // 1. Authorization check: Require authenticated borrower (owner) or admin
+    const authResult = await authorizeLoanModification(req, loan_id);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
+    // 2. Update in mock store
     const mockLoan = defaultMockStateStore.loans.find((l) => l.id === loan_id);
     if (mockLoan) {
       mockLoan.funding_deadline = funding_deadline ?? null;
     }
 
-    // 2. Update in Supabase
+    // 3. Update in Supabase
     try {
-      // 2a. Try admin client (bypasses RLS if SUPABASE_SERVICE_ROLE_KEY is set)
+      // 3a. Try admin client (bypasses RLS if SUPABASE_SERVICE_ROLE_KEY is set)
       const adminClient = createSupabaseAdminClient();
       const { data, error } = await adminClient
         .from('loans')
@@ -41,7 +52,7 @@ export async function POST(req: NextRequest) {
         console.warn('[update-deadline] adminClient update error:', error.message);
       }
 
-      // 2b. Try server client with user session cookies
+      // 3b. Try server client with user session cookies
       try {
         const cookieStore = await cookies();
         const serverClient = createSupabaseServerClient({ cookies: cookieStore });
@@ -89,3 +100,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
