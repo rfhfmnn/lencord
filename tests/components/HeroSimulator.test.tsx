@@ -199,5 +199,26 @@ describe('HeroSimulator Component', () => {
       expect(maxYield.totalReturn).toBeGreaterThan(INVESTOR_MAX_AMOUNT);
       expect(Number.isFinite(maxYield.totalReturn)).toBe(true);
     });
+
+    it('ensures investor returns are strictly less than borrower repayments under French amortization', () => {
+      const amount = 100000;
+      const termMonths = 12;
+
+      const borrowerMonthly = calculateBorrowerInstallment(amount, termMonths, 'fixed');
+      const borrowerTotal = borrowerMonthly * termMonths;
+
+      const investorYield = calculateInvestorYield(amount, termMonths, 'fixed');
+
+      // Borrower pays French installment (48% TNA): ~$127.863
+      expect(Math.round(borrowerTotal)).toBe(127863);
+
+      // Investor receives French installment (45% TNA): ~$126.015
+      expect(Math.round(investorYield.totalReturn)).toBe(126015);
+
+      // Investor total return is strictly lower than borrower total repayment (platform spread)
+      expect(investorYield.totalReturn).toBeLessThan(borrowerTotal);
+      expect(investorYield.monthlyInstallment).toBeLessThan(borrowerMonthly);
+      expect(investorYield.monthlyInstallment).toBeGreaterThan(0);
+    });
   });
 });

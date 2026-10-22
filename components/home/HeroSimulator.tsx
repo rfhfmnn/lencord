@@ -96,27 +96,35 @@ export function calculateBorrowerInstallment(
 }
 
 /**
- * Calculate investor yields:
- * Total return = capital + interest (or total interest profit)
- * Monthly interest payout = capital * monthlyRate
+ * Calculate investor yields conforming to the French amortization system:
+ * The borrower pays monthly installments (capital + interest) which are distributed
+ * to the investors proportionally, with monthly capital return and interest on remaining balance.
  */
 export function calculateInvestorYield(
   amount: number,
   termMonths: number,
   rateType: RateType
-): { totalProfit: number; totalReturn: number; monthlyInterest: number } {
+): { totalProfit: number; totalReturn: number; monthlyInstallment: number; monthlyInterest: number } {
   if (amount <= 0 || termMonths <= 0) {
-    return { totalProfit: 0, totalReturn: 0, monthlyInterest: 0 };
+    return { totalProfit: 0, totalReturn: 0, monthlyInstallment: 0, monthlyInterest: 0 };
   }
 
   const annualRate = rateType === 'fixed' ? INVESTOR_FIXED_TNA : INVESTOR_CER_MARGIN;
   const monthlyRate = annualRate / 12;
 
-  const monthlyInterest = amount * monthlyRate;
-  const totalProfit = monthlyInterest * termMonths;
-  const totalReturn = amount + totalProfit;
+  let monthlyInstallment: number;
+  if (termMonths === 1) {
+    monthlyInstallment = amount * (1 + monthlyRate);
+  } else {
+    const factor = Math.pow(1 + monthlyRate, termMonths);
+    monthlyInstallment = (amount * (monthlyRate * factor)) / (factor - 1);
+  }
 
-  return { totalProfit, totalReturn, monthlyInterest };
+  const totalReturn = monthlyInstallment * termMonths;
+  const totalProfit = Math.max(0, totalReturn - amount);
+  const monthlyInterest = totalProfit / termMonths;
+
+  return { totalProfit, totalReturn, monthlyInstallment, monthlyInterest };
 }
 
 export interface HeroSimulatorProps {
@@ -445,9 +453,11 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                 <div className={styles.resultDivider} />
 
                 <div className={styles.secondaryResultRow}>
-                  <span className={styles.secondaryLabel}>Cobro mensual de interés:</span>
+                  <span className={styles.secondaryLabel}>
+                    {selectedTerm.months === 1 ? 'Cobro al vencimiento:' : 'Cobro mensual estimado:'}
+                  </span>
                   <span className={styles.secondaryValue} data-testid="investor-monthly-interest">
-                    {formatCurrency(investorYields.monthlyInterest)}
+                    {formatCurrency(investorYields.monthlyInstallment)}
                   </span>
                 </div>
               </div>
