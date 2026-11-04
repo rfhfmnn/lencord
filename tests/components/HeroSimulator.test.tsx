@@ -55,7 +55,7 @@ describe('HeroSimulator Component', () => {
     it('renders amount slider with bounds ($100.000 to $20.000.000) and updates installment immediately on slider change', () => {
       render(<HeroSimulator initialMode="borrower" />);
 
-      const slider = screen.getByLabelText(/monto a solicitar/i);
+      const slider = screen.getByRole('slider', { name: /monto a solicitar/i });
       expect(slider).toHaveAttribute('min', String(BORROWER_MIN_AMOUNT));
       expect(slider).toHaveAttribute('max', String(BORROWER_MAX_AMOUNT));
 
@@ -64,6 +64,9 @@ describe('HeroSimulator Component', () => {
 
       const amountDisplay = screen.getByTestId('borrower-amount-display');
       expect(amountDisplay.textContent).toBe('$ 1.500.000');
+
+      const amountInput = screen.getByTestId('borrower-amount-input') as HTMLInputElement;
+      expect(amountInput.value).toBe('$ 1.500.000');
 
       const installmentDisplay = screen.getByTestId('borrower-installment-value');
       expect(installmentDisplay.textContent).toMatch(/^\$\s[\d.]+/);
@@ -119,13 +122,109 @@ describe('HeroSimulator Component', () => {
       expect(ctaBtn).toBeInTheDocument();
       expect(ctaBtn).toHaveAttribute('href', '/solicitar');
     });
+
+    it('handles manual typing in amount input, strips non-numeric characters, and updates slider/calculations in real time', () => {
+      render(<HeroSimulator initialMode="borrower" />);
+
+      const input = screen.getByTestId('borrower-amount-input') as HTMLInputElement;
+      expect(input).toHaveAttribute('inputMode', 'numeric');
+      expect(input).toHaveAttribute('aria-label', 'Monto a solicitar en pesos argentinos');
+      expect(input.value).toBe('$ 2.000.000');
+
+      // Type a valid amount within bounds
+      fireEvent.change(input, { target: { value: '3500000' } });
+      expect(input.value).toBe('$ 3.500.000');
+
+      const slider = screen.getByRole('slider', { name: /monto a solicitar/i });
+      expect(slider).toHaveValue('3500000');
+
+      // Typing non-numeric characters strips them
+      fireEvent.change(input, { target: { value: '$ 3.500.000abc' } });
+      expect(input.value).toBe('$ 3.500.000');
+    });
+
+    it('clamps entered amount on blur when below minimum or above maximum', () => {
+      render(<HeroSimulator initialMode="borrower" />);
+
+      const input = screen.getByTestId('borrower-amount-input') as HTMLInputElement;
+      const slider = screen.getByRole('slider', { name: /monto a solicitar/i });
+
+      // Enter value lower than minimum ($ 50.000 < $ 100.000)
+      fireEvent.change(input, { target: { value: '50000' } });
+      fireEvent.blur(input);
+
+      expect(input.value).toBe('$ 100.000');
+      expect(slider).toHaveValue(String(BORROWER_MIN_AMOUNT));
+
+      // Enter value higher than maximum ($ 25.000.000 > $ 20.000.000)
+      fireEvent.change(input, { target: { value: '25000000' } });
+      fireEvent.blur(input);
+
+      expect(input.value).toBe('$ 20.000.000');
+      expect(slider).toHaveValue(String(BORROWER_MAX_AMOUNT));
+
+      // Enter empty value and blur
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+
+      expect(input.value).toBe('$ 100.000');
+      expect(slider).toHaveValue(String(BORROWER_MIN_AMOUNT));
+    });
+
+    it('renders quick preset chips and updates amount, slider, and calculations on click', () => {
+      render(<HeroSimulator initialMode="borrower" />);
+
+      const preset500k = screen.getByTestId('borrower-preset-500000');
+      const preset2M = screen.getByTestId('borrower-preset-2000000');
+      const preset5M = screen.getByTestId('borrower-preset-5000000');
+      const preset10M = screen.getByTestId('borrower-preset-10000000');
+
+      expect(preset500k).toBeInTheDocument();
+      expect(preset2M).toBeInTheDocument();
+      expect(preset5M).toBeInTheDocument();
+      expect(preset10M).toBeInTheDocument();
+
+      // Initially 2.000.000 is active
+      expect(preset2M).toHaveAttribute('aria-pressed', 'true');
+      expect(preset5M).toHaveAttribute('aria-pressed', 'false');
+
+      // Click 5M preset
+      fireEvent.click(preset5M);
+
+      const input = screen.getByTestId('borrower-amount-input') as HTMLInputElement;
+      expect(input.value).toBe('$ 5.000.000');
+
+      const slider = screen.getByRole('slider', { name: /monto a solicitar/i });
+      expect(slider).toHaveValue('5000000');
+
+      expect(preset5M).toHaveAttribute('aria-pressed', 'true');
+      expect(preset2M).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('conditionally displays dynamic CER clarification notice only when CER is selected', () => {
+      render(<HeroSimulator initialMode="borrower" />);
+
+      // Initially fixed rate -> notice is hidden
+      expect(screen.queryByTestId('borrower-cer-notice')).not.toBeInTheDocument();
+
+      // Switch to CER rate
+      fireEvent.click(screen.getByTestId('rate-cer-btn'));
+
+      const notice = screen.getByTestId('borrower-cer-notice');
+      expect(notice).toBeInTheDocument();
+      expect(notice).toHaveTextContent(/coeficiente CER publicado por el BCRA más el margen pactado \(15% anual\)/i);
+
+      // Switch back to fixed rate -> notice is removed
+      fireEvent.click(screen.getByTestId('rate-fixed-btn'));
+      expect(screen.queryByTestId('borrower-cer-notice')).not.toBeInTheDocument();
+    });
   });
 
   describe('Investor Mode', () => {
     it('renders ticket slider ($10.000 to $10.000.000) and displays estimated total return and monthly interest payout', () => {
       render(<HeroSimulator initialMode="investor" />);
 
-      const slider = screen.getByLabelText(/monto a invertir/i);
+      const slider = screen.getByRole('slider', { name: /monto a invertir/i });
       expect(slider).toHaveAttribute('min', String(INVESTOR_MIN_AMOUNT));
       expect(slider).toHaveAttribute('max', String(INVESTOR_MAX_AMOUNT));
 
@@ -133,12 +232,73 @@ describe('HeroSimulator Component', () => {
 
       expect(screen.getByTestId('investor-amount-display').textContent).toBe('$ 1.000.000');
 
+      const input = screen.getByTestId('investor-amount-input') as HTMLInputElement;
+      expect(input.value).toBe('$ 1.000.000');
+
       // Check estimated return & monthly interest payout displays
       const totalReturn = screen.getByTestId('investor-total-return');
       const monthlyInterest = screen.getByTestId('investor-monthly-interest');
 
       expect(totalReturn.textContent).toMatch(/^\$\s[\d.]+/);
       expect(monthlyInterest.textContent).toMatch(/^\$\s[\d.]+/);
+    });
+
+    it('handles manual typing in investor amount input, clamps on blur, and resets on empty', () => {
+      render(<HeroSimulator initialMode="investor" />);
+
+      const input = screen.getByTestId('investor-amount-input') as HTMLInputElement;
+      const slider = screen.getByRole('slider', { name: /monto a invertir/i });
+
+      expect(input.value).toBe('$ 500.000');
+      expect(input).toHaveAttribute('inputMode', 'numeric');
+      expect(input).toHaveAttribute('aria-label', 'Monto a invertir en pesos argentinos');
+
+      // Type valid amount
+      fireEvent.change(input, { target: { value: '2500000' } });
+      expect(input.value).toBe('$ 2.500.000');
+      expect(slider).toHaveValue('2500000');
+
+      // Under minimum ($ 5.000 < $ 10.000)
+      fireEvent.change(input, { target: { value: '5000' } });
+      fireEvent.blur(input);
+      expect(input.value).toBe('$ 10.000');
+      expect(slider).toHaveValue(String(INVESTOR_MIN_AMOUNT));
+
+      // Over maximum ($ 15.000.000 > $ 10.000.000)
+      fireEvent.change(input, { target: { value: '15000000' } });
+      fireEvent.blur(input);
+      expect(input.value).toBe('$ 10.000.000');
+      expect(slider).toHaveValue(String(INVESTOR_MAX_AMOUNT));
+
+      // Empty on blur
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+      expect(input.value).toBe('$ 10.000');
+      expect(slider).toHaveValue(String(INVESTOR_MIN_AMOUNT));
+    });
+
+    it('renders investor quick preset chips and updates calculations on click', () => {
+      render(<HeroSimulator initialMode="investor" />);
+
+      const preset50k = screen.getByTestId('investor-preset-50000');
+      const preset200k = screen.getByTestId('investor-preset-200000');
+      const preset1M = screen.getByTestId('investor-preset-1000000');
+      const preset5M = screen.getByTestId('investor-preset-5000000');
+
+      expect(preset50k).toBeInTheDocument();
+      expect(preset200k).toBeInTheDocument();
+      expect(preset1M).toBeInTheDocument();
+      expect(preset5M).toBeInTheDocument();
+
+      // Click 1M preset
+      fireEvent.click(preset1M);
+
+      const input = screen.getByTestId('investor-amount-input') as HTMLInputElement;
+      expect(input.value).toBe('$ 1.000.000');
+
+      const slider = screen.getByRole('slider', { name: /monto a invertir/i });
+      expect(slider).toHaveValue('1000000');
+      expect(preset1M).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('updates investor yields when selecting term and rate options', () => {
@@ -151,6 +311,21 @@ describe('HeroSimulator Component', () => {
       fireEvent.click(cerBtn);
 
       expect(screen.getByTestId('investor-total-return').textContent).toMatch(/^\$\s[\d.]+/);
+    });
+
+    it('conditionally displays investor CER clarification notice', () => {
+      render(<HeroSimulator initialMode="investor" />);
+
+      expect(screen.queryByTestId('investor-cer-notice')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('investor-rate-cer-btn'));
+
+      const notice = screen.getByTestId('investor-cer-notice');
+      expect(notice).toBeInTheDocument();
+      expect(notice).toHaveTextContent(/índice CER del BCRA más un margen adicional del 12,5% anual/i);
+
+      fireEvent.click(screen.getByTestId('investor-rate-fixed-btn'));
+      expect(screen.queryByTestId('investor-cer-notice')).not.toBeInTheDocument();
     });
 
     it('renders CTA button linking to /marketplace', () => {

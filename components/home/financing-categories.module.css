@@ -89,7 +89,26 @@
 }
 
 .cardIcon {
-  font-size: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background-color: rgba(10, 37, 64, 0.05);
+  color: var(--color-primary);
+  transition: all var(--transition-fast);
+}
+
+.categoryCard:hover .cardIcon {
+  background-color: rgba(30, 64, 175, 0.1);
+  color: var(--color-primary-hover);
+}
+
+.svgIcon {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
 }
 
 .cardTag {

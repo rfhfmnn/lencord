@@ -32,6 +32,9 @@ export const INVESTOR_MAX_AMOUNT = 10_000_000;
 export const INVESTOR_DEFAULT_AMOUNT = 500_000;
 export const INVESTOR_STEP = 10_000;
 
+export const BORROWER_PRESETS: number[] = [500_000, 2_000_000, 5_000_000, 10_000_000];
+export const INVESTOR_PRESETS: number[] = [50_000, 200_000, 1_000_000, 5_000_000];
+
 // Benchmark annual rates
 export const BORROWER_FIXED_TNA = 0.48; // 48% TNA
 export const BORROWER_CER_MARGIN = 0.15; // 15% CER spread
@@ -135,12 +138,92 @@ export interface HeroSimulatorProps {
 export function HeroSimulator({ initialMode = 'borrower', className = '' }: HeroSimulatorProps) {
   const [mode, setMode] = useState<SimulatorMode>(initialMode);
   const [borrowerAmount, setBorrowerAmount] = useState<number>(BORROWER_DEFAULT_AMOUNT);
+  const [borrowerInputValue, setBorrowerInputValue] = useState<string>(formatCurrency(BORROWER_DEFAULT_AMOUNT));
   const [investorAmount, setInvestorAmount] = useState<number>(INVESTOR_DEFAULT_AMOUNT);
+  const [investorInputValue, setInvestorInputValue] = useState<string>(formatCurrency(INVESTOR_DEFAULT_AMOUNT));
   const [selectedTerm, setSelectedTerm] = useState<TermOption>(TERM_OPTIONS[2]); // Default 3 meses
   const [rateType, setRateType] = useState<RateType>('fixed');
 
   const borrowerSliderId = useId();
+  const borrowerInputId = useId();
   const investorSliderId = useId();
+  const investorInputId = useId();
+
+  const handleAmountChange = (val: string, currentMode: SimulatorMode) => {
+    const digits = val.replace(/\D/g, '');
+    if (!digits) {
+      if (currentMode === 'borrower') {
+        setBorrowerInputValue('');
+      } else {
+        setInvestorInputValue('');
+      }
+      return;
+    }
+    const numericVal = parseInt(digits, 10);
+    const formatted = formatCurrency(numericVal);
+
+    if (currentMode === 'borrower') {
+      setBorrowerInputValue(formatted);
+      if (numericVal >= BORROWER_MIN_AMOUNT && numericVal <= BORROWER_MAX_AMOUNT) {
+        setBorrowerAmount(numericVal);
+      }
+    } else {
+      setInvestorInputValue(formatted);
+      if (numericVal >= INVESTOR_MIN_AMOUNT && numericVal <= INVESTOR_MAX_AMOUNT) {
+        setInvestorAmount(numericVal);
+      }
+    }
+  };
+
+  const handleAmountBlur = (currentMode: SimulatorMode) => {
+    if (currentMode === 'borrower') {
+      const digits = borrowerInputValue.replace(/\D/g, '');
+      const num = digits ? parseInt(digits, 10) : 0;
+      if (!digits || num < BORROWER_MIN_AMOUNT) {
+        setBorrowerAmount(BORROWER_MIN_AMOUNT);
+        setBorrowerInputValue(formatCurrency(BORROWER_MIN_AMOUNT));
+      } else if (num > BORROWER_MAX_AMOUNT) {
+        setBorrowerAmount(BORROWER_MAX_AMOUNT);
+        setBorrowerInputValue(formatCurrency(BORROWER_MAX_AMOUNT));
+      } else {
+        setBorrowerAmount(num);
+        setBorrowerInputValue(formatCurrency(num));
+      }
+    } else {
+      const digits = investorInputValue.replace(/\D/g, '');
+      const num = digits ? parseInt(digits, 10) : 0;
+      if (!digits || num < INVESTOR_MIN_AMOUNT) {
+        setInvestorAmount(INVESTOR_MIN_AMOUNT);
+        setInvestorInputValue(formatCurrency(INVESTOR_MIN_AMOUNT));
+      } else if (num > INVESTOR_MAX_AMOUNT) {
+        setInvestorAmount(INVESTOR_MAX_AMOUNT);
+        setInvestorInputValue(formatCurrency(INVESTOR_MAX_AMOUNT));
+      } else {
+        setInvestorAmount(num);
+        setInvestorInputValue(formatCurrency(num));
+      }
+    }
+  };
+
+  const handleSliderChange = (newVal: number, currentMode: SimulatorMode) => {
+    if (currentMode === 'borrower') {
+      setBorrowerAmount(newVal);
+      setBorrowerInputValue(formatCurrency(newVal));
+    } else {
+      setInvestorAmount(newVal);
+      setInvestorInputValue(formatCurrency(newVal));
+    }
+  };
+
+  const handlePresetClick = (preset: number, currentMode: SimulatorMode) => {
+    if (currentMode === 'borrower') {
+      setBorrowerAmount(preset);
+      setBorrowerInputValue(formatCurrency(preset));
+    } else {
+      setInvestorAmount(preset);
+      setInvestorInputValue(formatCurrency(preset));
+    }
+  };
 
   // Borrower calculations
   const clampedBorrowerAmount = Math.min(
@@ -230,15 +313,28 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
               className={styles.simulatorBody}
               data-testid="borrower-panel"
             >
-              {/* Amount Slider */}
+              {/* Amount Slider & Input */}
               <div className={styles.formGroup}>
                 <div className={styles.groupHeader}>
-                  <label htmlFor={borrowerSliderId} className={styles.label}>
+                  <label htmlFor={borrowerInputId} className={styles.label}>
                     Monto a solicitar
                   </label>
-                  <span className={styles.amountDisplay} data-testid="borrower-amount-display">
-                    {formatCurrency(clampedBorrowerAmount)}
-                  </span>
+                  <div className={styles.amountInputWrapper}>
+                    <input
+                      id={borrowerInputId}
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="Monto a solicitar en pesos argentinos"
+                      className={styles.amountInput}
+                      data-testid="borrower-amount-input"
+                      value={borrowerInputValue}
+                      onChange={(e) => handleAmountChange(e.target.value, 'borrower')}
+                      onBlur={() => handleAmountBlur('borrower')}
+                    />
+                    <span className={styles.srOnly} data-testid="borrower-amount-display">
+                      {formatCurrency(clampedBorrowerAmount)}
+                    </span>
+                  </div>
                 </div>
                 <input
                   id={borrowerSliderId}
@@ -247,7 +343,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                   max={BORROWER_MAX_AMOUNT}
                   step={BORROWER_STEP}
                   value={clampedBorrowerAmount}
-                  onChange={(e) => setBorrowerAmount(Number(e.target.value))}
+                  onChange={(e) => handleSliderChange(Number(e.target.value), 'borrower')}
                   className={styles.slider}
                   aria-label="Monto a solicitar en pesos argentinos"
                   aria-valuemin={BORROWER_MIN_AMOUNT}
@@ -257,6 +353,23 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                 <div className={styles.sliderLabels}>
                   <span>{formatCurrency(BORROWER_MIN_AMOUNT)}</span>
                   <span>{formatCurrency(BORROWER_MAX_AMOUNT)}</span>
+                </div>
+                <div className={styles.presetChips} role="group" aria-label="Montos predefinidos">
+                  {BORROWER_PRESETS.map((preset) => {
+                    const isActive = clampedBorrowerAmount === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        className={`${styles.presetChip} ${isActive ? styles.presetChipActive : ''}`}
+                        onClick={() => handlePresetClick(preset, 'borrower')}
+                        data-testid={`borrower-preset-${preset}`}
+                        aria-pressed={isActive}
+                      >
+                        {formatCurrency(preset)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -312,6 +425,33 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                 </div>
               </div>
 
+              {rateType === 'cer' && (
+                <div className={styles.cerNotice} data-testid="borrower-cer-notice" role="note">
+                  <div className={styles.cerNoticeHeader}>
+                    <svg
+                      className={styles.cerNoticeIcon}
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span className={styles.cerNoticeTitle}>Ajuste por inflación (CER)</span>
+                  </div>
+                  <p className={styles.cerNoticeText}>
+                    Las cuotas son valores base de referencia sujetos a ajuste periódico por el coeficiente CER publicado por el BCRA más el margen pactado (15% anual).
+                  </p>
+                </div>
+              )}
+
               {/* Calculation Output Box */}
               <div className={styles.resultBox} data-testid="borrower-results">
                 <div className={styles.resultRow}>
@@ -354,15 +494,28 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
               className={styles.simulatorBody}
               data-testid="investor-panel"
             >
-              {/* Amount Slider */}
+              {/* Amount Slider & Input */}
               <div className={styles.formGroup}>
                 <div className={styles.groupHeader}>
-                  <label htmlFor={investorSliderId} className={styles.label}>
+                  <label htmlFor={investorInputId} className={styles.label}>
                     Monto a invertir
                   </label>
-                  <span className={styles.amountDisplay} data-testid="investor-amount-display">
-                    {formatCurrency(clampedInvestorAmount)}
-                  </span>
+                  <div className={styles.amountInputWrapper}>
+                    <input
+                      id={investorInputId}
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="Monto a invertir en pesos argentinos"
+                      className={styles.amountInput}
+                      data-testid="investor-amount-input"
+                      value={investorInputValue}
+                      onChange={(e) => handleAmountChange(e.target.value, 'investor')}
+                      onBlur={() => handleAmountBlur('investor')}
+                    />
+                    <span className={styles.srOnly} data-testid="investor-amount-display">
+                      {formatCurrency(clampedInvestorAmount)}
+                    </span>
+                  </div>
                 </div>
                 <input
                   id={investorSliderId}
@@ -371,7 +524,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                   max={INVESTOR_MAX_AMOUNT}
                   step={INVESTOR_STEP}
                   value={clampedInvestorAmount}
-                  onChange={(e) => setInvestorAmount(Number(e.target.value))}
+                  onChange={(e) => handleSliderChange(Number(e.target.value), 'investor')}
                   className={styles.slider}
                   aria-label="Monto a invertir en pesos argentinos"
                   aria-valuemin={INVESTOR_MIN_AMOUNT}
@@ -381,6 +534,23 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                 <div className={styles.sliderLabels}>
                   <span>{formatCurrency(INVESTOR_MIN_AMOUNT)}</span>
                   <span>{formatCurrency(INVESTOR_MAX_AMOUNT)}</span>
+                </div>
+                <div className={styles.presetChips} role="group" aria-label="Montos predefinidos">
+                  {INVESTOR_PRESETS.map((preset) => {
+                    const isActive = clampedInvestorAmount === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        className={`${styles.presetChip} ${isActive ? styles.presetChipActive : ''}`}
+                        onClick={() => handlePresetClick(preset, 'investor')}
+                        data-testid={`investor-preset-${preset}`}
+                        aria-pressed={isActive}
+                      >
+                        {formatCurrency(preset)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -435,6 +605,33 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                   </button>
                 </div>
               </div>
+
+              {rateType === 'cer' && (
+                <div className={styles.cerNotice} data-testid="investor-cer-notice" role="note">
+                  <div className={styles.cerNoticeHeader}>
+                    <svg
+                      className={styles.cerNoticeIcon}
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span className={styles.cerNoticeTitle}>Rendimiento ajustado por inflación (CER)</span>
+                  </div>
+                  <p className={styles.cerNoticeText}>
+                    Los retornos y cobros mensuales están sujetos a actualización inflacionaria mediante el índice CER del BCRA más un margen adicional del 12,5% anual.
+                  </p>
+                </div>
+              )}
 
               {/* Calculation Output Box */}
               <div className={styles.resultBox} data-testid="investor-results">

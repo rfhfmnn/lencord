@@ -140,7 +140,8 @@
 .groupHeader {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .label {
@@ -149,11 +150,94 @@
   color: var(--color-text-primary);
 }
 
+.amountInputWrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.amountInput {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-feature-settings: 'tnum';
+  text-align: right;
+  background-color: var(--color-bg-neutral);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.625rem;
+  width: 175px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.amountInput:hover {
+  border-color: var(--color-border-hover);
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: var(--color-primary-hover);
+  background-color: var(--color-surface);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
 .amountDisplay {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-primary);
   font-feature-settings: 'tnum';
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.presetChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.presetChip {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-feature-settings: 'tnum';
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-neutral);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.presetChip:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-primary);
+  background-color: var(--color-surface);
+}
+
+.presetChipActive {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.presetChipActive:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #FFFFFF;
 }
 
 .slider {
@@ -245,6 +329,41 @@
   font-size: 0.6875rem;
   color: var(--color-text-secondary);
   margin-top: 0.125rem;
+}
+
+/* Dynamic CER Notice */
+.cerNotice {
+  background-color: rgba(30, 64, 175, 0.05);
+  border: 1px solid rgba(30, 64, 175, 0.2);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cerNoticeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cerNoticeIcon {
+  color: var(--color-primary-hover);
+  flex-shrink: 0;
+}
+
+.cerNoticeTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-primary-hover);
+}
+
+.cerNoticeText {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text-primary);
 }
 
 /* Results Box */
@@ -350,6 +469,21 @@
 
   .title {
     font-size: 1.875rem;
+  }
+
+  .groupHeader {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .amountInput {
+    width: 100%;
+    font-size: 1.125rem;
+    text-align: left;
+  }
+
+  .presetChips {
+    gap: 0.25rem;
   }
 
   .termButtonGroup {
