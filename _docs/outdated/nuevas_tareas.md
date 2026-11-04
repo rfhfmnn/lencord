@@ -1,239 +1,264 @@
-# Backlog de Nuevas Tareas - Mejoras de Usuario y Plataforma (nuevas_tareas.md)
+# Backlog de Nuevas Tareas - Notificaciones, Pagaré, Formato Contable y Registro PyME (`_docs/nuevas_tareas.md`)
 
-Este documento contiene las tareas especificadas y refinadas según las respuestas y definiciones del usuario, siguiendo la plantilla `_docs/task-template.md` y las directrices de `_docs/team/pm.md`. Cada tarea cuenta con su correspondiente GitHub Issue bajo la etiqueta `user-feedback`.
-
----
-
-## [1. Navegación dinámica y Header condicional por rol de usuario](https://github.com/rfhfmnn/lencord/issues/52)
-
-### Goal
-Ocultar enlaces irrelevantes en la barra de navegación superior persistente (`Header`) según el tipo de rol autenticado: cuando un usuario inicie sesión como PyME (`'sme'` o `'borrower'`) no debe figurar la opción de "Prestar", y cuando inicie sesión como Inversor (`'investor'`) no debe figurar la opción de "Pedir financiación". Mantener ambos enlaces visibles para usuarios sin sesión iniciada y para administradores.
-
-### Acceptance criteria
-- [ ] **Usuario sin sesión (público):** Tanto en la barra de escritorio (`desktopNav`) como en el menú lateral desplegable móvil (`mobileNav`), se renderizan simultáneamente los enlaces "Prestar" (hacia `/marketplace`) y "Pedir financiación" (hacia `/solicitar`).
-- [ ] **Sesión PyME (`borrower` o `sme`):** 
-  - El enlace "Prestar" NO se renderiza en la navegación de escritorio ni en el menú móvil.
-  - El enlace "Pedir financiación" se renderiza visible en ambas vistas.
-- [ ] **Sesión Inversor (`investor`):**
-  - El enlace "Pedir financiación" NO se renderiza en la navegación de escritorio ni en el menú móvil.
-  - El enlace "Prestar" se renderiza visible en ambas vistas.
-- [ ] **Sesión Administrador (`admin`):** Se mantienen visibles ambos accesos operativos junto al enlace directo al panel de control `/admin`.
-- [ ] **Cierre de sesión:** Al hacer clic en "Cerrar sesión", el estado se actualiza inmediatamente sin recarga completa de página y ambos enlaces vuelven a ser visibles.
-- [ ] **Fase de carga (Hydration/Loading):** Mientras la sesión está resolviendo (`isLoading === true`), el Header no genera parpadeo (layout shift) abrupto en la botonera de navegación.
-- [ ] **Pruebas automatizadas:** El archivo de pruebas `tests/components/Header.test.tsx` contiene casos para los 4 estados (no autenticado, PyME, Inversor, Admin) verificando la presencia o ausencia de cada enlace con aserciones checkables.
-
-### Out of scope
-- Restricción y redirección de rutas a nivel servidor/middleware (cubierto en issue #58 para subastas y en middleware para /solicitar).
-
-### Constraints
-- Modificar exclusivamente [Header.tsx](file:///c:/Users/rafah/Documents/lencord/components/layout/Header.tsx) y estilos en [header.module.css](file:///c:/Users/rafah/Documents/lencord/components/layout/header.module.css).
-- Mantener compatibilidad estricta con la interfaz `UserSession` y los roles definidos en `@/types`.
+Este documento especifica el nuevo paquete de tareas priorizadas a partir del feedback del producto y las definiciones acordadas, respetando el formato estricto de `_docs/task-template.md` y los lineamientos de Product Manager (`_docs/team/pm.md`). Todos los criterios de aceptación son verificables de manera binaria (SÍ / NO).
 
 ---
 
-## [2. Registro con DNI opcional para Inversores y obligatoriedad en perfil para invertir](https://github.com/rfhfmnn/lencord/issues/53)
+## [Tarea 1: Notificaciones automáticas bidireccionales (In-App y Email) entre PyME e Inversores](https://github.com/rfhfmnn/lencord/issues/82)
+
+**Labels:** `notifications`, `enhancement`, `user-feedback`
 
 ### Goal
-Permitir que los inversores se registren sin ingresar obligatoriamente su DNI/CUIT en el formulario inicial de `/registro`, habilitar la carga/edición del DNI en la sección de perfil del inversor en su panel, y bloquear la confirmación de inversiones en el marketplace si el usuario aún no cargó su DNI.
+Implementar un sistema de notificaciones automáticas y reactivas tanto en la plataforma (campana in-app respaldada en la tabla `notifications`) como por correo electrónico transaccional, informando a la PyME y a los inversores sobre cada hito crítico de su financiamiento: nueva inversión recibida, subasta completada al 100%, activación con pagaré firmado, cobro/liquidación de cuota mensual y alertas preventivas de vencimiento.
 
 ### Acceptance criteria
-- [ ] **Formulario de Registro (`/registro`):**
-  - Al seleccionar el rol "Inversor", el campo DNI/CUIT pasa a ser opcional y muestra el texto de ayuda: *"Opcional al registrarse. Requerido posteriormente para poder invertir."*
-  - Si el inversor deja el campo vacío, el formulario se envía exitosamente y la cuenta se crea sin errores.
-  - Si el inversor decide ingresar un DNI, se valida que posea formato numérico válido (7 u 8 dígitos para DNI, u 11 dígitos con validación de checksum oficial para CUIT).
-  - Para el rol "PyME" (`borrower`), el CUIT se mantiene estrictamente obligatorio con validación de 11 dígitos y algoritmo ARCA/AFIP.
-- [ ] **Base de Datos y Esquema:**
-  - Migración SQL que relaja la restricción `NOT NULL` de `tax_id` en la tabla `profiles` para inversores nuevos (`NULL` permitido al crearse).
-  - El check de formato permite valores nulos, cadenas de 7-8 dígitos (DNI) y cadenas de 11 dígitos (CUIT).
-- [ ] **Panel del Inversor (`/dashboard/inversor`):**
-  - Se añade la tarjeta o sección "Mi Perfil" con visualización del estado del DNI (badge semántico: *"DNI cargado"* o *"DNI pendiente"*).
-  - Permite ingresar o editar el DNI y guardarlo contra el backend de Supabase/servicio mock con validación inmediata.
-- [ ] **Modal de Inversión (`InvestmentModal.tsx`):**
-  - Si el inversor autenticado no posee DNI/CUIT cargado en su perfil, el botón "Confirmar inversión" se deshabilita.
-  - Se muestra una alerta destacada (`role="alert"`): *"Para poder invertir en esta PyME es necesario tener registrado tu DNI/CUIT en tu perfil."*
-  - La alerta incluye un botón directo de acción que redirige al usuario a la sección de perfil para completar su DNI.
-  - En la capa de servicios (`services/investment.ts`), cualquier intento de confirmación sin DNI es rechazado con error `MISSING_TAX_ID`.
-- [ ] **Pruebas automatizadas:** Pruebas unitarias en `RegisterForm.test.tsx` e `InvestmentModal.test.tsx` verifican el registro sin DNI, la validación de formato cuando se ingresa, y el bloqueo de inversión ante DNI faltante.
+- [x] **Evento 0 - Aprobación y Publicación de Préstamo por Administración (PyME):**
+  - Al aprobarse y publicarse una solicitud de financiamiento por el administrador (`approveAndPublishLoan` o transición a `status = 'funding'`), se inserta en `notifications` una fila con `user_id = loan.borrower_id`, `type = 'success'`, `title = 'Préstamo aprobado'`, `action_url = '/dashboard/pyme'` y el mensaje *"Tu solicitud de crédito ha sido aprobada y publicada en la subasta del marketplace."*.
+  - Se despacha el correo transaccional de aprobación crediticia (`sendCreditApprovalEmail`) con monto solicitado, tasa inversor, tasa PyME y fecha límite de fondeo.
+- [ ] **Evento 1 - Nueva Inversión en Subasta (PyME):**
+  - Al confirmarse una inversión en un préstamo (`process_investment_checkout_rpc`), se inserta en `notifications` una fila con `user_id = loan.borrower_id`, `type = 'info'`, `title = 'Nuevo aporte de inversión recibido'`, `action_url = '/dashboard/pyme'` y un mensaje indicando el monto invertido formateado en pesos y el nuevo porcentaje acumulado de la subasta.
+  - Se invoca el servicio de email para enviar un correo a la dirección del prestatario informando el aporte recibido y el enlace directo a su panel.
+- [ ] **Evento 2 - Subasta al 100% completada (PyME e Inversores):**
+  - Cuando el acumulado de inversiones de un préstamo alcanza o supera el 100% del monto solicitado (`loan.amount_requested`):
+    - **Para la PyME:** Se crea una notificación in-app (`type = 'success'`, `title = '¡Subasta 100% financiada! Pagaré listo para firma'`, `action_url = '/dashboard/pyme'`) y se envía un correo electrónico solicitándole ingresar a firmar el pagaré digital para la liberación de los fondos.
+    - **Para los Inversores:** Se consulta la lista de inversores únicos que aportaron al préstamo (deduplicando por `investor_id`). Para cada inversor, se inserta una notificación in-app (`type = 'success'`, `title = 'Subasta finalizada con éxito'`, `action_url = '/dashboard/inversor'`) y se despacha un correo electrónico confirmando el cierre exitoso del fondeo.
+- [ ] **Evento 3 - Pagaré firmado y crédito activado (Inversores):**
+  - Al ejecutarse `signContract` y `activateLoan` por la PyME:
+    - Para cada inversor participante deduplicado, se inserta una notificación in-app (`type = 'success'`, `title = 'Pagaré firmado: fondos desembolsados'`, `action_url = '/dashboard/inversor'`) informando que la PyME firmó el pagaré, los fondos fueron transferidos a su CBU y el cronograma de amortización comenzó a devengarse.
+    - Se envía un correo electrónico a cada inversor adjuntando el enlace directo para consultar el pagaré firmado en su panel.
+- [ ] **Evento 4 - Cobro y acreditación de cuota mensual (Inversores):**
+  - Al registrarse el pago de una cuota por la PyME (`repayInstallment` / `process_installment_repayment_rpc`), una vez calculada la distribución por inversor (`installment_payouts`):
+    - Para cada inversor beneficiario, se inserta una notificación in-app (`type = 'success'`, `title = 'Acreditación de cuota recibida'`, `action_url = '/dashboard/inversor'`) detallando la cuota número N y el importe exacto acreditado en su saldo en custodia.
+    - Se envía un correo transaccional al inversor detallando el desglose de capital e interés compensatorio acreditado.
+- [ ] **Evento 5 - Alerta de vencimiento próximo de cuota (PyME):**
+  - El endpoint o job de verificación (`check-deadlines` o servicio de cuotas) identifica cuotas en estado `'pending'` cuya fecha de vencimiento (`due_date`) sea exactamente dentro de 3 días calendario.
+  - Para cada cuota identificada, si no se envió previamente la alerta para esa cuota, se inserta una notificación in-app (`type = 'warning'`, `title = 'Próximo vencimiento de cuota'`, `action_url = '/dashboard/pyme'`) indicando número de cuota, importe total a abonar y fecha de vencimiento.
+  - Se despacha un correo electrónico recordatorio a la PyME.
+- [ ] **Tolerancia a fallos y no bloqueo:**
+  - Si el envío de un correo electrónico falla por desconexión o configuración del servidor SMTP/resend, el error es capturado en `catch`, registrado en log, y **no interrumpe** la inserción de la notificación in-app ni la transacción principal de inversión/pago.
+- [ ] **Pruebas automatizadas:**
+  - La suite de pruebas incluye tests unitarios y de integración en `tests/services/MultiChannelNotificationService.test.ts` y en los tests de ciclo de vida (`tests/integration/loanLifecycle.test.ts`) validando la creación de notificaciones in-app y el llamado al despachador de emails para los 5 eventos descritos.
 
 ### Out of scope
-- Validación biométrica KYC con Renaper en tiempo real (queda para fase posterior).
+- Notificaciones vía WhatsApp o SMS (quedan diferidas para integración con proveedores de mensajería móvil externa).
+- Notificaciones push de navegador (Web Push API).
 
 ### Constraints
-- Modificar [RegisterForm.tsx](file:///c:/Users/rafah/Documents/lencord/components/auth/RegisterForm.tsx), [InvestorDashboard.tsx](file:///c:/Users/rafah/Documents/lencord/components/dashboard/InvestorDashboard.tsx), [InvestmentModal.tsx](file:///c:/Users/rafah/Documents/lencord/components/marketplace/InvestmentModal.tsx), [types/index.ts](file:///c:/Users/rafah/Documents/lencord/types/index.ts).
-- Crear migración SQL idempotente en `supabase/migrations/`.
+- Utilizar exclusivamente la tabla `public.notifications` respetando los tipos ENUM existentes (`'info'`, `'success'`, `'warning'`) y RLS (`Users can view own notifications`).
+- Utilizar el servicio `MultiChannelNotificationService.ts` y los templates definidos en `services/email/templates.ts`.
+- Las notificaciones a múltiples inversores deben ejecutarse de forma asíncrona mediante `Promise.allSettled` para evitar bloqueos por latencia de red.
 
 ---
 
-## [3. Inicio de sesión con selección de rol (PyME vs Inversor) y cuenta unificada](https://github.com/rfhfmnn/lencord/issues/54)
+## [Tarea 2: Visualización de Pagaré para Inversores y Anexo de Acreedores con Privacidad](https://github.com/rfhfmnn/lencord/issues/83)
+
+**Labels:** `legal`, `enhancement`, `user-feedback`
 
 ### Goal
-Implementar un selector de rol al iniciar sesión en `/login` ("Ingresar como PyME" o "Ingresar como Inversor") con arquitectura de cuenta unificada, permitiendo que un mismo usuario con un único correo electrónico pueda ingresar con cualquiera de los dos perfiles, redirigiéndolo al panel y contexto correspondiente.
+Permitir a los inversores consultar y revisar el pagaré digital firmado por la PyME directamente desde la tabla de *"Mis Inversiones"* en su panel, incorporando en el cuerpo del documento legal un Anexo de Acreedores donde cada inversor visualice con precisión matemática sus propios datos de acreencia y cuota mensual a percibir, preservando la confidencialidad de datos personales (DNI, nombres y montos) respecto a terceros inversores.
 
 ### Acceptance criteria
-- [ ] **Selector en `/login`:**
-  - Se presenta un selector de dos pestañas destacado: *"Ingresar como PyME"* e *"Ingresar como Inversor"*.
-  - El selector es accesible por teclado (`aria-selected`, soporte de flechas y tabs).
-- [ ] **Redirección por rol seleccionado:**
-  - Al ingresar credenciales correctas con "Ingresar como PyME", el contexto de sesión activa se establece como PyME y redirige a `/dashboard/pyme` (o al return URL de `redirect` si fue solicitado).
-  - Al ingresar credenciales correctas con "Ingresar como Inversor", el contexto de sesión activa se establece como Inversor y redirige a `/dashboard/inversor` (o al return URL de `redirect` si fue solicitado).
-- [x] **Cuenta sin el rol seleccionado:**
-  - Si un usuario registrado exclusivamente como Inversor selecciona "Ingresar como PyME" (o viceversa), no se permite el acceso ni la activación cruzada de perfil (ya que cada tipo de cuenta requiere datos obligatorios de registro específicos como CUIT empresarial con AFIP vs DNI); el sistema rechaza el intento informando *"Credenciales incorrectas. Verificá tu correo electrónico y contraseña."* y cierra la sesión.
-- [ ] **Conmutador de rol en sesión (Role Switcher):**
-  - Si la cuenta posee ambos perfiles habilitados, el menú de usuario del Header despliega una opción rápida: *"Cambiar a modo Inversor"* / *"Cambiar a modo PyME"*, alternando de contexto y redirigiendo sin desloguear.
-- [ ] **Manejo de parámetro `redirect`:**
-  - La redirección respeta la función de seguridad `sanitizeRedirectUrl` para prevenir vulnerabilidades de Open Redirect.
-- [ ] **Pruebas automatizadas:** `LoginForm.test.tsx` prueba la alternancia del selector de rol, la autenticación exitosa para cada rol, el tratamiento del usuario con rol faltante y la prevención de Open Redirect.
+- [ ] **Acceso desde el Panel del Inversor (`InvestorDashboard.tsx`):**
+  - En la tabla de inversiones activas (`data-testid="investments-table"`), en la columna de acciones para cada fila:
+    - Si el préstamo está en estado `'active'` o `'repaid'` y cuenta con contrato de pagaré firmado, se renderiza un botón secundario visible *"Ver pagaré firmado"* (`data-testid="btn-view-promissory-note-{loanId}"`).
+    - Si el préstamo está en estado `'funding'` o `'funded'` pendiente de firma, el botón muestra el texto *"Pendiente de firma"* y se encuentra deshabilitado.
+- [ ] **Modo Lectura / Auditoría en `PromissoryNoteModal`:**
+  - Al hacer clic en *"Ver pagaré firmado"*, se abre el modal del pagaré electrónico en modo solo lectura (`readOnly = true`):
+    - No se solicita código OTP ni se muestra el botón *"Firmar pagaré digital"*.
+    - Se muestra un badge verde destacado: `"✓ Contrato firmado electrónicamente por la PyME"`.
+    - Se exhibe el hash criptográfico SHA-256 (`signature_hash`) y la fecha/hora exacta de la firma digital (`signed_at`).
+    - Se ofrece un botón *"Descargar copia"* / *"Cerrar"*.
+- [ ] **Anexo de Acreedores y Privacidad de Datos:**
+  - El documento del pagaré incorpora al pie una sección rotulada `"Anexo I - Nómina de Acreedores e Individualización de Cuotas"`:
+    - Si el usuario que visualiza el pagaré tiene rol de **Inversor**: el Anexo I lista **únicamente** los datos de la PyME libradora y la fila correspondiente a su propia inversión (Razón Social/Nombre del Inversor, CUIT/DNI, capital invertido, porcentaje de participación y cuota mensual a percibir). Los datos de otros co-inversores no se envían ni se renderizan en el cliente.
+    - Si el usuario que visualiza es la **PyME deudora** o un **Administrador**: el Anexo I muestra la nómina completa consolidada de todos los inversores participantes de la subasta con el desglose de cuotas de cada uno.
+- [ ] **Seguridad y Permisos RLS en Supabase:**
+  - La tabla `public.legal_contracts` cuenta con una política `SELECT` activa para inversores autenticados que restringe la lectura exclusivamente a contratos de préstamos donde exista un registro en `public.investments` con `investor_id = auth.uid()`.
+  - Intentar consultar un pagaré de un préstamo en el que no se haya invertido retorna 0 filas o un error 403 / Recurso no encontrado.
+- [ ] **Pruebas automatizadas:**
+  - Se implementan tests en `tests/components/InvestorDashboard.test.tsx` verificando:
+    - La aparición del botón *"Ver pagaré firmado"* en préstamos activos.
+    - La apertura del modal en modo solo lectura.
+    - Que un inversor autenticado solo ve su propia información en el anexo de acreedores sin filtrar datos de otros usuarios.
 
-### Out of scope
-- Recuperación de contraseña por SMS (se preserva el flujo de recuperación existente vía email).
+## Out of scope
+- Firma electrónica por parte del inversor (el pagaré es un título de crédito unilateral emitido por la PyME a favor de los acreedores).
+- Generación de firma manuscrita digitalizada.
 
-### Constraints
-- Modificar [LoginForm.tsx](file:///c:/Users/rafah/Documents/lencord/components/auth/LoginForm.tsx), [Header.tsx](file:///c:/Users/rafah/Documents/lencord/components/layout/Header.tsx) y tipos en `@/types`.
+## Constraints
+- El diseño debe adherir a los lineamientos visuales de `_docs/design-system.md` (badges, modales accesibles y tipografía uniforme).
+- Los contratos deben satisfacer las interfaces de `LegalServiceInterface` en `@/types/services.ts`.
 
 ---
 
-## [4. Limpieza del Panel de Inversor y reemplazo de selector demo por perfil real](https://github.com/rfhfmnn/lencord/issues/55)
+## [Tarea 3: Formato monetario con decimales fijos en Saldo en Custodia y Operaciones de Fondos](https://github.com/rfhfmnn/lencord/issues/84)
+
+**Labels:** `financial-accuracy`, `enhancement`, `user-feedback`
 
 ### Goal
-Eliminar el selector de prueba temporal (`<select id="investor-select">` con "Juan Ignacio Pérez", "Inversora Austral S.A.", etc.) del Panel del Inversor (`InvestorDashboard.tsx`) y vincular todas las métricas, listas y datos exclusivamente a la sesión y perfil del usuario autenticado.
+Estandarizar la presentación de los saldos en custodia, operaciones bancarias y modales de movimientos de fondos en toda la plataforma, asegurando que todos los importes contables y financieros se visualicen siempre con dos decimales obligatorios según la convención monetaria argentina (`$ 150.000,00` o `$ 0,00`), evitando redondeos que oculten centavos en billeteras y transacciones.
 
 ### Acceptance criteria
-- [ ] **Eliminación del componente mockup:**
-  - El bloque `div.investorSelector` y el elemento `<select id="investor-select">` son removidos por completo del árbol DOM.
-  - No queda rastro de nombres ficticios hardcodeados en el código de producción del componente.
-- [ ] **Datos reales del usuario autenticado:**
-  - El encabezado del panel muestra el nombre legal real obtenido de la sesión (`user.name` o `profile.legal_name`).
-  - La tarjeta de saldo y advertencia regulatoria consume el saldo real o de custodia asignado a la cuenta autenticada.
-- [ ] **Pestaña / Sección de "Mi Perfil":**
-  - Se agrega una sección accesible para ver correo electrónico registrado, CBU/CVU bancario asociado y estado del DNI/CUIT.
-  - Permite actualizar el DNI/CUIT con feedback de éxito o error en línea.
-- [ ] **Estado vacío (Empty State):**
-  - Si el inversor autenticado no tiene inversiones registradas (`investments.length === 0`), se renderiza un estado vacío limpio con ilustración amigable, mensaje motivacional y botón primario *"Explorar oportunidades"* que enlaza a `/marketplace`.
-- [ ] **Pruebas automatizadas:** `InvestorDashboard.test.tsx` valida la ausencia del selector demo, la carga de datos del perfil autenticado, y el renderizado correcto del empty state ante listas vacías.
+- [ ] **Función de formateo monetario centralizada (`formatCurrency`):**
+  - La función `formatCurrency` en `components/home/HeroSimulator.tsx` (o un módulo de utilidades compartidas `@/utils/currency`) se extiende para soportar una opción de decimales explícita o por defecto para saldos contables:
+    - Formatea usando `es-AR`, moneda `ARS`, con `minimumFractionDigits: 2` y `maximumFractionDigits: 2`.
+    - Ejemplo: `formatCurrency(150000, { decimals: true })` o `formatCurrency(150000.5)` produce `"$ 150.000,50"`.
+    - Un valor de `0` produce estrictamente `"$ 0,00"`.
+    - Un valor con centavos fraccionarios (ej. `1234.567`) se redondea a dos decimales (`"$ 1.234,57"`).
+- [ ] **Header Superior (`Header.tsx`):**
+  - El indicador de saldo en custodia en la barra de navegación (`data-testid="header-custody-balance"`) muestra el importe con dos decimales (ejemplo: `$ 250.000,00` o `$ 0,00`).
+  - Al actualizarse el saldo tras una inversión, cobro de cuota o retiro, el Header refleja inmediatamente el valor con dos decimales.
+- [ ] **Tarjetas de Balance en Paneles (`InvestorDashboard` y `BorrowerDashboard`):**
+  - En el Panel del Inversor (`InvestorDashboard.tsx`):
+    - Tarjeta de *"Saldo disponible en custodia"* (`data-testid="custody-balance-card"`): muestra el saldo con dos decimales.
+    - Tarjeta de *"Capital invertido"* y métricas de cobro: muestran dos decimales.
+  - En el Panel de la PyME (`BorrowerDashboard.tsx`):
+    - Banner de desembolso y saldo transferido: se renderizan con dos decimales.
+- [ ] **Modal de Retiro de Fondos (`WithdrawalModal.tsx`):**
+  - El cartel de *"Saldo disponible para transferir a tu cuenta bancaria"* muestra el importe exacto con centavos (`data-testid="available-balance"`).
+  - Al hacer clic en *"Retirar el total disponible"*, el input se completa con el valor exacto incluyendo centavos (ej. `15420.50`).
+  - La previsualización y el resumen de confirmación del retiro exhiben el monto con dos decimales.
+- [ ] **Modal de Depósito / Fondeo (`DepositModal.tsx`):**
+  - El saldo actual y el valor a ingresar contemplan dos decimales obligatorios en el resumen de acreditación.
+- [ ] **Pruebas automatizadas:**
+  - Se ejecutan y pasan los tests unitarios en:
+    - `tests/components/Header.test.tsx` (validando que el saldo muestra `,00`).
+    - `tests/components/CustodyBalanceAndWithdrawal.test.tsx` (validando formato en modal de retiro).
+    - `tests/components/HeroSimulator.test.tsx` y tests de dashboards verificando el formateo monetario con dos decimales.
 
-### Out of scope
-- Sincronización automática de movimientos con homebanking bancario externo.
+## Out of scope
+- Modificación de la base de datos de PostgreSQL (los campos `numeric(15, 2)` en `profiles.custody_balance` y `custody_transactions.amount` ya almacenan centavos).
+- Formato de monedas extranjeras (USD / EUR).
 
-### Constraints
-- Modificar [InvestorDashboard.tsx](file:///c:/Users/rafah/Documents/lencord/components/dashboard/InvestorDashboard.tsx) y estilos asociados en [dashboard.module.css](file:///c:/Users/rafah/Documents/lencord/components/dashboard/dashboard.module.css).
+## Constraints
+- Mantener la convención oficial argentina de numeración: punto (`.`) como separador de miles y coma (`,`) como separador de decimales precedido por el signo `$`.
+- Preservar la compatibilidad hacia atrás en sliders del simulador público de préstamos donde los montos solicitados sean enteros redondos si no se especifica la opción de decimales.
 
 ---
 
-## [5. Historial y tabla de solicitudes en Panel PyME con vencimiento opcional y descripción](https://github.com/rfhfmnn/lencord/issues/56)
+## [Tarea 4: Separación de Nombre/Apellido del Representante y Persistencia de Teléfono en Mesa de Crédito](https://github.com/rfhfmnn/lencord/issues/85)
+
+**Labels:** `auth`, `mesa-credito`, `bug`, `user-feedback`
 
 ### Goal
-Incorporar en el panel de la PyME (`/dashboard/pyme`) una tabla detallada con el historial de todas sus solicitudes de crédito (descripción del proyecto, fecha de solicitud, monto, tasa, estado y vencimiento), y añadir en el wizard y panel la opción de que la subasta no tenga fecha límite fija o pueda ser configurada/modificada por la PyME cuando lo desee.
+Dividir el ingreso de la identidad del representante legal en dos casillas independientes (Nombre y Apellido) en el formulario de registro de empresas y en la solicitud de financiamiento, garantizando su correcta persistencia en las columnas `first_name` y `last_name` de `profiles`, y asegurar que el número telefónico de contacto ingresado en la solicitud se guarde en el perfil de la PyME para que la Mesa de Crédito del Administrador lo visualice de inmediato en lugar de la leyenda "No registrado".
 
 ### Acceptance criteria
-- [ ] **Tabla de historial de solicitudes (`/dashboard/pyme`):**
-  - Se añade la sección "Historial de solicitudes de financiamiento" con una tabla accesible (`<table role="table">`).
-  - Columnas obligatorias visibles:
-    1. **Proyecto / Destino:** Categoría con badge y descripción resumida del proyecto.
-    2. **Monto solicitado:** Formateado en pesos argentinos (`$ X.XXX.XXX`).
-    3. **Plazo y Tasa:** Meses y esquema de tasa (Fija o CER).
-    4. **Fecha de solicitud:** Formato legible local (`DD/MM/AAAA`).
-    5. **Vencimiento de subasta:** Fecha estipulada o etiqueta *"Sin fecha límite"*.
-    6. **Estado:** Badge semántico según estado (`in_review`, `funding`, `funded`, `active`, etc.).
-    7. **Acciones:** Enlace a ver detalle, botón para firmar pagaré (si está fondeado), o botón *"Definir vencimiento"* (si está en subasta sin fecha límite).
-- [ ] **Configuración en Solicitud (`/solicitar`, Paso 2):**
-  - En `StepProjectConditions.tsx`, se incorpora un campo opcional para vencimiento de subasta con opciones:
-    - *"Sin fecha límite (abierta hasta completar fondeo)"*
-    - *"15 días"*
-    - *"30 días"*
-    - *"45 días"*
-    - *"Fecha personalizada"* (selector de fecha calendario que no permita fechas pasadas).
-- [ ] **Modificación posterior de vencimiento:**
-  - Si una subasta se encuentra activa (`funding`) sin fecha límite, la PyME puede abrir un diálogo modal desde la tabla para fijar o extender una fecha límite cuando lo decida.
-- [ ] **Empty State:** Si la PyME no tiene solicitudes previas, se mantiene la tarjeta invitando a solicitar financiamiento con botón hacia `/solicitar`.
-- [ ] **Pruebas automatizadas:** Casos de prueba en `BorrowerDashboard.test.tsx` y `StepProjectConditions.test.tsx` validan la visualización de las columnas, la opción de sin fecha límite y la apertura del modal de edición de vencimiento.
+- [ ] **Formulario de Registro PyME (`RegisterForm.tsx`):**
+  - Al seleccionar el rol PyME (`borrower`), el campo único anterior de representante se divide en dos casillas separadas obligatorias:
+    - *"Nombre del representante"* (`name="repFirstName"`, `data-testid="input-rep-first-name"`).
+    - *"Apellido del representante"* (`name="repLastName"`, `data-testid="input-rep-last-name"`).
+  - Si alguno de los dos campos se envía vacío o solo con espacios, se muestra el mensaje de validación correspondiente:
+    - *"El nombre del representante es obligatorio."*
+    - *"El apellido del representante es obligatorio."*
+  - Al completar el registro, se guardan en la metadata de Auth y en la tabla `profiles`:
+    - `first_name`: valor ingresado en Nombre.
+    - `last_name`: valor ingresado en Apellido.
+    - `representative_name`: combinación de Nombre y Apellido (`${nombre} ${apellido}`).
+- [ ] **Paso 1 de la Solicitud de Financiamiento (`StepCompanyInfo.tsx`):**
+  - La interfaz del Paso 1 contiene dos campos de texto individuales para la persona apoderada:
+    - *"Nombre del apoderado/titular"* (`id="rep_first_name"`, `data-testid="input-rep-first-name"`).
+    - *"Apellido del apoderado/titular"* (`id="rep_last_name"`, `data-testid="input-rep-last-name"`).
+  - Ambos campos se precargan automáticamente con el `first_name` y `last_name` del perfil del usuario conectado (o división limpia si proviene de un registro legado).
+  - El campo de teléfono celular (`rep_phone`) se precarga con `profile.phone` si ya existía registrado.
+- [ ] **Persistencia del Teléfono y Datos en Perfil (`LoanWizard.tsx`):**
+  - Al pulsar *"Confirmar y solicitar financiación"* en el paso final del wizard:
+    - Además de crear el registro del préstamo (`loans`), se ejecuta la actualización del perfil del prestatario en Supabase:
+      - `phone`: número telefónico celular ingresado en `step1Data.rep_phone`.
+      - `first_name`: nombre del representante ingresado en `step1Data.rep_first_name`.
+      - `last_name`: apellido del representante ingresado en `step1Data.rep_last_name`.
+    - La operación se ejecuta con manejo de errores defensivo para que un fallo en la actualización del perfil no interrumpa la creación de la solicitud.
+- [ ] **Visualización en Mesa de Crédito Admin (`AdminConsole.tsx`):**
+  - En la consola del Administrador (`/admin`), al abrir el modal de evaluación de una solicitud de crédito:
+    - En el campo *"Teléfono de contacto"*: se visualiza el número de teléfono guardado en el perfil de la PyME solicitante, desapareciendo la leyenda *"No registrado"* cuando el teléfono fue provisto en la solicitud.
+    - En el campo *"Representante legal / Titular"*: se visualiza la composición limpia de Nombre y Apellido (`${profile.first_name} ${profile.last_name}`).
+- [ ] **Pruebas automatizadas:**
+  - Se ejecutan y pasan los tests unitarios en:
+    - `tests/components/RegisterForm.test.tsx` (validando campos separados y mensajes de error de nombre y apellido).
+    - `tests/components/LoanWizardStep1And2.test.tsx` (validando inputs en paso 1 y precarga).
+    - `tests/components/AdminConsole.test.tsx` (validando que el teléfono y nombre completo se renderizan en el panel de evaluación).
 
-### Out of scope
-- Cancelación arbitraria de subastas que ya alcancen el 50% de fondeo sin intervención del oficial de riesgos.
+## Out of scope
+- Validación de números de teléfono vía código SMS / WhatsApp OTP al momento de cargar el formulario.
+- Consulta automática de poderes notariales o estatutos sociales en registros públicos de comercio.
 
-### Constraints
-- Modificar [BorrowerDashboard.tsx](file:///c:/Users/rafah/Documents/lencord/components/dashboard/BorrowerDashboard.tsx), [StepProjectConditions.tsx](file:///c:/Users/rafah/Documents/lencord/components/solicitar/StepProjectConditions.tsx) y estilos en [dashboard.module.css](file:///c:/Users/rafah/Documents/lencord/components/dashboard/dashboard.module.css).
+## Constraints
+- Mantener la integridad del trigger PostgreSQL `handle_new_user` en Supabase extrayendo `first_name` y `last_name` de los metadatos de registro.
+- No modificar el tipo de datos de la columna `phone` (`varchar(50)`) en la tabla `public.profiles`.
 
 ---
 
-## [6. Simulador de cuotas y disclaimer en Paso 2 de Solicitud de Financiamiento](https://github.com/rfhfmnn/lencord/issues/57)
+## [Tarea 5: Visualización de la Razón Social de la PyME en Oportunidades del Marketplace](https://github.com/rfhfmnn/lencord/issues/86)
+
+**Labels:** `marketplace`, `pyme`, `enhancement`, `user-feedback`
 
 ### Goal
-Integrar en el paso 2 del wizard de solicitud de crédito (`StepProjectConditions.tsx`) un simulador interactivo y reactivo que calcule la cuota mensual estimada bajo el sistema francés a una tasa promedio de referencia del mercado, acompañado de un disclaimer explicativo destacado sobre la evaluación de riesgo crediticio.
+Mostrar claramente la Razón Social de la empresa PyME en todas las oportunidades de inversión del marketplace (tanto en las tarjetas del catálogo general `/marketplace` como en la vista de detalle de cada subasta `/marketplace/[id]` y en el modal de inversión), permitiendo que los inversores identifiquen de inmediato a la entidad prestataria.
 
 ### Acceptance criteria
-- [ ] **Cálculo reactivo de cuota estimada:**
-  - Al modificar el monto solicitado o el plazo pretendido (1, 2, 3, 6, 12 meses), el simulador actualiza automáticamente el valor de la cuota mensual promedio estimada.
-  - El cálculo utiliza la fórmula de amortización del sistema francés implementada en `calculateBorrowerInstallment` utilizando la tasa promedio de referencia de la plataforma (`BORROWER_FIXED_TNA = 0.48`).
-  - Para montos no ingresados o en cero, la cuota muestra `$ 0` sin producir valores `NaN` ni errores de consola.
-- [ ] **Bloque visual destacado:**
-  - Se muestra un recuadro con fondo diferenciado dentro del Paso 2 exhibiendo el valor formateado: *"Cuota mensual estimada: $ X.XXX.XXX / mes"*.
-- [ ] **Disclaimer regulatorio y de riesgo:**
-  - Inmediatamente adyacente a la cuota calculada se incluye un texto de descargo con icono informativo:
-    *"Nota informativa: Este valor es una simulación orientativa calculada con tasas promedio de mercado. La tasa final aplicable y el valor definitivo de la cuota serán determinados luego de la evaluación de riesgo crediticio de tu empresa realizada por nuestro equipo."*
-- [ ] **Experiencia de usuario no bloqueante:**
-  - La presencia del simulador no entorpece ni bloquea el envío normal del formulario al hacer clic en "Continuar".
-- [ ] **Pruebas automatizadas:** `StepProjectConditions.test.tsx` prueba el cálculo exacto de la cuota con distintos montos/plazos y valida que el texto del disclaimer esté presente en el documento.
+- [x] **Tarjetas del Catálogo de Oportunidades (`LoanCard.tsx`):**
+  - Cada tarjeta de préstamo en `/marketplace` renderiza de forma visible la razón social de la empresa prestataria (`data-testid="loan-company-name"`).
+  - La razón social se ubica de forma destacada sobre la descripción del proyecto, respetando la tipografía y jerarquía visual del design system.
+  - Si la razón social es extensa, se trunca limpiamente con ellipsis en una sola línea manteniendo la alineación de la tarjeta.
+  - Si una oportunidad no cuenta con razón social registrada, se muestra el fallback `"Empresa PyME"`.
+- [x] **Vista Detallada de la Oportunidad (`LoanDetail.tsx`):**
+  - En el encabezado principal de la subasta `/marketplace/[id]`, se exhibe un bloque informativo destacado con la razón social de la PyME (`data-testid="detail-company-name"`).
+  - En la sección *"Evaluación crediticia y solvencia"*, se incluye una fila explícita indicando *"Razón Social"* y el nombre legal de la compañía (`data-testid="detail-credit-company-name"`).
+- [x] **Modal de Inversión (`InvestmentModal.tsx`):**
+  - El encabezado o subtítulo del modal de inversión (`data-testid="investment-modal"`) indica la razón social de la PyME en la que se está invirtiendo.
+- [x] **Resolución de Datos en Capa de Servicios y Catálogo (`MarketplaceCatalog.tsx` y servicios):**
+  - `MarketplaceCatalog.tsx` recupera los nombres legales de las empresas prestatarias mediante los perfiles asociados a cada `borrower_id` y los transfiere a cada `LoanCard`.
+  - `MockLoanService` y `SupabaseLoanService` enriquecen las instancias de `Loan` con el campo `borrower_name` / `company_name` a partir de `profiles.legal_name`.
+  - Los datos semilla de préstamos (`SEED_LOANS`) cuentan con la razón social asignada correspondiente a su prestatario.
+- [x] **Pruebas automatizadas:**
+  - Se ejecutan y pasan los tests unitarios en:
+    - `tests/components/LoanCard.test.tsx` (validando que renderiza la razón social y fallback).
+    - `tests/components/MarketplaceCatalog.test.tsx` (validando que las tarjetas en el catálogo muestran las razones sociales correspondientes).
+    - `tests/components/LoanDetail.test.tsx` (validando que el detalle de la oportunidad exhibe la razón social en el encabezado y en solvencia).
 
 ### Out of scope
-- Cálculo de scoring en tiempo real con la API del BCRA en el Paso 2 (ocurre internamente en el panel de riesgos de administración).
+- Pantalla pública de perfil corporativo o balance general descargable para inversores anónimos.
+- Modificación de la estructura relacional de la tabla `loans` en PostgreSQL.
 
 ### Constraints
-- Modificar [StepProjectConditions.tsx](file:///c:/Users/rafah/Documents/lencord/components/solicitar/StepProjectConditions.tsx) y [solicitar.module.css](file:///c:/Users/rafah/Documents/lencord/components/solicitar/solicitar.module.css).
-- Reutilizar las constantes y fórmulas probadas en [HeroSimulator.tsx](file:///c:/Users/rafah/Documents/lencord/components/home/HeroSimulator.tsx).
+- Obtener la razón social exclusivamente desde la columna `legal_name` de `public.profiles`.
+- Respetar los estilos y tokens definidos en `_docs/design-system.md`.
 
 ---
 
-## [7. Restricción de acceso a subastas particulares para usuarios sin sesión](https://github.com/rfhfmnn/lencord/issues/58)
+## [Tarea 6: Incorporación de Tipo Societario y Fecha de Inicio en Registro PyME y Modo Confirmación en Paso 1](https://github.com/rfhfmnn/lencord/issues/87)
+
+**Labels:** `auth`, `solicitar`, `ux`, `enhancement`, `user-feedback`
 
 ### Goal
-Permitir que los usuarios no autenticados exploren libremente el catálogo general del marketplace (`/marketplace`), pero restringir el acceso a la vista detallada de cualquier subasta particular (`/marketplace/[id]`), redirigiendo a los visitantes anónimos a `/login?redirect=/marketplace/[id]` con aviso informativo.
+Capturar el tipo societario y la fecha de inicio de actividades directamente en el formulario de registro de cuentas PyME para persistirlos en el perfil de la empresa, permitiendo que el Paso 1 de la solicitud de crédito se autocomplete íntegramente como una pantalla de confirmación de datos societarios ya validados.
 
 ### Acceptance criteria
-- [ ] **Acceso público a catálogo general:** La ruta `/marketplace` responde exitosamente (HTTP 200) para visitantes no autenticados, permitiendo filtrar y explorar todas las tarjetas de préstamo disponibles.
-- [ ] **Protección de subasta individual:**
-  - Cualquier intento de ingresar directamente por URL a `/marketplace/[id]` sin sesión activa es interceptado por `middleware.ts` o SSR y redirigido con HTTP 307 a:
-    `/login?redirect=/marketplace/[id]&reason=auth_required`
-  - Si un usuario sin sesión hace clic en una tarjeta dentro de `/marketplace`, es dirigido al login con la misma redirección configurada.
-- [ ] **Aviso informativo en login:**
-  - Cuando la página `/login` recibe el parámetro `reason=auth_required`, muestra un banner informativo visible:
-    *"Iniciá sesión o registrate para acceder a la información crediticia y financiera detallada de esta subasta."*
-- [ ] **Retorno automático post-login:**
-  - Una vez que el usuario se autentica con éxito, el sistema lo redirige de inmediato a la subasta `/marketplace/[id]` que intentaba consultar.
-- [ ] **Pruebas automatizadas:** Pruebas en `middleware.test.ts` o pruebas de integración de rutas confirman que `/marketplace` es público y `/marketplace/[id]` exige autenticación devolviendo redirección.
+- [x] **Formulario de Registro PyME (`RegisterForm.tsx`):**
+  - Al seleccionar el rol PyME (`borrower`), se muestran dos campos obligatorios adicionales para la empresa:
+    - Selector "Tipo societario" (`data-testid="select-company-type"` / `id="companyType"`) con opciones: `SRL`, `SA`, `SAS`, `Responsable Inscripto` y `Monotributo`.
+    - Selector de fecha "Fecha de inicio de actividades" (`data-testid="input-start-date"` / `id="startDate"`).
+  - Si se intenta enviar el registro con el tipo societario vacío o sin fecha de inicio, se muestran los mensajes de validación correspondientes ("Seleccioná el tipo societario de la empresa." / "La fecha de inicio de actividades es obligatoria.").
+  - No se permite seleccionar una fecha de inicio de actividades posterior al día actual ("La fecha de inicio no puede ser una fecha futura.").
+  - Al completar el registro, los valores `company_type` y `start_date` se persisten en `auth.users.user_metadata` y en las columnas `company_type` y `start_date` de `public.profiles`.
+- [x] **Precarga y Resolución en Solicitud de Financiamiento (`LoanWizard.tsx`):**
+  - Al resolver el perfil del usuario autenticado (vía `userProfile` prop o sesión Supabase Auth), `company_type` y `start_date` se extraen de `profiles` / `user_metadata` y se inyectan en `step1Data`.
+  - Al completarse la solicitud de crédito, cualquier actualización de estos campos se replica en `profiles`.
+- [x] **Modo Confirmación en Paso 1 (`StepCompanyInfo.tsx`):**
+  - Cuando los datos societarios vienen precargados de la cuenta autenticada (`isPrepopulated` con `company_type` y `start_date`):
+    - El selector de tipo societario y el input de fecha de inicio se muestran en modo solo lectura / bloqueados (`disabled` / `readOnly`), con helper text indicando que provienen del registro de la empresa.
+    - Se visualiza el aviso destacado de confirmación: `"🔒 Datos fiscales verificados: La información de tu empresa corresponde a tu cuenta registrada y se encuentra precargada para confirmar la solicitud."`
+  - Si una cuenta preexistente o legado no posee `company_type` o `start_date` cargados en el perfil, los campos permanecen editables para permitir su ingreso manual.
+- [x] **Pruebas automatizadas:**
+  - Se ejecutan y pasan los tests en:
+    - `tests/components/RegisterForm.test.tsx` (validando campos, validaciones y persistencia de `company_type` y `start_date`).
+    - `tests/components/LoanWizardStep1And2.test.tsx` y `tests/components/LoanWizardAuthenticated.test.tsx` (validando precarga, modo solo lectura de confirmación en paso 1 y compatibilidad).
 
 ### Out of scope
-- Bloqueo o paywall para inversores registrados que aún no tienen fondos en custodia.
+- Validación por API en tiempo real con ARCA/AFIP del certificado de inicio de actividades.
 
 ### Constraints
-- Modificar [middleware.ts](file:///c:/Users/rafah/Documents/lencord/middleware.ts), [LoginForm.tsx](file:///c:/Users/rafah/Documents/lencord/components/auth/LoginForm.tsx) y [login.module.css](file:///c:/Users/rafah/Documents/lencord/components/auth/login.module.css).
+- Agregar columnas `company_type VARCHAR(50)` y `start_date DATE` en `public.profiles` mediante migración PostgreSQL idempotente.
+- Respetar los tipos `CompanyType` definidos en `@/components/solicitar/StepCompanyInfo`.
 
----
 
-## [8. Descripción breve en Marketplace y cálculo de ganancia (TNA, TEA, TEM) en Modal de Inversión](https://github.com/rfhfmnn/lencord/issues/59)
-
-### Goal
-Exhibir una breve descripción del proyecto o PyME solicitante en cada tarjeta del catálogo de oportunidades del marketplace (`LoanCard.tsx`), y dentro del modal "Invertir en esta PyME" (`InvestmentModal.tsx`), calcular en tiempo real el importe neto a ganar junto a la visualización clara de las tres tasas de referencia: TNA, TEA y TEM.
-
-### Acceptance criteria
-- [x] **Descripción breve en tarjeta de préstamo (`LoanCard.tsx`):**
-  - Cada tarjeta en `/marketplace` renderiza un extracto de la descripción del proyecto (1 a 2 líneas).
-  - La descripción es visible para todos los usuarios (con y sin sesión iniciada).
-  - Si la descripción supera los 90 caracteres, se trunca limpiamente con puntos suspensivos (`...`) preservando la altura uniforme de la grilla de tarjetas.
-- [x] **Cálculo dinámico en Modal de Inversión (`InvestmentModal.tsx`):**
-  - Al ingresar o editar el monto en pesos a invertir:
-    1. **Importe a ganar:** Calcula el interés estimado a percibir según el plazo del préstamo:
-       `rendimiento = monto * (TEM / 100) * plazo_meses`.
-    2. **Monto total a cobrar:** Muestra la suma de Capital + Intereses estimados (`monto + rendimiento`).
-  - Si el monto ingresado está vacío o es menor al ticket mínimo ($10.000), el importe a ganar muestra `$ 0` sin arrojar errores.
-- [x] **Detalle explícito de tasas financieras:**
-  - El modal incluye una sección clara con las tres tasas normalizadas:
-    - **TNA (Tasa Nominal Anual):** Tasa nominal de la subasta (ej: `45,0% TNA`).
-    - **TEM (Tasa Efectiva Mensual):** `TNA / 12` (ej: `3,75% TEM`).
-    - **TEA (Tasa Efectiva Anual):** `((1 + TEM/100)^12 - 1) * 100` (ej: `55,5% TEA`).
-- [x] **Pruebas automatizadas:** Casos en `LoanCard.test.tsx` validan la presencia y truncado de la descripción; pruebas en `InvestmentModal.test.tsx` verifican la reactividad del cálculo de intereses y la visualización correcta de TNA, TEA y TEM.
-
-### Out of scope
-- Deducción de retenciones impositivas de Ganancias o Sellos en el cálculo orientativo (se presenta rendimiento bruto regulatorio).
-
-### Constraints
-- Modificar [LoanCard.tsx](file:///c:/Users/rafah/Documents/lencord/components/marketplace/LoanCard.tsx), [loan-card.module.css](file:///c:/Users/rafah/Documents/lencord/components/marketplace/loan-card.module.css), [InvestmentModal.tsx](file:///c:/Users/rafah/Documents/lencord/components/marketplace/InvestmentModal.tsx) e [investment-modal.module.css](file:///c:/Users/rafah/Documents/lencord/components/marketplace/investment-modal.module.css).
