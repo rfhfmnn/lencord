@@ -31,6 +31,11 @@ describe('Landing Page Trust Metrics and Informational Sections (Task 8)', () =>
       expect(returnMetric).toHaveTextContent('52,4% TNA');
       expect(returnMetric).toHaveTextContent('Rendimiento promedio');
       expect(returnMetric).toHaveTextContent('Retorno histórico últimos 6 meses');
+
+      // Non-breaking spaces verification (Issue Web Interface Guidelines)
+      expect(TRUST_METRICS.find((m) => m.id === 'historical-volume')?.value).toBe('$' + '\u00A0' + '150M+');
+      expect(TRUST_METRICS.find((m) => m.id === 'average-term')?.value).toBe('5,8\u00A0meses');
+      expect(TRUST_METRICS.find((m) => m.id === 'investor-return')?.value).toBe('52,4%\u00A0TNA');
     });
 
     it('accepts custom metrics list via props', () => {

@@ -263,15 +263,15 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
 
           <div className={styles.trustHighlights}>
             <div className={styles.highlightItem}>
-              <span className={styles.highlightIcon}>✓</span>
+              <span className={styles.highlightIcon} aria-hidden="true">✓</span>
               <span>Evaluación 100% online en menos de 24hs</span>
             </div>
             <div className={styles.highlightItem}>
-              <span className={styles.highlightIcon}>✓</span>
+              <span className={styles.highlightIcon} aria-hidden="true">✓</span>
               <span>Fondeo transparente con pagaré digital</span>
             </div>
             <div className={styles.highlightItem}>
-              <span className={styles.highlightIcon}>✓</span>
+              <span className={styles.highlightIcon} aria-hidden="true">✓</span>
               <span>Protección y análisis de riesgo con IA</span>
             </div>
           </div>
@@ -322,8 +322,11 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                   <div className={styles.amountInputWrapper}>
                     <input
                       id={borrowerInputId}
+                      name="borrowerAmount"
                       type="text"
                       inputMode="numeric"
+                      autoComplete="off"
+                      spellCheck={false}
                       aria-label="Monto a solicitar en pesos argentinos"
                       className={styles.amountInput}
                       data-testid="borrower-amount-input"
@@ -503,8 +506,11 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
                   <div className={styles.amountInputWrapper}>
                     <input
                       id={investorInputId}
+                      name="investorAmount"
                       type="text"
                       inputMode="numeric"
+                      autoComplete="off"
+                      spellCheck={false}
                       aria-label="Monto a invertir en pesos argentinos"
                       className={styles.amountInput}
                       data-testid="investor-amount-input"

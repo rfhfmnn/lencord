@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ServiceProvider } from '@/context';
@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   description: 'Plataforma peer-to-peer (P2P) de préstamos colectivos orientada a PyMEs argentinas',
 };
 
+export const viewport: Viewport = {
+  themeColor: '#F8FAFC',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,9 +32,11 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
       <body className={plusJakartaSans.className}>
+        <a href="#main-content" className="skip-link">
+          Saltar al contenido principal
+        </a>
         <ServiceProvider>{children}</ServiceProvider>
       </body>
     </html>
   );
 }
-

@@ -28,6 +28,12 @@ describe('HeroSimulator Component', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText(/Evaluación 100% online/i)).toBeInTheDocument();
+
+    const checkmarks = screen.getAllByText('✓');
+    expect(checkmarks).toHaveLength(3);
+    checkmarks.forEach((icon) => {
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+    });
   });
 
   it('switches between borrower and investor modes using interactive toggle', () => {
@@ -127,6 +133,9 @@ describe('HeroSimulator Component', () => {
       render(<HeroSimulator initialMode="borrower" />);
 
       const input = screen.getByTestId('borrower-amount-input') as HTMLInputElement;
+      expect(input).toHaveAttribute('name', 'borrowerAmount');
+      expect(input).toHaveAttribute('autoComplete', 'off');
+      expect(input).toHaveAttribute('spellcheck', 'false');
       expect(input).toHaveAttribute('inputMode', 'numeric');
       expect(input).toHaveAttribute('aria-label', 'Monto a solicitar en pesos argentinos');
       expect(input.value).toBe('$ 2.000.000');
@@ -249,6 +258,9 @@ describe('HeroSimulator Component', () => {
       const input = screen.getByTestId('investor-amount-input') as HTMLInputElement;
       const slider = screen.getByRole('slider', { name: /monto a invertir/i });
 
+      expect(input).toHaveAttribute('name', 'investorAmount');
+      expect(input).toHaveAttribute('autoComplete', 'off');
+      expect(input).toHaveAttribute('spellcheck', 'false');
       expect(input.value).toBe('$ 500.000');
       expect(input).toHaveAttribute('inputMode', 'numeric');
       expect(input).toHaveAttribute('aria-label', 'Monto a invertir en pesos argentinos');

@@ -109,7 +109,7 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   text-align: center;
 }
 
@@ -219,7 +219,7 @@
   background-color: var(--color-bg-neutral);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .presetChip:hover {
@@ -245,10 +245,14 @@
   height: 6px;
   background: #E2E8F0;
   border-radius: var(--radius-full);
-  outline: none;
   accent-color: var(--color-primary);
   cursor: pointer;
   margin: 0.5rem 0 0.25rem;
+}
+
+.slider:focus-visible {
+  outline: 2px solid var(--color-primary-hover);
+  outline-offset: 2px;
 }
 
 .sliderLabels {
@@ -275,7 +279,7 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
   text-align: center;
 }
 
@@ -306,7 +310,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
   text-align: left;
 }
 

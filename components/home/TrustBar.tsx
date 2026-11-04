@@ -17,19 +17,19 @@ export const TRUST_METRICS: TrustMetric[] = [
   },
   {
     id: 'historical-volume',
-    value: '$ 150M+',
+    value: '$' + '\u00A0' + '150M+',
     label: 'Volumen operado',
     subtext: 'Fondos canalizados a la inversión y al desarrollo',
   },
   {
     id: 'average-term',
-    value: '5,8 meses',
+    value: '5,8\u00A0meses',
     label: 'Plazo promedio',
     subtext: 'Amortización ágil y previsible',
   },
   {
     id: 'investor-return',
-    value: '52,4% TNA',
+    value: '52,4%\u00A0TNA',
     label: 'Rendimiento promedio',
     subtext: 'Retorno histórico últimos 6 meses',
   },
