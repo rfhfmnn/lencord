@@ -164,9 +164,10 @@ export function BorrowerDashboard({
     return computeUpdatedDeadline(
       deadlineOption,
       customDeadlineInput,
-      deadlineModalLoan.funding_deadline
+      deadlineModalLoan.funding_deadline,
+      referenceDate
     );
-  }, [deadlineModalLoan, deadlineOption, customDeadlineInput]);
+  }, [deadlineModalLoan, deadlineOption, customDeadlineInput, referenceDate]);
 
   // Bank CBU and Installment Repayment Modal state (Issue #68 and #69)
   const [borrowerCbu, setBorrowerCbu] = useState<string>('0000003100010000000001');
@@ -893,7 +894,8 @@ export function BorrowerDashboard({
     const computed = computeUpdatedDeadline(
       deadlineOption,
       customDeadlineInput,
-      deadlineModalLoan.funding_deadline
+      deadlineModalLoan.funding_deadline,
+      referenceDate
     );
     if (!computed && deadlineOption !== 'no_limit') {
       setDeadlineModalError('Error al calcular la fecha límite.');

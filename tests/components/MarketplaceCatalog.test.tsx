@@ -22,7 +22,7 @@ describe('MarketplaceCatalog Component (Task 9)', () => {
       base_uva_value: null,
       category: 'working_capital',
       status: 'funding',
-      funding_deadline: '2026-10-30T23:59:59.000Z',
+      funding_deadline: new Date(Date.now() + 15 * 86400000).toISOString(),
       created_at: '2026-09-01T10:00:00.000Z',
     },
     {
@@ -38,7 +38,7 @@ describe('MarketplaceCatalog Component (Task 9)', () => {
       base_uva_value: 1200,
       category: 'machinery',
       status: 'funding',
-      funding_deadline: '2026-10-25T23:59:59.000Z',
+      funding_deadline: new Date(Date.now() + 10 * 86400000).toISOString(),
       created_at: '2026-09-02T10:00:00.000Z',
     },
     {
@@ -54,7 +54,7 @@ describe('MarketplaceCatalog Component (Task 9)', () => {
       base_uva_value: null,
       category: 'refinancing',
       status: 'funding',
-      funding_deadline: '2026-10-20T23:59:59.000Z',
+      funding_deadline: new Date(Date.now() + 5 * 86400000).toISOString(),
       created_at: '2026-09-03T10:00:00.000Z',
     },
   ];

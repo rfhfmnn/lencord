@@ -412,7 +412,7 @@ describe('BorrowerDashboard Component (Task 14)', () => {
         status: 'funding',
       };
 
-      render(<BorrowerDashboard initialLoans={[loanExistingDeadline]} />);
+      render(<BorrowerDashboard initialLoans={[loanExistingDeadline]} referenceDate={new Date('2026-10-25T12:00:00.000Z')} />);
 
       // Initial cell should show the existing date
       const deadlineCell = screen.getByTestId('loan-deadline-loan-existing-dl');

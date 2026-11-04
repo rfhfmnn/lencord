@@ -62,7 +62,7 @@ describe('AdminConsole Component (Task 15)', () => {
       base_uva_value: null,
       category: 'working_capital',
       status: 'in_review',
-      funding_deadline: '2026-11-01T23:59:59.000Z',
+      funding_deadline: '2028-11-01T23:59:59.000Z',
       created_at: '2026-09-24T18:00:00.000Z',
     },
     {
@@ -78,7 +78,7 @@ describe('AdminConsole Component (Task 15)', () => {
       base_uva_value: 1250,
       category: 'machinery',
       status: 'in_review',
-      funding_deadline: '2026-11-15T23:59:59.000Z',
+      funding_deadline: '2028-11-15T23:59:59.000Z',
       created_at: '2026-09-25T10:00:00.000Z',
     },
   ];
@@ -412,7 +412,7 @@ describe('AdminConsole Component (Task 15)', () => {
           base_uva_value: null,
           category: 'working_capital',
           status: 'in_review',
-          funding_deadline: '2026-11-01T23:59:59.000Z',
+          funding_deadline: '2028-11-01T23:59:59.000Z',
           created_at: '2026-09-01T10:00:00.000Z',
         },
         {
@@ -932,7 +932,7 @@ describe('AdminConsole Component (Task 15)', () => {
 
       const deadlineInput = screen.getByTestId('input-funding-deadline');
       expect(deadlineInput).toHaveAttribute('readonly');
-      expect(deadlineInput).toHaveValue('2026-11-01T23:59');
+      expect(deadlineInput).toHaveValue('2028-11-01T23:59');
     });
 
     it('renders "Sin fecha límite (fondeo abierto)" when borrower requested open auction without deadline', async () => {
@@ -1095,11 +1095,10 @@ describe('AdminConsole Component (Task 15)', () => {
 
         await waitFor(() => {
           expect(mockStorage.createSignedDocumentUrl).toHaveBeenCalled();
+          const afipLink = screen.getByTestId('link-doc-afip');
+          expect(afipLink.getAttribute('href')).toContain('valid_token');
+          expect(afipLink.getAttribute('href')).not.toContain('storage.lencord.ar');
         });
-
-        const afipLink = screen.getByTestId('link-doc-afip');
-        expect(afipLink.getAttribute('href')).toContain('valid_token');
-        expect(afipLink.getAttribute('href')).not.toContain('storage.lencord.ar');
       });
     });
   });
