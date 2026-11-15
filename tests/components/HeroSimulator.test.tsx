@@ -18,12 +18,12 @@ describe('HeroSimulator Component', () => {
     render(<HeroSimulator />);
 
     expect(
-      screen.getByText('Financiamiento colectivo sin burocracia. Retornos reales sin intermediarios.')
+      screen.getByText('Financiamiento colectivo sin burocracia ni intermediarios.')
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Conectamos PyMEs argentinas en crecimiento, con inversores que buscan retornos reales, sin intermediarios bancarios.'
+        'Conectamos ideas innovadoras con potencial de crecimiento, con inversores que buscan retornos reales, sin intermediarios bancarios.'
       )
     ).toBeInTheDocument();
 
