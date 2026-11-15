@@ -252,13 +252,13 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
       <div className={styles.container}>
         <div className={styles.heroText}>
           <div className={styles.badgePill}>
-            <span>Plataforma P2P para PyMEs Argentinas</span>
+            <span>Plataforma de financiamiento colectivo para ideas innovadoras de PyMEs Córdoba</span>
           </div>
           <h1 className={styles.title}>
-            Financiamiento colectivo sin burocracia. Retornos reales sin intermediarios.
+            Financiamiento colectivo sin burocracia ni intermediarios.
           </h1>
           <p className={styles.subtitle}>
-            Conectamos PyMEs argentinas en crecimiento, con inversores que buscan retornos reales, sin intermediarios bancarios.
+            Conectamos ideas innovadoras con potencial de crecimiento, con inversores que buscan retornos reales, sin intermediarios bancarios.
           </p>
 
           <div className={styles.trustHighlights}>
@@ -268,7 +268,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon} aria-hidden="true">✓</span>
-              <span>Fondeo transparente con pagaré digital</span>
+              <span>Fondeo transparente</span>
             </div>
             <div className={styles.highlightItem}>
               <span className={styles.highlightIcon} aria-hidden="true">✓</span>
