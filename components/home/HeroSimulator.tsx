@@ -252,7 +252,7 @@ export function HeroSimulator({ initialMode = 'borrower', className = '' }: Hero
       <div className={styles.container}>
         <div className={styles.heroText}>
           <div className={styles.badgePill}>
-            <span>Plataforma de financiamiento colectivo para ideas innovadoras de PyMEs Córdoba</span>
+            <span>Plataforma de financiamiento colectivo para ideas innovadoras de Córdoba</span>
           </div>
           <h1 className={styles.title}>
             Financiamiento colectivo sin burocracia ni intermediarios.
